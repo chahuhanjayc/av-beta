@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Cash Flow Forecast – Akshaya Vistara{% endblock %}
+{% block page_title %}30-Day Cash Flow Forecast{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-end mb-3">
+  <a href="?export=csv" class="btn btn-outline-success btn-sm">
+    <i class="bi bi-download me-1"></i>CSV
+  </a>
+</div>
+
+<!-- ── Forecast Summary ──────────────────────────────────────── -->
+<div class="row g-4 mb-4">
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm bg-primary text-white">
+      <div class="card-body">
+        <h6 class="text-uppercase small fw-bold opacity-75">Forecast Period</h6>
+        <h4 class="mb-0">{{ today|date:"d M" }} – {{ end_forecast|date:"d M Y" }}</h4>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm bg-success text-white">
+      <div class="card-body">
+        <h6 class="text-uppercase small fw-bold opacity-75">Current Cash & Bank Balance</h6>
+        <h4 class="mb-0">₹{{ opening_cash|floatformat:2 }}</h4>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Forecast Table ────────────────────────────────────────── -->
+<div class="card border-0 shadow-sm overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="font-size: 0.825rem;">
+            <thead class="bg-light">
+                <tr>
+                    <th class="ps-3">Date</th>
+                    <th class="text-end">Incoming (Receivables)</th>
+                    <th class="text-end">Outgoing (Payables)</th>
+                    <th class="text-end">Daily Net</th>
+                    <th class="text-end pe-3">Cumulative Position</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in forecast_table %}
+                <tr class="{% if row.cumulative < 0 %}table-danger-subtle{% endif %}">
+                    <td class="ps-3 fw-semibold">{{ row.date|date:"d M (D)" }}</td>
+                    <td class="text-end text-success">
+                        {% if row.incoming > 0 %}₹{{ row.incoming|floatformat:2 }}{% else %}-{% endif %}
+                    </td>
+                    <td class="text-end text-danger">
+                        {% if row.outgoing > 0 %}₹{{ row.outgoing|floatformat:2 }}{% else %}-{% endif %}
+                    </td>
+                    <td class="text-end fw-bold {% if row.net > 0 %}text-success{% elif row.net < 0 %}text-danger{% endif %}">
+                        ₹{{ row.net|floatformat:2 }}
+                    </td>
+                    <td class="text-end pe-3 fw-bold {% if row.cumulative < 0 %}text-danger{% else %}text-primary{% endif %}">
+                        ₹{{ row.cumulative|floatformat:2 }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="alert alert-info mt-4">
+    <i class="bi bi-info-circle-fill me-2"></i>
+    <strong>Projection Logic:</strong> This forecast is based on the <code>due_date</code> of outstanding Sales and Purchase invoices. It assumes all payments will be made/received exactly on their due dates.
+</div>
+
+{% endblock %}

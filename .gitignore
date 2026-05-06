@@ -1,0 +1,39 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Database
+# db.sqlite3  <-- Commented to allow dummy data for demo
+db.sqlite3-journal
+*.sqlite3-journal
+
+# Local settings
+.env
+.env.docker
+
+# Large backup files
+*.zip
+*.csv
+backups/
+backup.zip
+db.sqlite3.zip
+db.sqlite3.corrupt_backup
+
+# IDEs
+.vscode/
+.idea/
+
+# Media
+media/
+
+# App-specific noise
+SpendSight/
+Untitled.png
+node_modules/

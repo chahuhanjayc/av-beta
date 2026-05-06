@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Vendor GST Follow-up - Akshaya Vistara{% endblock %}
+{% block page_title %}Vendor GST Follow-up{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h5 class="mb-0">{{ row.supplier_name }}</h5>
+        <small class="text-muted">{{ period_start|date:"d M Y" }} to {{ period_end|date:"d M Y" }}</small>
+    </div>
+    <a href="{% url 'gstr2b:vendor_register' %}?from_period={{ from_period }}&to_period={{ to_period }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Vendor Register
+    </a>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-body">
+                <div class="text-muted small text-uppercase fw-semibold mb-2">GST Risk</div>
+                <div class="d-flex justify-content-between py-1">
+                    <span>GSTIN</span>
+                    <code>{{ row.gstin|default:"-" }}</code>
+                </div>
+                <div class="d-flex justify-content-between py-1">
+                    <span>ITC at risk</span>
+                    <strong class="text-danger">Rs. {{ row.itc_at_risk|floatformat:2 }}</strong>
+                </div>
+                <div class="d-flex justify-content-between py-1">
+                    <span>Missing in books</span>
+                    <span>{{ row.missing_books_count }} / Rs. {{ row.missing_books_tax|floatformat:2 }}</span>
+                </div>
+                <div class="d-flex justify-content-between py-1">
+                    <span>Missing in 2B</span>
+                    <span>{{ row.missing_portal_count }} / Rs. {{ row.missing_portal_tax|floatformat:2 }}</span>
+                </div>
+                <div class="d-flex justify-content-between py-1">
+                    <span>IMS pending/rejected/new</span>
+                    <span>{{ row.pending_count }} / {{ row.rejected_count }} / {{ row.no_action_count }}</span>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>Risk</span>
+                    <span class="badge {{ row.risk_badge_class }}">{{ row.risk_level }}</span>
+                </div>
+                <div class="small text-muted mt-2">{{ row.recommended_action }}</div>
+            </div>
+        </div>
+        {% if whatsapp_url %}
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="fw-semibold mb-2">WhatsApp Link</div>
+                <a href="{{ whatsapp_url }}" target="_blank" rel="noopener" class="btn btn-success w-100">
+                    <i class="bi bi-whatsapp me-1"></i> Open WhatsApp
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-8">
+        <form method="post" class="card border-0 shadow-sm">
+            {% csrf_token %}
+            <input type="hidden" name="vendor_key" value="{{ vendor_key }}">
+            <input type="hidden" name="from_period" value="{{ from_period }}">
+            <input type="hidden" name="to_period" value="{{ to_period }}">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold" for="recipient_email">Vendor Email</label>
+                        <input type="email" id="recipient_email" name="recipient_email" class="form-control" value="{{ recipient_email }}" placeholder="vendor@example.com">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold" for="whatsapp_number">Vendor WhatsApp</label>
+                        <input type="tel" id="whatsapp_number" name="whatsapp_number" class="form-control" value="{{ whatsapp_number }}" placeholder="+919876543210">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-semibold" for="subject">Subject</label>
+                        <input type="text" id="subject" name="subject" class="form-control" value="{{ subject }}">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-semibold" for="message">Message</label>
+                        <textarea id="message" name="message" class="form-control" rows="14">{{ message }}</textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-white d-flex flex-wrap gap-2 justify-content-end">
+                <button type="submit" name="channel" value="whatsapp" class="btn btn-outline-success">
+                    <i class="bi bi-whatsapp me-1"></i> Prepare WhatsApp
+                </button>
+                <button type="submit" name="channel" value="email" class="btn btn-primary">
+                    <i class="bi bi-envelope me-1"></i> Send Email
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,458 @@
+{% extends "base.html" %}
+{% block title %}GST Report – Akshaya Vistara{% endblock %}
+{% block page_title %}GST Report (GSTR-1 &amp; GSTR-3B){% endblock %}
+
+{% block extra_head %}
+<style>
+  .gst-badge-b2b  { background:#dbeafe; color:#1e40af; }
+  .gst-badge-b2c  { background:#fef9c3; color:#854d0e; }
+  .gst-section    { border-left: 4px solid var(--accent); }
+
+  @media print {
+    #sidebar, #topbar, .no-print, .nav-tabs, .tab-content > .tab-pane:not(.active) {
+      display: none !important;
+    }
+    .tab-content > .active { display: block !important; }
+    #main-content { margin-left: 0 !important; }
+    .page-body { padding: 0 !important; }
+    .card { border: 1px solid #dee2e6 !important; box-shadow: none !important; }
+    body { background: white !important; font-size: 10pt; }
+    .badge { border: 1px solid #ccc !important; -webkit-print-color-adjust: exact; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Date range filter ──────────────────────────────────────── -->
+<div class="card border-0 shadow-sm mb-3 no-print">
+  <div class="card-body py-3">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-auto">
+        <label class="form-label small fw-semibold mb-1">From</label>
+        <input type="date" name="start_date" class="form-control form-control-sm"
+               value="{{ start_date|date:'Y-m-d' }}" />
+      </div>
+      <div class="col-auto">
+        <label class="form-label small fw-semibold mb-1">To</label>
+        <input type="date" name="end_date" class="form-control form-control-sm"
+               value="{{ end_date|date:'Y-m-d' }}" />
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-primary btn-sm" type="submit">
+          <i class="bi bi-funnel me-1"></i> Apply
+        </button>
+      </div>
+      <div class="col-auto ms-auto d-flex gap-2">
+        <a href="{% url 'reports:gst_report' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&export=csv"
+           class="btn btn-outline-success btn-sm no-print" title="Download GST review CSV">
+          <i class="bi bi-download me-1"></i> GST CSV
+        </a>
+        <a href="{% url 'reports:gstr1_export' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}"
+           class="btn btn-success btn-sm no-print" title="Download GSTR-1 JSON">
+          <i class="bi bi-download me-1"></i> GSTR-1 JSON
+        </a>
+        <a href="{% url 'reports:gstr3b_export' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}"
+           class="btn btn-warning btn-sm no-print" title="Download GSTR-3B JSON">
+          <i class="bi bi-download me-1"></i> GSTR-3B JSON
+        </a>
+        <button class="btn btn-outline-secondary btn-sm no-print" type="button" onclick="window.print()">
+          <i class="bi bi-printer me-1"></i> Print
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Report header ─────────────────────────────────────────── -->
+<div class="text-center mb-3">
+  <h4 class="fw-bold mb-0">{{ current_company.name }}</h4>
+  {% if current_company.gstin %}
+  <div class="text-muted small">GSTIN: <strong>{{ current_company.gstin }}</strong></div>
+  {% endif %}
+  <h5 class="text-muted mb-0">GST Returns Summary</h5>
+  <p class="text-muted small mb-0">
+    Period: {{ start_date|date:"d M Y" }} to {{ end_date|date:"d M Y" }}
+  </p>
+</div>
+
+<!-- ── Summary KPI cards ─────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm p-3 border-start border-4 border-success">
+      <div class="text-muted small">Taxable Sales</div>
+      <div class="fs-5 fw-bold text-success">₹{{ tot_taxable_sales|floatformat:2 }}</div>
+      <div class="text-muted small">{{ gstr1_rows|length }} invoice{{ gstr1_rows|length|pluralize }}</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm p-3 border-start border-4 border-danger">
+      <div class="text-muted small">Total Output Tax</div>
+      <div class="fs-5 fw-bold text-danger">₹{{ tot_out_tax|floatformat:2 }}</div>
+      <div class="text-muted small">CGST+SGST+IGST</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm p-3 border-start border-4 border-primary">
+      <div class="text-muted small">Input Tax Credit (ITC)</div>
+      <div class="fs-5 fw-bold text-primary">₹{{ tot_itc|floatformat:2 }}</div>
+      <div class="text-muted small">From Purchases</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm p-3 border-start border-4
+      {% if net_tax_payable > 0 %}border-warning{% else %}border-success{% endif %}">
+      <div class="text-muted small">Net Tax Payable</div>
+      <div class="fs-5 fw-bold {% if net_tax_payable > 0 %}text-warning-emphasis{% else %}text-success{% endif %}">
+        ₹{{ net_tax_payable|floatformat:2 }}
+      </div>
+      <div class="text-muted small">Output Tax − ITC</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tabs: GSTR-1 / GSTR-3B ────────────────────────────────── -->
+<ul class="nav nav-tabs no-print mb-0" id="gstTabs">
+  <li class="nav-item">
+    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-gstr1">
+      <i class="bi bi-receipt me-1"></i> GSTR-1 — Outward Supplies
+    </button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-gstr3b">
+      <i class="bi bi-calculator me-1"></i> GSTR-3B — Monthly Summary
+    </button>
+  </li>
+</ul>
+
+<div class="tab-content">
+
+  <!-- ─────────────────── GSTR-1 ──────────────────────────────── -->
+  <div class="tab-pane fade show active" id="tab-gstr1">
+    <div class="card border-0 shadow-sm border-top-0 rounded-top-0">
+
+      <!-- B2B / B2C toggle summary -->
+      <div class="card-header bg-white d-flex gap-4 py-2">
+        <span class="small fw-semibold">
+          B2B (with GSTIN):
+          <span class="badge gst-badge-b2b ms-1">{{ b2b_rows|length }} invoices</span>
+        </span>
+        <span class="small fw-semibold">
+          B2C (without GSTIN):
+          <span class="badge gst-badge-b2c ms-1">{{ b2c_rows|length }} invoices</span>
+        </span>
+        <span class="small fw-semibold">
+          B2CL:
+          <span class="badge bg-warning text-dark ms-1">{{ b2cl_rows|length }}</span>
+        </span>
+        <span class="small fw-semibold">
+          B2CS:
+          <span class="badge bg-secondary ms-1">{{ b2cs_rows|length }}</span>
+        </span>
+      </div>
+
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="table-dark">
+              <tr>
+                <th>Invoice No.</th>
+                <th>Date</th>
+                <th>Buyer</th>
+                <th>POS</th>
+                <th class="text-center">Type</th>
+                <th class="text-end">Rate%</th>
+                <th class="text-end">Taxable Value (₹)</th>
+                <th class="text-end">CGST (₹)</th>
+                <th class="text-end">SGST (₹)</th>
+                <th class="text-end">IGST (₹)</th>
+                <th class="text-end">Total Tax (₹)</th>
+                <th class="text-end">Invoice Value (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in gstr1_rows %}
+              <tr>
+                <td><code>{{ row.voucher_number }}</code></td>
+                <td class="text-nowrap">{{ row.date|date:"d M Y" }}</td>
+                <td>
+                  {% if row.buyer_name %}
+                    <div class="small fw-semibold">{{ row.buyer_name }}</div>
+                  {% endif %}
+                  {% if row.buyer_gstin %}
+                    <code class="small">{{ row.buyer_gstin }}</code>
+                  {% else %}
+                    <span class="text-muted small">—</span>
+                  {% endif %}
+                </td>
+                <td class="small">{{ row.place_of_supply|default:"99" }}</td>
+                <td class="text-center">
+                  <span class="badge {% if row.supply_type == 'B2B' %}gst-badge-b2b{% else %}gst-badge-b2c{% endif %}">
+                    {{ row.gstr1_bucket|default:row.supply_type }}
+                  </span>
+                  <div class="small text-muted">{{ row.portal_supply_type }}</div>
+                </td>
+                <td class="text-end">{{ row.rate|floatformat:2 }}</td>
+                <td class="text-end">{{ row.taxable_value|floatformat:2 }}</td>
+                <td class="text-end">
+                  {% if row.cgst > 0 %}{{ row.cgst|floatformat:2 }}{% else %}—{% endif %}
+                </td>
+                <td class="text-end">
+                  {% if row.sgst > 0 %}{{ row.sgst|floatformat:2 }}{% else %}—{% endif %}
+                </td>
+                <td class="text-end">
+                  {% if row.igst > 0 %}{{ row.igst|floatformat:2 }}{% else %}—{% endif %}
+                </td>
+                <td class="text-end fw-semibold">{{ row.total_tax|floatformat:2 }}</td>
+                <td class="text-end fw-bold">{{ row.invoice_value|floatformat:2 }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="12" class="text-center text-muted py-4">
+                  No Sales vouchers in this period.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            {% if gstr1_rows %}
+            <tfoot class="table-secondary fw-bold">
+              <tr>
+                <td colspan="6">TOTAL</td>
+                <td class="text-end">{{ tot_taxable_sales|floatformat:2 }}</td>
+                <td class="text-end">{{ tot_out_cgst|floatformat:2 }}</td>
+                <td class="text-end">{{ tot_out_sgst|floatformat:2 }}</td>
+                <td class="text-end">{{ tot_out_igst|floatformat:2 }}</td>
+                <td class="text-end">{{ tot_out_tax|floatformat:2 }}</td>
+                <td class="text-end"></td>
+              </tr>
+            </tfoot>
+            {% endif %}
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-header bg-white py-2">
+        <h6 class="mb-0 fw-bold">
+          <i class="bi bi-journal-check me-1 text-muted"></i>Document Issue Summary
+        </h6>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3">Document Type</th>
+                <th>From</th>
+                <th>To</th>
+                <th class="text-end">Total</th>
+                <th class="text-end">Cancelled</th>
+                <th class="text-end pe-3">Net Issued</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="ps-3">{{ doc_issue_summary.document_type }}</td>
+                <td><code>{{ doc_issue_summary.from_number|default:"-" }}</code></td>
+                <td><code>{{ doc_issue_summary.to_number|default:"-" }}</code></td>
+                <td class="text-end">{{ doc_issue_summary.total_number }}</td>
+                <td class="text-end">{{ doc_issue_summary.cancelled }}</td>
+                <td class="text-end pe-3 fw-semibold">{{ doc_issue_summary.net_issued }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold">
+          <i class="bi bi-tags me-1 text-muted"></i>HSN/SAC Summary
+        </h6>
+        {% if missing_hsn_rows %}
+          <span class="badge bg-warning text-dark">{{ missing_hsn_rows|length }} missing HSN</span>
+        {% endif %}
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>HSN/SAC</th>
+                <th>Description</th>
+                <th>UQC</th>
+                <th class="text-end">Qty</th>
+                <th class="text-end">Rate%</th>
+                <th class="text-end">Taxable (Rs.)</th>
+                <th class="text-end">CGST</th>
+                <th class="text-end">SGST</th>
+                <th class="text-end">IGST</th>
+                <th class="text-end">Total Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in hsn_summary_rows %}
+              <tr>
+                <td>
+                  {% if row.hsn_code %}
+                    <code>{{ row.hsn_code }}</code>
+                  {% else %}
+                    <span class="badge bg-warning text-dark">Missing</span>
+                  {% endif %}
+                </td>
+                <td>{{ row.description }}</td>
+                <td>{{ row.uqc }}</td>
+                <td class="text-end">{{ row.quantity|floatformat:3 }}</td>
+                <td class="text-end">{{ row.rate|floatformat:2 }}</td>
+                <td class="text-end">{{ row.taxable_value|floatformat:2 }}</td>
+                <td class="text-end">{{ row.cgst|floatformat:2 }}</td>
+                <td class="text-end">{{ row.sgst|floatformat:2 }}</td>
+                <td class="text-end">{{ row.igst|floatformat:2 }}</td>
+                <td class="text-end fw-semibold">{{ row.total_value|floatformat:2 }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="10" class="text-center text-muted py-4">
+                  No stock-item HSN/SAC data found for outward supplies in this period.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────── GSTR-3B ─────────────────────────────── -->
+  <div class="tab-pane fade" id="tab-gstr3b">
+    <div class="card border-0 shadow-sm border-top-0 rounded-top-0">
+      <div class="card-body">
+
+        <div class="row g-4">
+
+          <!-- 3.1: Outward Taxable Supplies -->
+          <div class="col-md-6">
+            <div class="card border shadow-none gst-section">
+              <div class="card-header bg-light py-2">
+                <h6 class="mb-0 fw-bold">
+                  <i class="bi bi-arrow-up-circle text-danger me-2"></i>
+                  3.1 — Outward Taxable Supplies (Sales)
+                </h6>
+              </div>
+              <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                  <tbody>
+                    <tr>
+                      <td class="text-muted">Taxable Value</td>
+                      <td class="text-end fw-semibold">₹{{ tot_taxable_sales|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                      <td class="text-muted">CGST Payable</td>
+                      <td class="text-end fw-semibold">₹{{ tot_out_cgst|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                      <td class="text-muted">SGST Payable</td>
+                      <td class="text-end fw-semibold">₹{{ tot_out_sgst|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                      <td class="text-muted">IGST Payable</td>
+                      <td class="text-end fw-semibold">₹{{ tot_out_igst|floatformat:2 }}</td>
+                    </tr>
+                    <tr class="table-danger fw-bold">
+                      <td>Total Output Tax</td>
+                      <td class="text-end">₹{{ tot_out_tax|floatformat:2 }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4: Input Tax Credit -->
+          <div class="col-md-6">
+            <div class="card border shadow-none gst-section">
+              <div class="card-header bg-light py-2">
+                <h6 class="mb-0 fw-bold">
+                  <i class="bi bi-arrow-down-circle text-success me-2"></i>
+                  4 — Input Tax Credit Available (Purchases)
+                </h6>
+              </div>
+              <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                  <tbody>
+                    <tr>
+                      <td class="text-muted">Taxable Purchases Value</td>
+                      <td class="text-end fw-semibold">₹{{ tot_taxable_purchases|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                      <td class="text-muted">CGST ITC</td>
+                      <td class="text-end fw-semibold">₹{{ itc_cgst|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                      <td class="text-muted">SGST ITC</td>
+                      <td class="text-end fw-semibold">₹{{ itc_sgst|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                      <td class="text-muted">IGST ITC</td>
+                      <td class="text-end fw-semibold">₹{{ itc_igst|floatformat:2 }}</td>
+                    </tr>
+                    <tr class="table-success fw-bold">
+                      <td>Total ITC Available</td>
+                      <td class="text-end">₹{{ tot_itc|floatformat:2 }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Net Tax Payable summary -->
+          <div class="col-12">
+            <div class="card border-0 shadow-sm
+              {% if net_tax_payable > 0 %}bg-warning bg-opacity-10{% else %}bg-success bg-opacity-10{% endif %}">
+              <div class="card-body py-3">
+                <div class="row align-items-center text-center g-3">
+                  <div class="col-md-4">
+                    <div class="small text-muted fw-semibold">Output Tax</div>
+                    <div class="fw-bold fs-5 text-danger">₹{{ tot_out_tax|floatformat:2 }}</div>
+                  </div>
+                  <div class="col-md-1 fw-bold fs-4 text-muted">−</div>
+                  <div class="col-md-4">
+                    <div class="small text-muted fw-semibold">ITC Available</div>
+                    <div class="fw-bold fs-5 text-success">₹{{ tot_itc|floatformat:2 }}</div>
+                  </div>
+                  <div class="col-md-1 fw-bold fs-4 text-muted">=</div>
+                  <div class="col-md-2">
+                    <div class="small text-muted fw-semibold">
+                      {% if net_tax_payable > 0 %}Net Payable{% else %}Credit{% endif %}
+                    </div>
+                    <div class="fw-bold fs-4 {% if net_tax_payable > 0 %}text-warning-emphasis{% else %}text-success{% endif %}">
+                      ₹{{ net_tax_payable|floatformat:2 }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {% if not current_company.gstin %}
+            <div class="alert alert-info d-flex gap-2 py-2 mt-3 mb-0 no-print">
+              <i class="bi bi-info-circle flex-shrink-0 mt-1"></i>
+              <div class="small">
+                <strong>Tip:</strong> Add your company's GSTIN in the Admin Panel to enable
+                automatic B2B buyer matching and GSTIN validation in voucher narrations.
+              </div>
+            </div>
+            {% endif %}
+          </div>
+
+        </div><!-- /row -->
+      </div>
+    </div>
+  </div>
+
+</div><!-- /tab-content -->
+
+{% endblock %}

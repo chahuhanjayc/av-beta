@@ -1,0 +1,224 @@
+services:
+  - type: web
+    name: akshaya-vistara-web
+    env: docker
+    dockerContext: .
+    dockerfile: Dockerfile
+    plan: free
+    healthCheckPath: /core/healthz/
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: akshaya-vistara-db
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: akshaya-vistara-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: akshaya-vistara-redis
+          property: connectionString
+      - key: CACHE_URL
+        fromService:
+          type: redis
+          name: akshaya-vistara-redis
+          property: connectionString
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: "akshaya-vistara-web.onrender.com"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://akshaya-vistara-web.onrender.com"
+      - key: SECURE_PROXY_SSL_HEADER_NAME
+        value: "HTTP_X_FORWARDED_PROTO"
+      - key: SECURE_PROXY_SSL_HEADER_VALUE
+        value: "https"
+      - key: SECURE_SSL_REDIRECT
+        value: "True"
+      - key: SECURE_HSTS_PRELOAD
+        value: "True"
+      - key: RUN_DEPLOY_CHECKS
+        value: "true"
+      - key: RUN_COLLECTSTATIC
+        value: "true"
+      - key: RUN_MIGRATIONS
+        value: "true"
+      - key: SECRET_KEY
+        sync: false
+      - key: WHATSAPP_WEBHOOK_TOKEN
+        sync: false
+      - key: WHATSAPP_API_URL
+        sync: false
+      - key: WHATSAPP_API_TOKEN
+        sync: false
+      - key: ALLOW_PUBLIC_REGISTRATION
+        value: "False"
+      - key: REQUIRE_STAFF_MFA
+        value: "True"
+      - key: BACKUP_ENCRYPTION_KEY
+        sync: false
+      - key: BACKUP_ENCRYPTION_PASSPHRASE
+        sync: false
+      - key: BACKUP_ENCRYPTION_REQUIRED
+        value: "True"
+      - key: BACKUP_ENCRYPTION_DEFAULT
+        value: "True"
+      - key: BACKUP_RETENTION_COUNT
+        value: "10"
+      - key: BACKUP_MAX_AGE_HOURS
+        value: "24"
+      - key: BACKUP_MIN_RETAINED_MANIFESTS
+        value: "3"
+      - key: RESTORE_DRILL_MAX_AGE_DAYS
+        value: "30"
+      - key: BACKUP_SCHEDULE_ENABLED
+        value: "True"
+      - key: BACKUP_SCHEDULE_INTERVAL_HOURS
+        value: "24"
+      - key: BACKUP_SCHEDULE_MAX_AGE_HOURS
+        value: "26"
+      - key: BACKUP_OFFSITE_DIR
+        sync: false
+      - key: BACKUP_OFFSITE_REQUIRED
+        value: "True"
+      - key: EMAIL_HOST
+        sync: false
+      - key: EMAIL_PORT
+        value: "587"
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: EMAIL_USE_TLS
+        value: "True"
+      - key: DEFAULT_FROM_EMAIL
+        sync: false
+      - key: GST_API_PROVIDER
+        sync: false
+      - key: GST_API_BASE_URL
+        sync: false
+      - key: GST_API_KEY
+        sync: false
+      - key: GST_API_SECRET
+        sync: false
+      - key: GST_API_AUTH_PATH
+        value: "/auth"
+      - key: GST_API_GSTIN_LOOKUP_PATH
+        value: "/gstin"
+      - key: GST_API_E_INVOICE_PATH
+        value: "/e-invoice"
+      - key: GST_API_E_WAY_BILL_PATH
+        value: "/e-way-bill"
+      - key: GST_API_TIMEOUT_SECONDS
+        value: "20"
+      - key: GST_API_TAXPAYER_GSTIN
+        sync: false
+      - key: GST_API_USERNAME
+        sync: false
+      - key: GST_API_PASSWORD
+        sync: false
+      - key: GST_API_SANDBOX_MODE
+        value: "True"
+      - key: E_INVOICE_ENABLED
+        value: "False"
+      - key: E_WAY_BILL_ENABLED
+        value: "False"
+      - key: BANK_FEED_PROVIDER
+        sync: false
+      - key: BANK_FEED_BASE_URL
+        sync: false
+      - key: BANK_FEED_API_KEY
+        sync: false
+      - key: BANK_FEED_API_SECRET
+        sync: false
+      - key: PAYMENT_PROVIDER
+        sync: false
+      - key: PAYMENT_API_KEY
+        sync: false
+      - key: PAYMENT_WEBHOOK_SECRET
+        sync: false
+
+  - type: worker
+    name: akshaya-vistara-worker
+    env: docker
+    dockerContext: .
+    dockerfile: Dockerfile
+    plan: free
+    dockerCommand: "celery -A akshaya_vistara worker --loglevel=info"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: akshaya-vistara-db
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: akshaya-vistara-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: akshaya-vistara-redis
+          property: connectionString
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: "akshaya-vistara-web.onrender.com"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://akshaya-vistara-web.onrender.com"
+      - key: RUN_DEPLOY_CHECKS
+        value: "true"
+      - key: RUN_COLLECTSTATIC
+        value: "false"
+      - key: RUN_MIGRATIONS
+        value: "false"
+      - key: SECRET_KEY
+        sync: false
+      - key: WHATSAPP_WEBHOOK_TOKEN
+        sync: false
+      - key: WHATSAPP_API_URL
+        sync: false
+      - key: WHATSAPP_API_TOKEN
+        sync: false
+      - key: ALLOW_PUBLIC_REGISTRATION
+        value: "False"
+      - key: REQUIRE_STAFF_MFA
+        value: "True"
+      - key: BACKUP_ENCRYPTION_KEY
+        sync: false
+      - key: BACKUP_ENCRYPTION_PASSPHRASE
+        sync: false
+      - key: BACKUP_ENCRYPTION_REQUIRED
+        value: "True"
+      - key: BACKUP_ENCRYPTION_DEFAULT
+        value: "True"
+      - key: BACKUP_RETENTION_COUNT
+        value: "10"
+      - key: BACKUP_MAX_AGE_HOURS
+        value: "24"
+      - key: BACKUP_MIN_RETAINED_MANIFESTS
+        value: "3"
+      - key: RESTORE_DRILL_MAX_AGE_DAYS
+        value: "30"
+      - key: BACKUP_SCHEDULE_ENABLED
+        value: "True"
+      - key: BACKUP_SCHEDULE_INTERVAL_HOURS
+        value: "24"
+      - key: BACKUP_SCHEDULE_MAX_AGE_HOURS
+        value: "26"
+      - key: BACKUP_OFFSITE_DIR
+        sync: false
+      - key: BACKUP_OFFSITE_REQUIRED
+        value: "True"
+
+databases:
+  - name: akshaya-vistara-db
+    plan: free
+
+redis:
+  - name: akshaya-vistara-redis
+    plan: free
+    ipAllowList: []

@@ -1,0 +1,669 @@
+<!-- 
+    vouchers/partials/quick_add_modals.html 
+    Unified Quick-Add Modals for Ledgers and Stock Items.
+-->
+
+<style>
+  /* Tally-like Fullscreen/Centered Modal Styling */
+  .modal-tally .modal-dialog {
+    max-width: 500px;
+  }
+  .modal-tally {
+    z-index: 2060;
+  }
+  .modal-tally .modal-content {
+    border: 2px solid #0d6efd;
+    border-radius: 4px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  }
+  .modal-tally .modal-body,
+  .modal-tally .modal-footer {
+    background: var(--surface-bg);
+    color: var(--text-main);
+  }
+  .modal-tally .modal-header {
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+  }
+  .modal-tally .form-label,
+  .modal-tally .modal-title {
+    color: var(--text-main);
+  }
+  .modal-tally .form-control,
+  .modal-tally .form-select {
+    background-color: var(--input-bg) !important;
+    border-color: var(--input-border) !important;
+    color: var(--text-main) !important;
+    opacity: 1 !important;
+  }
+  .modal-tally .form-control::placeholder {
+    color: var(--input-placeholder) !important;
+    opacity: 1;
+  }
+  .modal-backdrop.show {
+    z-index: 2050;
+    opacity: 1 !important;
+    background: rgba(0, 0, 0, 0.32) !important;
+  }
+  [data-bs-theme="dark"] .modal-tally .modal-header {
+    background: #2d2d2d;
+    border-bottom-color: var(--border-color);
+    color: var(--text-main);
+  }
+  [data-bs-theme="dark"] .modal-tally .modal-content {
+    background: #242424;
+    color: var(--text-main);
+    border-color: var(--accent);
+    box-shadow: 0 18px 55px rgba(0, 0, 0, 0.6);
+    opacity: 1 !important;
+  }
+  [data-bs-theme="dark"] .modal-tally .modal-body,
+  [data-bs-theme="dark"] .modal-tally .modal-footer {
+    background: #242424;
+  }
+  [data-bs-theme="dark"] .modal-tally .form-control,
+  [data-bs-theme="dark"] .modal-tally .form-select {
+    background-color: #151515 !important;
+    border-color: #555 !important;
+    color: #f5f5f5 !important;
+  }
+  [data-bs-theme="dark"] .modal-tally .form-control::placeholder {
+    color: #9ca3af !important;
+  }
+  [data-bs-theme="dark"] .modal-tally .modal-footer {
+    border-top-color: var(--border-color);
+  }
+  [data-bs-theme="dark"] .modal-backdrop.show {
+    background: rgba(0, 0, 0, 0.42) !important;
+  }
+</style>
+
+<!-- Quick-Add Ledger Modal -->
+<div class="modal fade modal-tally" id="quickAddModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title">
+          <i class="bi bi-plus-circle me-1 text-primary"></i>Quick-Add Ledger
+        </h6>
+        <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="qa-error" class="alert alert-danger py-2 d-none" style="font-size:.83rem;"></div>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">Name <span class="text-danger">*</span></label>
+          <input type="text" id="qa-name" class="form-control form-control-sm" placeholder="e.g. Stationery Expense">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">Group <span class="text-danger">*</span></label>
+          <select id="qa-group" class="form-select form-select-sm">
+            <option value="">— Select Nature —</option>
+            <option value="Asset">Asset</option>
+            <option value="Liability">Liability</option>
+            <option value="Income">Income</option>
+            <option value="Expense">Expense</option>
+            <option value="Tax">Tax</option>
+          </select>
+        </div>
+        <div class="mb-1">
+          <label class="form-label fw-semibold small">Opening Balance</label>
+          <input type="number" id="qa-opening" class="form-control form-control-sm" value="0.00" step="0.01">
+        </div>
+      </div>
+      <div class="modal-footer py-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary btn-sm" id="qa-save-btn" onclick="submitQuickAdd()">
+          SAVE LEDGER
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick-Add Stock Item Modal -->
+<div class="modal fade modal-tally" id="stockQuickAddModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title">
+          <i class="bi bi-box-seam me-1 text-success"></i>Quick-Add Stock Item
+        </h6>
+        <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="sqa-error" class="alert alert-danger py-2 d-none" style="font-size:.83rem;"></div>
+
+        <div class="mb-2">
+          <label class="form-label fw-semibold small">Name <span class="text-danger">*</span></label>
+          <input type="text" id="sqa-name" class="form-control form-control-sm" placeholder="e.g. Rice 5kg">
+        </div>
+        <div class="mb-2">
+          <label class="form-label fw-semibold small">Unit</label>
+          <input type="text" id="sqa-unit" class="form-control form-control-sm" placeholder="e.g. Kg, Pcs" value="Pcs">
+        </div>
+        <div class="row g-2 mb-2">
+          <div class="col-6">
+            <label class="form-label fw-semibold small">Purchase Price</label>
+            <input type="number" id="sqa-purchase" class="form-control form-control-sm" value="0.00" step="0.01">
+          </div>
+          <div class="col-6">
+            <label class="form-label fw-semibold small">Selling Price</label>
+            <input type="number" id="sqa-selling" class="form-control form-control-sm" value="0.00" step="0.01">
+          </div>
+        </div>
+        <div class="mb-2">
+          <label class="form-label fw-semibold small">HSN Code</label>
+          <input type="text" id="sqa-hsn" class="form-control form-control-sm" placeholder="Optional">
+        </div>
+        <div class="mb-1">
+          <label class="form-label fw-semibold small">Tax Rate %</label>
+          <select id="sqa-tax" class="form-select form-select-sm">
+            <option value="0">0%</option>
+            <option value="5">5%</option>
+            <option value="12">12%</option>
+            <option value="18" selected>18%</option>
+            <option value="28">28%</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer py-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success btn-sm" id="sqa-save-btn" onclick="submitStockQuickAdd()">
+          CREATE ITEM
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick-Add Godown Modal -->
+<div class="modal fade modal-tally" id="godownQuickAddModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title">
+          <i class="bi bi-building me-1 text-warning"></i>Quick-Add Godown
+        </h6>
+        <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="gqa-error" class="alert alert-danger py-2 d-none" style="font-size:.83rem;"></div>
+        <div class="mb-2">
+          <label class="form-label fw-semibold small">Name <span class="text-danger">*</span></label>
+          <input type="text" id="gqa-name" class="form-control form-control-sm" placeholder="e.g. Main Warehouse">
+        </div>
+        <div class="mb-1">
+          <label class="form-label fw-semibold small">Location</label>
+          <input type="text" id="gqa-location" class="form-control form-control-sm" placeholder="Optional">
+        </div>
+      </div>
+      <div class="modal-footer py-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-warning btn-sm" id="gqa-save-btn" onclick="submitGodownQuickAdd()">
+          CREATE GODOWN
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick-Add Batch Modal -->
+<div class="modal fade modal-tally" id="batchQuickAddModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title">
+          <i class="bi bi-tags me-1 text-secondary"></i>Quick-Add Batch
+        </h6>
+        <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="bqa-error" class="alert alert-danger py-2 d-none" style="font-size:.83rem;"></div>
+        <div id="bqa-context" class="small text-muted mb-2"></div>
+        <div class="mb-2">
+          <label class="form-label fw-semibold small">Batch Number <span class="text-danger">*</span></label>
+          <input type="text" id="bqa-number" class="form-control form-control-sm" placeholder="e.g. LOT-2026-01">
+        </div>
+        <div class="row g-2 mb-2">
+          <div class="col-6">
+            <label class="form-label fw-semibold small">Expiry Date</label>
+            <input type="date" id="bqa-expiry" class="form-control form-control-sm">
+          </div>
+          <div class="col-6">
+            <label class="form-label fw-semibold small">Purchase Rate</label>
+            <input type="number" id="bqa-rate" class="form-control form-control-sm" value="0.00" step="0.01">
+          </div>
+        </div>
+        <div class="mb-1">
+          <label class="form-label fw-semibold small">Opening Qty</label>
+          <input type="number" id="bqa-qty" class="form-control form-control-sm" value="0.000" step="0.001">
+        </div>
+      </div>
+      <div class="modal-footer py-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-secondary btn-sm" id="bqa-save-btn" onclick="submitBatchQuickAdd()">
+          CREATE BATCH
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick-Add Cost Center Modal -->
+<div class="modal fade modal-tally" id="ccQuickAddModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title">
+          <i class="bi bi-geo-alt me-1 text-info"></i>Quick-Add Cost Center
+        </h6>
+        <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="cc-qa-error" class="alert alert-danger py-2 d-none" style="font-size:.83rem;"></div>
+        <div class="mb-1">
+          <label class="form-label fw-semibold small">Cost Center Name <span class="text-danger">*</span></label>
+          <input type="text" id="cc-qa-name" class="form-control form-control-sm" placeholder="e.g. Project Alpha or Sales Dept">
+        </div>
+      </div>
+      <div class="modal-footer py-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-info btn-sm text-white" id="cc-qa-save-btn" onclick="submitCCQuickAdd()">
+          CREATE CENTER
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let _qaTargetSelect = null;
+
+function qaCsrfToken() {
+    return document.querySelector("[name=csrfmiddlewaretoken]")?.value || "";
+}
+
+function normalizeQuickAddText(text) {
+    return (text || "").replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function addOptionOnce(select, value, label, extraData = {}) {
+    const valueKey = String(value);
+    const labelKey = normalizeQuickAddText(label);
+    let option = Array.from(select.options).find(opt => String(opt.value) === valueKey);
+
+    if (!option) {
+        option = Array.from(select.options).find(opt => {
+            return opt.value && !String(opt.value).startsWith("ADD_NEW_") &&
+                   normalizeQuickAddText(opt.text) === labelKey;
+        });
+    }
+
+    if (!option) {
+        option = new Option(label, value);
+        select.add(option);
+    } else {
+        option.text = label;
+    }
+
+    Object.entries(extraData).forEach(([key, val]) => {
+        option.dataset[key] = val ?? "";
+    });
+    return option;
+}
+
+function ensureModalInBody(modalEl) {
+    if (modalEl && modalEl.parentElement !== document.body) {
+        document.body.appendChild(modalEl);
+    }
+}
+
+/**
+ * Triggered by Alt+C in voucher_form.html
+ */
+function openQuickAdd(targetInput) {
+    _qaTargetSelect = targetInput;
+    
+    // Reset Ledger Modal
+    document.getElementById("qa-name").value = "";
+    document.getElementById("qa-group").value = "";
+    document.getElementById("qa-opening").value = "0.00";
+    document.getElementById("qa-error").classList.add("d-none");
+
+    const modalEl = document.getElementById("quickAddModal");
+    ensureModalInBody(modalEl);
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+
+    modalEl.addEventListener('shown.bs.modal', () => {
+        document.getElementById("qa-name").focus();
+    }, { once: true });
+}
+
+function openStockQuickAdd(targetInput) {
+    _qaTargetSelect = targetInput;
+
+    // Reset Stock Modal
+    document.getElementById("sqa-name").value = "";
+    document.getElementById("sqa-error").classList.add("d-none");
+
+    const modalEl = document.getElementById("stockQuickAddModal");
+    ensureModalInBody(modalEl);
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+
+    modalEl.addEventListener('shown.bs.modal', () => {
+        document.getElementById("sqa-name").focus();
+    }, { once: true });
+}
+
+function openGodownQuickAdd(targetInput) {
+    _qaTargetSelect = targetInput;
+    document.getElementById("gqa-name").value = "";
+    document.getElementById("gqa-location").value = "";
+    document.getElementById("gqa-error").classList.add("d-none");
+
+    const modalEl = document.getElementById("godownQuickAddModal");
+    ensureModalInBody(modalEl);
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+    modalEl.addEventListener('shown.bs.modal', () => {
+        document.getElementById("gqa-name").focus();
+    }, { once: true });
+}
+
+function openBatchQuickAdd(targetInput) {
+    _qaTargetSelect = targetInput;
+    const row = targetInput.closest(".stock-row");
+    const stockSelect = row?.querySelector(".stock-item-select");
+    const selectedStock = stockSelect?.selectedOptions?.[0];
+
+    document.getElementById("bqa-number").value = "";
+    document.getElementById("bqa-expiry").value = "";
+    document.getElementById("bqa-rate").value = row?.querySelector(".rate-field")?.value || "0.00";
+    document.getElementById("bqa-qty").value = row?.querySelector(".qty-field")?.value || "0.000";
+    document.getElementById("bqa-error").classList.add("d-none");
+    document.getElementById("bqa-context").textContent = selectedStock?.value
+        ? `For ${selectedStock.text}`
+        : "Select a stock item before saving this batch.";
+
+    const modalEl = document.getElementById("batchQuickAddModal");
+    ensureModalInBody(modalEl);
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+    modalEl.addEventListener('shown.bs.modal', () => {
+        document.getElementById("bqa-number").focus();
+    }, { once: true });
+}
+
+function openCCQuickAdd(targetInput) {
+    _qaTargetSelect = targetInput;
+    document.getElementById("cc-qa-name").value = "";
+    document.getElementById("cc-qa-error").classList.add("d-none");
+    const modalEl = document.getElementById("ccQuickAddModal");
+    ensureModalInBody(modalEl);
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+    modalEl.addEventListener('shown.bs.modal', () => {
+        document.getElementById("cc-qa-name").focus();
+    }, { once: true });
+}
+
+async function submitQuickAdd() {
+    const name = document.getElementById("qa-name").value.trim();
+    const group = document.getElementById("qa-group").value;
+    const opening = document.getElementById("qa-opening").value;
+    const errEl = document.getElementById("qa-error");
+
+    if (!name || !group) {
+        errEl.textContent = "Name and Group are required.";
+        errEl.classList.remove("d-none");
+        return;
+    }
+
+    const btn = document.getElementById("qa-save-btn");
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+    try {
+        const resp = await fetch("{% url 'ledger:quick_add' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": qaCsrfToken()
+            },
+            body: JSON.stringify({ name, group, opening_balance: opening })
+        });
+        const data = await resp.json();
+        if (data.success) {
+            // Add to ALL ledger selects on the page
+            const ledgerSelects = document.querySelectorAll("select.ledger-select");
+            ledgerSelects.forEach(sel => {
+                addOptionOnce(sel, data.id, data.name);
+            });
+            
+            // Select it in the target
+            _qaTargetSelect.value = data.id;
+            _qaTargetSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            
+            bootstrap.Modal.getInstance(document.getElementById("quickAddModal")).hide();
+            const ledgerFilter = _qaTargetSelect.closest(".ledger-picker")?.querySelector(".ledger-filter");
+            if (ledgerFilter) ledgerFilter.focus();
+            else _qaTargetSelect.focus();
+        } else {
+            errEl.textContent = Object.values(data.errors).flat().join(", ");
+            errEl.classList.remove("d-none");
+        }
+    } catch (e) {
+        errEl.textContent = "Network error.";
+        errEl.classList.remove("d-none");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = "SAVE LEDGER";
+    }
+}
+
+async function submitStockQuickAdd() {
+    const name = document.getElementById("sqa-name").value.trim();
+    const unit = document.getElementById("sqa-unit").value;
+    const purchase = document.getElementById("sqa-purchase").value;
+    const selling = document.getElementById("sqa-selling").value;
+    const hsn = document.getElementById("sqa-hsn").value;
+    const tax = document.getElementById("sqa-tax").value;
+    const errEl = document.getElementById("sqa-error");
+
+    if (!name) {
+        errEl.textContent = "Name is required.";
+        errEl.classList.remove("d-none");
+        return;
+    }
+
+    const btn = document.getElementById("sqa-save-btn");
+    btn.disabled = true;
+
+    try {
+        const resp = await fetch("{% url 'ocr:stock_item_quick_create' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": qaCsrfToken()
+            },
+            body: JSON.stringify({
+                name, unit, purchase_price: purchase, selling_price: selling,
+                hsn_code: hsn, tax_rate_pct: tax
+            })
+        });
+        const data = await resp.json();
+        if (data.success) {
+            // Add to ALL stock item selects on the page
+            const stockSelects = document.querySelectorAll("select.stock-item-select");
+            stockSelects.forEach(sel => {
+                addOptionOnce(sel, data.id, data.name, {
+                    purchaseRate: data.purchase_price,
+                    sellingPrice: data.selling_price,
+                    unit: data.unit
+                });
+            });
+
+            _qaTargetSelect.value = data.id;
+            _qaTargetSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            bootstrap.Modal.getInstance(document.getElementById("stockQuickAddModal")).hide();
+            _qaTargetSelect.focus();
+        } else {
+            errEl.textContent = data.error || "Error creating item.";
+            errEl.classList.remove("d-none");
+        }
+    } catch (e) {
+        errEl.textContent = "Network error.";
+        errEl.classList.remove("d-none");
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function submitGodownQuickAdd() {
+    const name = document.getElementById("gqa-name").value.trim();
+    const location = document.getElementById("gqa-location").value.trim();
+    const errEl = document.getElementById("gqa-error");
+
+    if (!name) {
+        errEl.textContent = "Name is required.";
+        errEl.classList.remove("d-none");
+        return;
+    }
+
+    const btn = document.getElementById("gqa-save-btn");
+    btn.disabled = true;
+
+    try {
+        const resp = await fetch("{% url 'inventory:godown_quick_add' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": qaCsrfToken()
+            },
+            body: JSON.stringify({ name, location })
+        });
+        const data = await resp.json();
+        if (data.success) {
+            document.querySelectorAll("select.godown-select").forEach(sel => {
+                addOptionOnce(sel, data.id, data.name);
+            });
+            _qaTargetSelect.value = data.id;
+            _qaTargetSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            bootstrap.Modal.getInstance(document.getElementById("godownQuickAddModal")).hide();
+            _qaTargetSelect.focus();
+        } else {
+            errEl.textContent = data.error || "Error creating godown.";
+            errEl.classList.remove("d-none");
+        }
+    } catch (e) {
+        errEl.textContent = "Network error.";
+        errEl.classList.remove("d-none");
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function submitBatchQuickAdd() {
+    const row = _qaTargetSelect?.closest(".stock-row");
+    const stockSelect = row?.querySelector(".stock-item-select");
+    const godownSelect = row?.querySelector(".godown-select");
+    const batchNumber = document.getElementById("bqa-number").value.trim();
+    const expiryDate = document.getElementById("bqa-expiry").value;
+    const purchaseRate = document.getElementById("bqa-rate").value;
+    const quantity = document.getElementById("bqa-qty").value;
+    const errEl = document.getElementById("bqa-error");
+
+    if (!stockSelect?.value) {
+        errEl.textContent = "Select a stock item before saving this batch.";
+        errEl.classList.remove("d-none");
+        return;
+    }
+    if (!batchNumber) {
+        errEl.textContent = "Batch number is required.";
+        errEl.classList.remove("d-none");
+        return;
+    }
+
+    const btn = document.getElementById("bqa-save-btn");
+    btn.disabled = true;
+
+    try {
+        const resp = await fetch("{% url 'inventory:batch_quick_add' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": qaCsrfToken()
+            },
+            body: JSON.stringify({
+                stock_item_id: stockSelect.value,
+                godown_id: godownSelect?.value || "",
+                batch_number: batchNumber,
+                expiry_date: expiryDate,
+                purchase_rate: purchaseRate,
+                quantity
+            })
+        });
+        const data = await resp.json();
+        if (data.success) {
+            document.querySelectorAll("select.batch-select").forEach(sel => {
+                addOptionOnce(sel, data.id, data.name, {
+                    stockItemId: data.stock_item_id,
+                    godownId: data.godown_id
+                });
+            });
+            _qaTargetSelect.value = data.id;
+            _qaTargetSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            bootstrap.Modal.getInstance(document.getElementById("batchQuickAddModal")).hide();
+            _qaTargetSelect.focus();
+        } else {
+            errEl.textContent = data.error || "Error creating batch.";
+            errEl.classList.remove("d-none");
+        }
+    } catch (e) {
+        errEl.textContent = "Network error.";
+        errEl.classList.remove("d-none");
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function submitCCQuickAdd() {
+    const name = document.getElementById("cc-qa-name").value.trim();
+    const errEl = document.getElementById("cc-qa-error");
+    if (!name) return;
+    const btn = document.getElementById("cc-qa-save-btn");
+    btn.disabled = true;
+    try {
+        const resp = await fetch("{% url 'costcenter:quick_add' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": qaCsrfToken()
+            },
+            body: JSON.stringify({ name })
+        });
+        const data = await resp.json();
+        if (data.success) {
+            const selects = document.querySelectorAll("select.cost-center-select");
+            selects.forEach(sel => {
+                addOptionOnce(sel, data.id, data.name);
+            });
+            _qaTargetSelect.value = data.id;
+            _qaTargetSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            bootstrap.Modal.getInstance(document.getElementById("ccQuickAddModal")).hide();
+            _qaTargetSelect.focus();
+        } else {
+            errEl.textContent = data.error || "Error";
+            errEl.classList.remove("d-none");
+        }
+    } catch (e) {
+        errEl.textContent = "Network error";
+        errEl.classList.remove("d-none");
+    } finally {
+        btn.disabled = false;
+    }
+}
+</script>

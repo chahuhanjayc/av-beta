@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Convert Order – Akshaya Vistara{% endblock %}
+{% block page_title %}Convert Order to Voucher{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-primary text-white py-3">
+        <h6 class="mb-0"><i class="bi bi-arrow-right-circle me-2"></i>Confirm Conversion</h6>
+      </div>
+      <div class="card-body">
+        <p class="mb-1">You are about to convert:</p>
+        <p class="fw-semibold fs-5">{{ order.order_type }} Order {{ order.number }}</p>
+        <ul class="small text-muted mb-3">
+          <li>Party: <strong>{{ order.party_ledger.name }}</strong></li>
+          <li>Date: <strong>{{ order.order_date }}</strong></li>
+          <li>Total: <strong>₹{{ order.total_amount|floatformat:2 }}</strong></li>
+          <li>Items: <strong>{{ order.items.count }}</strong></li>
+        </ul>
+        <div class="alert alert-info small mb-3">
+          <i class="bi bi-info-circle me-1"></i>
+          This will create a <strong>{{ order.order_type }}</strong> voucher for ₹{{ order.total_amount|floatformat:2 }},
+          link it to this order, and mark the order as <strong>Fulfilled</strong>.
+          This action cannot be undone.
+        </div>
+        <form method="post">
+          {% csrf_token %}
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check-lg me-1"></i>Yes, Convert
+            </button>
+            <a href="{% url 'orders:order_detail' pk=order.pk %}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

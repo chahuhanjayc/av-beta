@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}{{ title }} – Akshaya Vistara{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-5">
+  <form method="post">
+    {% csrf_token %}
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold py-3">{{ title }}</div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-4">{{ form.code|as_crispy_field }}</div>
+          <div class="col-md-8">{{ form.name|as_crispy_field }}</div>
+          <div class="col-md-4">{{ form.symbol|as_crispy_field }}</div>
+          <div class="col-auto"><div class="form-check mt-2">{{ form.is_base }}<label class="form-check-label" for="{{ form.is_base.id_for_label }}">Base Currency</label></div></div>
+          <div class="col-auto"><div class="form-check mt-2">{{ form.is_active }}<label class="form-check-label" for="{{ form.is_active.id_for_label }}">Active</label></div></div>
+        </div>
+      </div>
+      <div class="card-footer bg-white d-flex gap-2 justify-content-end">
+        <a href="{% url 'forex:currency_list' %}" class="btn btn-outline-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i>Save</button>
+      </div>
+    </div>
+  </form>
+</div></div>
+{% endblock %}

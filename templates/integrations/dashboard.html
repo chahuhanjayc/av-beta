@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+{% block title %}Integrations - Akshaya Vistara{% endblock %}
+{% block page_title %}Integrations{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h6 class="mb-0">GST API Certification Readiness</h6>
+    <div class="d-flex align-items-center gap-2">
+      <a href="{% url 'integrations:e_invoice_cockpit' %}" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-receipt"></i> E-Invoice Cockpit
+      </a>
+      <a href="{% url 'integrations:statutory_control' %}" class="btn btn-sm btn-outline-dark">
+        <i class="bi bi-router"></i> Control Room
+      </a>
+      <a href="{% url 'integrations:provider_readiness' %}" class="btn btn-sm btn-outline-warning">
+        <i class="bi bi-shield-lock"></i> Go-Live
+      </a>
+      <a href="{% url 'integrations:bank_feed_import' %}" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-bank"></i> Bank Feed
+      </a>
+      <a href="{% url 'integrations:e_way_bill_cockpit' %}" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-truck"></i> E-Way Cockpit
+      </a>
+      <a href="{% url 'integrations:evidence_center' %}" class="btn btn-sm btn-outline-success">
+        <i class="bi bi-file-earmark-check"></i> Evidence
+      </a>
+      <a href="{% url 'integrations:gst_result_import' %}" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-cloud-upload"></i> Import GST Results
+      </a>
+      <a href="{% url 'integrations:traces_result_import' %}" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-upload"></i> TRACES Results
+      </a>
+      {% if gst_readiness.production_ready %}
+        <span class="badge bg-success">Production Ready</span>
+      {% elif gst_readiness.sandbox_ready %}
+        <span class="badge bg-primary">Sandbox Ready</span>
+      {% elif gst_readiness.errors %}
+        <span class="badge bg-danger">Blocked</span>
+      {% else %}
+        <span class="badge bg-warning text-dark">Needs Review</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="card-body">
+    <p class="text-muted small mb-3">{{ gst_readiness.summary }}</p>
+    <div class="row g-2">
+      <div class="col-6 col-md-3">
+        <div class="border rounded p-2">
+          <div class="text-muted small">Errors</div>
+          <div class="h5 mb-0">{{ gst_readiness.errors }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="border rounded p-2">
+          <div class="text-muted small">Warnings</div>
+          <div class="h5 mb-0">{{ gst_readiness.warnings }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="border rounded p-2">
+          <div class="text-muted small">Manual Items</div>
+          <div class="h5 mb-0">{{ gst_readiness.manual }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="border rounded p-2">
+          <div class="text-muted small">Sandbox</div>
+          <div class="h5 mb-0">{% if gst_readiness.sandbox_ready %}Ready{% else %}No{% endif %}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th class="ps-3">Check</th>
+          <th>Status</th>
+          <th class="pe-3">Detail</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for check in gst_readiness.checks %}
+        <tr>
+          <td class="ps-3 fw-semibold">{{ check.name }}</td>
+          <td>
+            {% if check.level == "ok" %}
+              <span class="badge bg-success-subtle text-success">OK</span>
+            {% elif check.level == "manual" %}
+              <span class="badge bg-info-subtle text-info">Manual</span>
+            {% elif check.level == "warning" %}
+              <span class="badge bg-warning-subtle text-warning">Warning</span>
+            {% else %}
+              <span class="badge bg-danger-subtle text-danger">Error</span>
+            {% endif %}
+          </td>
+          <td class="small text-muted pe-3">{{ check.message }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>
+      <h6 class="mb-0">Provider Go-Live Readiness</h6>
+      <div class="text-muted small">{{ provider_readiness.summary }}</div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <span class="badge {% if provider_readiness.status == 'production_ready' %}bg-success{% elif provider_readiness.status == 'sandbox_ready' %}bg-primary{% elif provider_readiness.status == 'blocked' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+        {{ provider_readiness.status_label }}
+      </span>
+      <a href="{% url 'integrations:provider_readiness' %}" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-arrow-right-circle"></i> Open
+      </a>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="row g-2">
+      <div class="col-6 col-lg-3">
+        <div class="border rounded p-2">
+          <div class="text-muted small">Score</div>
+          <div class="h5 mb-0">{{ provider_readiness.score }}%</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="border rounded p-2">
+          <div class="text-muted small">Critical Gates</div>
+          <div class="h5 mb-0">{{ provider_readiness.totals.critical_checks }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="border rounded p-2">
+          <div class="text-muted small">Open Retries</div>
+          <div class="h5 mb-0">{{ provider_readiness.retry_summary.open }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="border rounded p-2">
+          <div class="text-muted small">Ready</div>
+          <div class="h5 mb-0">{{ provider_readiness.totals.ready }}/{{ provider_readiness.totals.connectors }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>
+      <h6 class="mb-0">Regulatory & Sync Connectors</h6>
+      <div class="text-muted small">{{ connector_plane.summary }}</div>
+    </div>
+    <div class="d-flex gap-2">
+      <span class="badge bg-primary">{{ connector_plane.ready_count }} Ready</span>
+      <span class="badge bg-warning text-dark">{{ connector_plane.blocked_count }} Needs Work</span>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      {% for card in connector_plane.connectors %}
+        <div class="col-xl-6">
+          <form method="post" action="{% url 'integrations:connector_update' card.type %}" class="border rounded p-3 h-100">
+            {% csrf_token %}
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+              <div>
+                <h6 class="mb-1">{{ card.name }}</h6>
+                <p class="text-muted small mb-0">{{ card.purpose }}</p>
+              </div>
+              {% if card.connector %}
+                <span class="badge {{ card.connector.status_badge_class }}">{{ card.connector.get_status_display }}</span>
+              {% else %}
+                <span class="badge bg-secondary">Not Set</span>
+              {% endif %}
+            </div>
+            {% if card.missing_fields %}
+              <div class="alert alert-warning py-2 small mb-3">
+                Missing: {{ card.missing_fields|join:", " }}
+              </div>
+            {% endif %}
+            <div class="row g-2">
+              <div class="col-md-6">
+                <label class="form-label small text-muted mb-1">Provider / Adapter</label>
+                <input type="text" name="provider_name" class="form-control form-control-sm" value="{{ card.connector.provider_name }}" placeholder="NIC, GSP, ClearTax, Tally XML">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small text-muted mb-1">Mode</label>
+                <select name="mode" class="form-select form-select-sm">
+                  {% for value, label in card.mode_choices %}
+                    <option value="{{ value }}" {% if card.selected_mode == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small text-muted mb-1">Status</label>
+                <select name="status" class="form-select form-select-sm">
+                  {% for value, label in card.status_choices %}
+                    <option value="{{ value }}" {% if card.selected_status == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              {% if card.needs_gstin %}
+                <div class="col-md-4">
+                  <label class="form-label small text-muted mb-1">GSTIN</label>
+                  <input type="text" name="gstin" class="form-control form-control-sm text-uppercase" value="{{ card.connector.gstin }}" maxlength="15">
+                </div>
+              {% endif %}
+              {% if card.needs_tan %}
+                <div class="col-md-4">
+                  <label class="form-label small text-muted mb-1">TAN</label>
+                  <input type="text" name="tan" class="form-control form-control-sm text-uppercase" value="{{ card.connector.tan }}" maxlength="10">
+                </div>
+              {% endif %}
+              {% if card.needs_username %}
+                <div class="col-md-4">
+                  <label class="form-label small text-muted mb-1">Portal User ID</label>
+                  <input type="text" name="username" class="form-control form-control-sm" value="{{ card.connector.username }}">
+                </div>
+              {% else %}
+                <div class="col-md-4">
+                  <label class="form-label small text-muted mb-1">User / Client ID</label>
+                  <input type="text" name="username" class="form-control form-control-sm" value="{{ card.connector.username }}">
+                </div>
+              {% endif %}
+              {% if card.needs_endpoint %}
+                <div class="col-md-8">
+                  <label class="form-label small text-muted mb-1">Base URL</label>
+                  <input type="url" name="base_url" class="form-control form-control-sm" value="{{ card.connector.base_url }}" placeholder="https://">
+                </div>
+              {% endif %}
+              <div class="col-md-6">
+                <label class="form-label small text-muted mb-1">Credential Reference</label>
+                <input type="text" name="credential_reference" class="form-control form-control-sm" value="{{ card.connector.credential_reference }}" placeholder="ENV_GST_API_SECRET or vault path">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small text-muted mb-1">Rotated On</label>
+                <input type="date" name="credential_last_rotated_at" class="form-control form-control-sm" value="{{ card.connector.credential_last_rotated_at|date:'Y-m-d' }}">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small text-muted mb-1">Rotation</label>
+                <div class="form-check form-control form-control-sm">
+                  <input class="form-check-input" type="checkbox" name="credential_rotated_now" value="1" id="rotated-{{ card.type }}">
+                  <label class="form-check-label small" for="rotated-{{ card.type }}">Today</label>
+                </div>
+              </div>
+              <div class="col-12">
+                <div class="border-top pt-2 mt-1 small fw-semibold text-muted">Production Certification Evidence</div>
+              </div>
+              {% for evidence in card.production_evidence_fields %}
+                <div class="col-md-6">
+                  <label class="form-label small text-muted mb-1">{{ evidence.label }}</label>
+                  <input type="text" name="evidence_{{ evidence.key }}" class="form-control form-control-sm" value="{{ evidence.value }}" placeholder="{{ evidence.fix }}">
+                </div>
+              {% endfor %}
+              <div class="col-md-4">
+                <label class="form-label small text-muted mb-1">Last Success</label>
+                <div class="form-control form-control-sm bg-body-tertiary">
+                  {{ card.connector.last_success_at|date:"d M H:i"|default:"Never" }}
+                </div>
+              </div>
+              <div class="col-12">
+                <label class="form-label small text-muted mb-1">Notes</label>
+                <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="Onboarding status, sandbox GSTIN, API owner, renewal notes">{{ card.connector.notes }}</textarea>
+              </div>
+            </div>
+            <div class="d-flex justify-content-end mt-3">
+              <button type="submit" class="btn btn-sm btn-primary">
+                <i class="bi bi-shield-check"></i> Save Connector
+              </button>
+            </div>
+          </form>
+        </div>
+      {% empty %}
+        <div class="col-12">
+          <div class="text-center text-muted py-4">Select a company to configure connectors.</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  {% for integration in integrations %}
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="mb-0">{{ integration.name }}</h6>
+          {% if integration.configured %}
+            <span class="badge bg-success">Configured</span>
+          {% elif integration.enabled %}
+            <span class="badge bg-warning text-dark">Incomplete</span>
+          {% else %}
+            <span class="badge bg-secondary">Disabled</span>
+          {% endif %}
+        </div>
+        <div class="card-body">
+          <p class="text-muted small">{{ integration.purpose }}</p>
+          <div class="table-responsive">
+            <table class="table table-sm mb-0">
+              <tbody>
+                {% for key, value in integration.details.items %}
+                  <tr>
+                    <th class="text-muted text-uppercase small" style="width: 38%;">{{ key|title }}</th>
+                    <td>{{ value|default:"Not configured" }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<div class="card mt-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h6 class="mb-0">Recent Integration Activity</h6>
+    <span class="text-muted small">Last 10 requests for this company</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3">Service</th>
+            <th>Provider</th>
+            <th>Status</th>
+            <th>Voucher</th>
+            <th>Requested By</th>
+            <th class="text-end pe-3">Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in recent_logs %}
+            <tr>
+              <td class="ps-3">{{ log.get_service_display }}</td>
+              <td>{{ log.provider }}</td>
+              <td>
+                {% if log.status == "success" %}
+                  <span class="badge bg-success-subtle text-success">Success</span>
+                {% elif log.status == "config_error" %}
+                  <span class="badge bg-warning-subtle text-warning">Config</span>
+                {% else %}
+                  <span class="badge bg-danger-subtle text-danger">Failed</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if log.voucher %}
+                  <a href="{% url 'vouchers:detail' log.voucher.pk %}" class="text-decoration-none">{{ log.voucher.number }}</a>
+                {% else %}
+                  <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td>{{ log.requested_by.email|default:"System" }}</td>
+              <td class="text-end pe-3">{{ log.created_at|date:"d M H:i" }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" class="text-center text-muted py-4">No integration requests yet.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

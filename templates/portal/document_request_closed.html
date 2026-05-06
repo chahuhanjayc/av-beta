@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Request Closed - Akshaya Vistara</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+</head>
+<body class="bg-light">
+  <div class="container py-5" style="max-width: 640px;">
+    <div class="card shadow-sm border-0 text-center">
+      <div class="card-body p-5">
+        <div class="display-6 text-success mb-3"><i class="bi bi-check2-circle"></i></div>
+        <h4 class="fw-bold">This request is no longer open</h4>
+        <p class="text-muted mb-4">{{ doc_request.title }}</p>
+        {% if request_pack.next_request %}
+          <a href="{% url 'portal:document_request_upload' request_pack.next_request.token %}" class="btn btn-primary">
+            <i class="bi bi-arrow-right-circle me-1"></i> Next Pending Upload
+          </a>
+        {% elif request_pack.summary.open %}
+          <div class="small text-muted">{{ request_pack.summary.open }} other request(s) are still pending.</div>
+        {% else %}
+          <div class="small text-muted">No pending uploads in this request pack.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</body>
+</html>

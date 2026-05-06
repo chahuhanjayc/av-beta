@@ -1,0 +1,337 @@
+{% extends "base.html" %}
+
+{% block title %}{{ company.name }} Client 360 - Akshaya Vistara{% endblock %}
+{% block page_title %}Client 360{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h5 class="mb-0">{{ company.name }}</h5>
+    <small class="text-muted">{{ company.gstin|default:"No GSTIN" }}{% if company.tan %} · TAN {{ company.tan }}{% endif %}</small>
+  </div>
+  <div class="d-flex gap-2">
+    <form method="get" class="d-flex gap-2">
+      <input type="month" name="period" value="{{ period_value }}" class="form-control form-control-sm">
+      <button type="submit" class="btn btn-outline-secondary btn-sm">Apply</button>
+    </form>
+    <a href="{% url 'core:client_engagement_update' company.pk %}?next={% url 'core:client_360' company.pk %}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-person-vcard me-1"></i> Engagement
+    </a>
+    <a href="{% url 'core:switch_company' company.pk %}?next={% url 'core:dashboard' %}" class="btn btn-primary btn-sm">
+      <i class="bi bi-box-arrow-in-right me-1"></i> Open Client
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-3">
+    <div class="p-3 rounded bg-light h-100">
+      <div class="text-muted small text-uppercase fw-semibold">Commercial</div>
+      <div class="h5 mb-1">Rs. {{ commercial.fee_proxy|floatformat:0 }}</div>
+      <span class="badge {{ commercial.realization_badge_class }}">{{ commercial.realization_band }}</span>
+      <div class="small text-muted mt-1">{{ commercial.fee_source }}</div>
+      {% if commercial.engagement %}
+      <div class="small text-muted">{{ commercial.engagement.get_service_package_display }} · {{ commercial.engagement.get_billing_cycle_display }}</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="p-3 rounded bg-light h-100">
+      <div class="text-muted small text-uppercase fw-semibold">Workload</div>
+      <div class="h5 mb-1">{{ commercial.workload_units|floatformat:1 }} units</div>
+      <span class="badge {{ commercial.workload_badge_class }}">{{ commercial.workload_band }}</span>
+      <div class="small text-muted mt-1">{{ commercial.open_work }} open, {{ commercial.overdue_work }} overdue</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="p-3 rounded bg-light h-100">
+      <div class="text-muted small text-uppercase fw-semibold">Compliance Health</div>
+      <div class="h5 mb-1 {% if compliance.score < 50 %}text-danger{% elif compliance.score < 75 %}text-warning{% else %}text-success{% endif %}">
+        {{ compliance.score }}%
+      </div>
+      <div class="small text-muted">{{ compliance.danger_count }} critical, {{ compliance.warning_count }} warnings</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="p-3 rounded bg-light h-100">
+      <div class="text-muted small text-uppercase fw-semibold">GST Review</div>
+      <div class="h5 mb-1 {% if gst_snapshot.risk_score %}text-warning{% else %}text-success{% endif %}">
+        {{ gst_snapshot.health_score }}%
+      </div>
+      <div class="small text-muted">{{ period_value }} · risk {{ gst_snapshot.risk_score }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-4">
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-person-vcard me-2"></i>Engagement</h6>
+        <a href="{% url 'core:client_engagement_update' company.pk %}?next={% url 'core:client_360' company.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+      </div>
+      <div class="card-body">
+        {% if commercial.engagement %}
+        <div class="row g-2 small">
+          <div class="col-5 text-muted">Status</div>
+          <div class="col-7 text-end fw-semibold">{{ commercial.engagement.get_status_display }}</div>
+          <div class="col-5 text-muted">Package</div>
+          <div class="col-7 text-end fw-semibold">{{ commercial.engagement.get_service_package_display }}</div>
+          <div class="col-5 text-muted">Billing</div>
+          <div class="col-7 text-end fw-semibold">{{ commercial.engagement.get_billing_cycle_display }}</div>
+          <div class="col-5 text-muted">Renewal</div>
+          <div class="col-7 text-end fw-semibold">{{ commercial.engagement.renewal_date|date:"d M Y"|default:"-" }}</div>
+          <div class="col-5 text-muted">Risk</div>
+          <div class="col-7 text-end fw-semibold">{{ commercial.engagement.get_risk_rating_display }}</div>
+          <div class="col-5 text-muted">Partner</div>
+          <div class="col-7 text-end fw-semibold">{{ commercial.engagement.partner_owner.email|default:"-" }}</div>
+        </div>
+        {% if commercial.engagement.scope_summary %}
+        <div class="border-top mt-3 pt-3 small">{{ commercial.engagement.scope_summary }}</div>
+        {% endif %}
+        {% else %}
+        <div class="text-muted small">No engagement profile has been configured for this client.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-broadcast me-2"></i>Engagement Alerts</h6>
+        {% if actionable_engagement_alerts %}
+        <form method="post" action="{% url 'core:client_engagement_alert_tasks' %}">
+          {% csrf_token %}
+          <input type="hidden" name="company_id" value="{{ company.pk }}">
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <button type="submit" class="btn btn-sm btn-primary">Create Tasks</button>
+        </form>
+        {% endif %}
+      </div>
+      <div class="list-group list-group-flush">
+        {% for alert in engagement_alerts %}
+        <div class="list-group-item">
+          <div class="d-flex justify-content-between gap-2">
+            <div>
+              <div class="fw-semibold">{{ alert.title }}</div>
+              <div class="small text-muted">{{ alert.detail }}</div>
+            </div>
+            <span class="badge {{ alert.badge_class }} align-self-start">{{ alert.severity|title }}</span>
+          </div>
+          <a href="{{ alert.action_url }}" class="btn btn-sm btn-outline-primary mt-2">{{ alert.action_label }}</a>
+        </div>
+        {% empty %}
+        <div class="list-group-item text-muted text-center py-3">No engagement alerts.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white">
+        <h6 class="mb-0"><i class="bi bi-lightning-charge me-2"></i>Next Actions</h6>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for action in next_actions %}
+        <div class="list-group-item">
+          <div class="d-flex justify-content-between gap-2">
+            <div>
+              <div class="fw-semibold">{{ action.title }}</div>
+              <div class="small text-muted">{{ action.detail }}</div>
+            </div>
+            <span class="badge {% if action.severity == 'critical' %}bg-danger{% elif action.severity == 'warning' %}bg-warning text-dark{% elif action.severity == 'success' %}bg-success{% else %}bg-info text-dark{% endif %}">
+              {{ action.count }}
+            </span>
+          </div>
+          <a href="{{ action.url }}" class="btn btn-sm btn-outline-primary mt-2">{{ action.label }}</a>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white">
+        <h6 class="mb-0"><i class="bi bi-cash-coin me-2"></i>Accounting Snapshot</h6>
+      </div>
+      <div class="card-body">
+        <div class="row g-2 small">
+          <div class="col-6 text-muted">Sales outstanding</div>
+          <div class="col-6 text-end fw-semibold">Rs. {{ accounting.sales_outstanding_amount|floatformat:2 }}</div>
+          <div class="col-6 text-muted">Overdue sales</div>
+          <div class="col-6 text-end fw-semibold">{{ accounting.overdue_sales_count }}</div>
+          <div class="col-6 text-muted">Purchase outstanding</div>
+          <div class="col-6 text-end fw-semibold">Rs. {{ accounting.purchase_outstanding_amount|floatformat:2 }}</div>
+          <div class="col-6 text-muted">Draft vouchers</div>
+          <div class="col-6 text-end fw-semibold">{{ accounting.draft_vouchers }}</div>
+          <div class="col-6 text-muted">Unreconciled bank rows</div>
+          <div class="col-6 text-end fw-semibold">{{ accounting.unreconciled_bank_rows }}</div>
+          <div class="col-6 text-muted">Ledgers</div>
+          <div class="col-6 text-end fw-semibold">{{ accounting.ledgers }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white">
+        <h6 class="mb-0"><i class="bi bi-shield-check me-2"></i>GST Snapshot</h6>
+      </div>
+      <div class="card-body">
+        <div class="row g-2 small">
+          <div class="col-7 text-muted">Output tax</div>
+          <div class="col-5 text-end fw-semibold">Rs. {{ gst_snapshot.output_tax|floatformat:2 }}</div>
+          <div class="col-7 text-muted">ITC</div>
+          <div class="col-5 text-end fw-semibold">Rs. {{ gst_snapshot.itc|floatformat:2 }}</div>
+          <div class="col-7 text-muted">Net tax payable</div>
+          <div class="col-5 text-end fw-semibold">Rs. {{ gst_snapshot.net_tax_payable|floatformat:2 }}</div>
+          <div class="col-7 text-muted">2B missing in books</div>
+          <div class="col-5 text-end fw-semibold">{{ gst_snapshot.missing_in_books }}</div>
+          <div class="col-7 text-muted">2B pending action</div>
+          <div class="col-5 text-end fw-semibold">{{ gstr2b_summary.pending_action }}</div>
+          <div class="col-7 text-muted">GSTR-1 master issues</div>
+          <div class="col-5 text-end fw-semibold">{{ gst_snapshot.sales_missing_pos|add:gst_snapshot.sales_invalid_party_gstin|add:gst_snapshot.sales_missing_hsn }}</div>
+          <div class="col-7 text-muted">ITC 180-day attention</div>
+          <div class="col-5 text-end fw-semibold">{{ gst_snapshot.itc_180_reversal_due }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-8">
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-list-check me-2"></i>Open Work</h6>
+        <a href="{{ commercial.tasks_url }}" class="btn btn-sm btn-outline-primary">Work Queue</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Task</th>
+              <th>Type</th>
+              <th>Priority</th>
+              <th>Due</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for task in open_tasks %}
+            <tr>
+              <td class="fw-semibold">{{ task.title }}</td>
+              <td>{{ task.get_task_type_display }}</td>
+              <td>{{ task.get_priority_display }}</td>
+              <td class="{% if task.due_date and task.due_date < today %}text-danger{% endif %}">{{ task.due_date|date:"d M Y"|default:"-" }}</td>
+              <td>{{ task.get_status_display }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center text-muted py-3">No open tasks.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-header bg-white">
+            <h6 class="mb-0"><i class="bi bi-calendar-check me-2"></i>Filings</h6>
+          </div>
+          <div class="list-group list-group-flush">
+            {% for filing in open_filings %}
+            <a href="{% url 'core:compliance_filings' %}?company={{ company.pk }}" class="list-group-item list-group-item-action">
+              <div class="fw-semibold">{{ filing.title }}</div>
+              <div class="small text-muted">{{ filing.get_status_display }} · due {{ filing.due_date|date:"d M Y"|default:"-" }}</div>
+            </a>
+            {% empty %}
+            <div class="list-group-item text-muted text-center py-3">No open filings.</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-header bg-white">
+            <h6 class="mb-0"><i class="bi bi-exclamation-diamond me-2"></i>Notices</h6>
+          </div>
+          <div class="list-group list-group-flush">
+            {% for notice in open_notices %}
+            <a href="{% url 'core:compliance_notices' %}?company={{ company.pk }}" class="list-group-item list-group-item-action">
+              <div class="fw-semibold">{{ notice.title }}</div>
+              <div class="small text-muted">{{ notice.get_status_display }} · due {{ notice.response_due_date|date:"d M Y"|default:"-" }}</div>
+            </a>
+            {% empty %}
+            <div class="list-group-item text-muted text-center py-3">No open notices.</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-inbox me-2"></i>Client Requests</h6>
+        <a href="{% url 'portal:client_requests' %}?company={{ company.pk }}" class="btn btn-sm btn-outline-primary">Request Room</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Request</th>
+              <th>Status</th>
+              <th>Due</th>
+              <th>Recipient</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in client_requests %}
+            <tr>
+              <td class="fw-semibold">{{ item.title }}</td>
+              <td>{{ item.get_status_display }}</td>
+              <td>{{ item.due_date|date:"d M Y"|default:"-" }}</td>
+              <td>{{ item.recipient_email|default:item.recipient_whatsapp_number|default:"-" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted py-3">No open client requests.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-header bg-white">
+            <h6 class="mb-0"><i class="bi bi-receipt me-2"></i>Recent Vouchers</h6>
+          </div>
+          <div class="list-group list-group-flush">
+            {% for voucher in recent_vouchers %}
+            <a href="{% url 'core:switch_company' company.pk %}?next={% url 'vouchers:detail' voucher.pk %}" class="list-group-item list-group-item-action">
+              <div class="fw-semibold">{{ voucher.number|default:voucher.pk }} · {{ voucher.voucher_type }}</div>
+              <div class="small text-muted">{{ voucher.date|date:"d M Y" }} · {{ voucher.status }}</div>
+            </a>
+            {% empty %}
+            <div class="list-group-item text-muted text-center py-3">No vouchers yet.</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-header bg-white">
+            <h6 class="mb-0"><i class="bi bi-journal-check me-2"></i>Audit Trail</h6>
+          </div>
+          <div class="list-group list-group-flush">
+            {% for log in recent_audit_logs %}
+            <div class="list-group-item">
+              <div class="fw-semibold">{{ log.model_name }} · {{ log.get_action_display }}</div>
+              <div class="small text-muted">{{ log.object_repr }} · {{ log.timestamp|date:"d M Y H:i" }}</div>
+            </div>
+            {% empty %}
+            <div class="list-group-item text-muted text-center py-3">No audit activity yet.</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Trial Balance – {{ current_company.name }}</title>
+<style>
+@page {
+  size: A4 landscape;
+  margin: 12mm 14mm 14mm 14mm;
+  @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 8pt; color: #888; }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 8.5pt; color: #212529; line-height: 1.4; }
+.rpt-header { border-bottom: 3px solid #0d6efd; padding-bottom: 8px; margin-bottom: 10px; text-align: center; }
+.rpt-header h1 { font-size: 14pt; font-weight: 700; }
+.rpt-header h2 { font-size: 10pt; color: #444; font-weight: 400; margin-top: 2px; }
+.rpt-header p  { font-size: 8pt; color: #666; margin-top: 2px; }
+table { width: 100%; border-collapse: collapse; font-size: 8pt; }
+thead th { background: #1f3864; color: #fff; border: 1px solid #1f3864; padding: 5px 6px; text-align: center; font-weight: 700; }
+thead th.left { text-align: left; }
+tbody tr:nth-child(even) { background: #f8f9fa; }
+tbody td { border: 1px solid #dee2e6; padding: 3px 6px; }
+.text-end { text-align: right; font-variant-numeric: tabular-nums; }
+tfoot td { background: #2f5496; color: #fff; font-weight: 700; border: 1px solid #1f3864; padding: 5px 6px; }
+.balanced-badge { margin-top: 8px; padding: 5px 10px; font-weight: 700; display: inline-block; border-radius: 4px; font-size: 9pt; }
+.ok   { background: #d1fae5; color: #065f46; }
+.warn { background: #fee2e2; color: #991b1b; }
+.group-header td { background: #e8eaf6; font-weight: 700; font-size: 8pt; color: #303f9f; }
+</style>
+</head>
+<body>
+
+<div class="rpt-header">
+  <h1>{{ current_company.name }}</h1>
+  <h2>Trial Balance</h2>
+  <p>Period: {{ start_date|date:"d M Y" }} &ndash; {{ end_date|date:"d M Y" }}</p>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th class="left" rowspan="2">Ledger Account</th>
+      <th colspan="2">Opening Balance</th>
+      <th colspan="2">Period Movements</th>
+      <th colspan="2">Closing Balance</th>
+    </tr>
+    <tr>
+      <th>Debit (₹)</th><th>Credit (₹)</th>
+      <th>Debit (₹)</th><th>Credit (₹)</th>
+      <th>Debit (₹)</th><th>Credit (₹)</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+    <tr>
+      <td>{{ row.name }}</td>
+      <td class="text-end">{% if row.opening_dr %}{{ row.opening_dr|floatformat:2 }}{% else %}—{% endif %}</td>
+      <td class="text-end">{% if row.opening_cr %}{{ row.opening_cr|floatformat:2 }}{% else %}—{% endif %}</td>
+      <td class="text-end">{% if row.period_dr %}{{ row.period_dr|floatformat:2 }}{% else %}—{% endif %}</td>
+      <td class="text-end">{% if row.period_cr %}{{ row.period_cr|floatformat:2 }}{% else %}—{% endif %}</td>
+      <td class="text-end">{% if row.closing_dr %}{{ row.closing_dr|floatformat:2 }}{% else %}—{% endif %}</td>
+      <td class="text-end">{% if row.closing_cr %}{{ row.closing_cr|floatformat:2 }}{% else %}—{% endif %}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7" style="text-align:center;color:#888;">No data for this period.</td></tr>
+    {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr>
+      <td>TOTALS</td>
+      <td class="text-end">{{ tot_open_dr|floatformat:2 }}</td>
+      <td class="text-end">{{ tot_open_cr|floatformat:2 }}</td>
+      <td class="text-end">{{ tot_per_dr|floatformat:2 }}</td>
+      <td class="text-end">{{ tot_per_cr|floatformat:2 }}</td>
+      <td class="text-end">{{ tot_clos_dr|floatformat:2 }}</td>
+      <td class="text-end">{{ tot_clos_cr|floatformat:2 }}</td>
+    </tr>
+  </tfoot>
+</table>
+
+<div>
+  <span class="balanced-badge {% if is_balanced %}ok{% else %}warn{% endif %}">
+    {% if is_balanced %}✓ Books are Balanced{% else %}⚠ Difference: ₹{{ difference|floatformat:2 }}{% endif %}
+  </span>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}{{ title }} – Akshaya Vistara{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9">
+    
+    <!-- OCR Quick Scan Section -->
+    <div class="card border-0 shadow-sm mb-4 bg-light border-start border-primary border-4">
+      <div class="card-body py-3 d-flex align-items-center justify-content-between">
+        <div>
+          <h6 class="mb-1"><i class="bi bi-magic me-2"></i>Quick Onboarding with OCR</h6>
+          <p class="small text-muted mb-0">Upload a PAN card or Bank Passbook to auto-fill this form.</p>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-primary" onclick="document.getElementById('ocr_file_input').click()">
+          <i class="bi bi-camera me-1"></i> Scan Document
+        </button>
+        <input type="file" id="ocr_file_input" class="d-none" accept="image/*,.pdf" onchange="handleOcrUpload(this)">
+      </div>
+      <div id="ocr_loading" class="card-footer bg-white py-2 d-none">
+        <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+        <span class="small text-muted">Processing document...</span>
+      </div>
+    </div>
+
+    <form method="post" id="employee_form">
+      {% csrf_token %}
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold py-3">Personal Information</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">{{ form.employee_code|as_crispy_field }}</div>
+            <div class="col-md-8">{{ form.name|as_crispy_field }}</div>
+            <div class="col-md-6">{{ form.designation|as_crispy_field }}</div>
+            <div class="col-md-6">{{ form.department|as_crispy_field }}</div>
+            <div class="col-md-4">{{ form.date_of_joining|as_crispy_field }}</div>
+            <div class="col-md-4">{{ form.date_of_birth|as_crispy_field }}</div>
+            <div class="col-md-4">{{ form.gender|as_crispy_field }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold py-3">Tax & Compliance</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">{{ form.pan_number|as_crispy_field }}</div>
+            <div class="col-md-4">{{ form.uan_number|as_crispy_field }}</div>
+            <div class="col-md-4"></div>
+            <div class="col-md-4">{{ form.bank_account|as_crispy_field }}</div>
+            <div class="col-md-4">{{ form.ifsc_code|as_crispy_field }}</div>
+            <div class="col-md-4"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold py-3">Salary & Statutory</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">{{ form.basic_salary|as_crispy_field }}</div>
+            <div class="col-md-4">{{ form.hra|as_crispy_field }}</div>
+            <div class="col-md-4"></div>
+            <div class="col-auto">
+              <div class="form-check mt-2">
+                {{ form.pf_applicable }}
+                <label class="form-check-label" for="{{ form.pf_applicable.id_for_label }}">PF Applicable</label>
+              </div>
+            </div>
+            <div class="col-auto">
+              <div class="form-check mt-2">
+                {{ form.esi_applicable }}
+                <label class="form-check-label" for="{{ form.esi_applicable.id_for_label }}">ESI Applicable</label>
+              </div>
+            </div>
+            <div class="col-auto">
+              <div class="form-check mt-2">
+                {{ form.tds_applicable }}
+                <label class="form-check-label" for="{{ form.tds_applicable.id_for_label }}">TDS Applicable</label>
+              </div>
+            </div>
+            <div class="col-auto">
+              <div class="form-check mt-2">
+                {{ form.is_active }}
+                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">Active</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 justify-content-end">
+        <a href="{% url 'payroll:employee_list' %}" class="btn btn-outline-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-save me-1"></i>Save Employee
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function handleOcrUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+  const loading = document.getElementById('ocr_loading');
+  loading.classList.remove('d-none');
+
+  fetch("{% url 'payroll:employee_ocr_upload' %}", {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+    loading.classList.add('d-none');
+    if (data.error) {
+      alert("OCR Error: " + data.error);
+      return;
+    }
+    
+    const conf = data.confidence || {};
+
+    const showConfidence = (fieldName, score) => {
+      const field = document.querySelector(`[name="${fieldName}"]`);
+      if (!field) return;
+      
+      // Remove existing badge if any
+      const existing = field.parentNode.querySelector('.ocr-badge');
+      if (existing) existing.remove();
+
+      const badge = document.createElement('span');
+      badge.className = 'ocr-badge badge ms-2 ';
+      if (score === 'high' || score === 'medium') {
+        badge.className += 'bg-success-subtle text-success';
+        badge.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Auto-filled';
+      } else {
+        badge.className += 'bg-warning-subtle text-warning-emphasis';
+        badge.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i>Check manually';
+      }
+      
+      const label = field.parentNode.querySelector('label');
+      if (label) label.appendChild(badge);
+    };
+
+    // Auto-fill fields if they were extracted
+    const extractedName = data.name || data.legal_name;
+    if (extractedName) {
+      document.querySelector('[name="name"]').value = extractedName;
+      showConfidence('name', conf.name);
+    }
+    if (data.dob) {
+      document.querySelector('[name="date_of_birth"]').value = data.dob;
+      showConfidence('date_of_birth', conf.dob);
+    }
+    if (data.pan) {
+      document.querySelector('[name="pan_number"]').value = data.pan;
+      showConfidence('pan_number', conf.pan);
+    }
+    if (data.account_number) {
+      document.querySelector('[name="bank_account"]').value = data.account_number;
+      showConfidence('bank_account', conf.account_number);
+    }
+    if (data.ifsc_code) {
+      document.querySelector('[name="ifsc_code"]').value = data.ifsc_code;
+      showConfidence('ifsc_code', conf.ifsc_code);
+    }
+    if (data.uan) {
+      document.querySelector('[name="uan_number"]').value = data.uan;
+      showConfidence('uan_number', conf.uan);
+    }
+    if (data.join_date) {
+      document.querySelector('[name="date_of_joining"]').value = data.join_date;
+      showConfidence('date_of_joining', conf.join_date);
+    }
+    if (data.basic_salary) {
+      document.querySelector('[name="basic_salary"]').value = data.basic_salary;
+    }
+    if (data.hra) {
+      document.querySelector('[name="hra"]').value = data.hra;
+    }
+    
+    // Show success message
+    const msg = data.doc_type === 'pan_card' ? 'PAN Card details extracted!' : 
+                data.doc_type === 'bank_details' ? 'Bank details extracted!' : 
+                data.doc_type === 'payslip' ? 'Payslip details extracted!' :
+                'Document processed!';
+    alert(msg + " Please review and complete the rest of the form.");
+  })
+  .catch(error => {
+    loading.classList.add('d-none');
+    console.error('Error:', error);
+    alert("An error occurred while processing the document.");
+  });
+}
+</script>
+{% endblock %}

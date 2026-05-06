@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block title %}Statutory Export Center - Akshaya Vistara{% endblock %}
+{% block page_title %}Statutory Export Center{% endblock %}
+
+{% block extra_head %}
+<style>
+  .export-filter {
+    background: var(--surface-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 0.85rem 1rem;
+  }
+  .export-filter label {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+  }
+  .export-score {
+    min-width: 4.5rem;
+  }
+  .export-blocker {
+    max-width: 26rem;
+  }
+  .export-actions {
+    flex-wrap: wrap;
+  }
+  @media (max-width: 767.98px) {
+    .export-actions .btn,
+    .export-actions form,
+    .export-actions form .btn {
+      width: 100%;
+    }
+    .export-blocker {
+      max-width: 18rem;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h5 class="mb-1">Statutory Export Center</h5>
+    <small class="text-muted">Cross-client GST and TDS filing-pack readiness, blocker tasks, and export handover.</small>
+  </div>
+  <div class="d-flex gap-2 export-actions">
+    <a href="?{{ export_query }}" class="btn btn-outline-success btn-sm">
+      <i class="bi bi-download me-1"></i>CSV
+    </a>
+    <form method="post" class="m-0">
+      {% csrf_token %}
+      <input type="hidden" name="period" value="{{ period_value }}">
+      <input type="hidden" name="fy" value="{{ tds_filters.fy_start }}">
+      <input type="hidden" name="quarter" value="{{ tds_filters.quarter }}">
+      <input type="hidden" name="form_type" value="{{ tds_filters.form_type }}">
+      {% if selected_company_id %}<input type="hidden" name="company" value="{{ selected_company_id }}">{% endif %}
+      <button type="submit" name="action" value="create_tasks" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-list-check me-1"></i>Create Blocker Tasks
+      </button>
+    </form>
+  </div>
+</div>
+
+<form method="get" class="export-filter mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-4 col-xl-3">
+      <label for="company">Client</label>
+      <select id="company" name="company" class="form-select form-select-sm">
+        <option value="">All clients</option>
+        {% for company in companies %}
+          <option value="{{ company.pk }}" {% if selected_company_id|stringformat:"s" == company.pk|stringformat:"s" %}selected{% endif %}>{{ company.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-2">
+      <label for="period">GST Month</label>
+      <input id="period" type="month" name="period" value="{{ period_value }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-6 col-md-2">
+      <label for="fy">TDS FY</label>
+      <select id="fy" name="fy" class="form-select form-select-sm">
+        {% for option in fy_options %}
+          <option value="{{ option.value }}" {% if option.value == tds_filters.fy_start %}selected{% endif %}>{{ option.label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-2 col-xl-1">
+      <label for="quarter">Quarter</label>
+      <select id="quarter" name="quarter" class="form-select form-select-sm">
+        {% for value, label in quarter_options %}
+          <option value="{{ value }}" {% if value == tds_filters.quarter %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-2 col-xl-1">
+      <label for="form_type">Form</label>
+      <select id="form_type" name="form_type" class="form-select form-select-sm">
+        {% for value, label in form_type_options %}
+          <option value="{{ value }}" {% if value == tds_filters.form_type %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-primary btn-sm w-100">
+        <i class="bi bi-funnel me-1"></i>Apply
+      </button>
+    </div>
+  </div>
+</form>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Clients</div>
+        <div class="h4 mb-0">{{ totals.clients }}</div>
+        <div class="small text-muted">{{ period_value }} GST | {{ tds_filters.form_type }} {{ tds_filters.quarter }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Average Score</div>
+        <div class="h4 mb-0 {% if totals.avg_score >= 80 %}text-success{% elif totals.avg_score >= 50 %}text-warning{% else %}text-danger{% endif %}">
+          {{ totals.avg_score }}%
+        </div>
+        <div class="small text-muted">GST + TDS export readiness</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Download Ready</div>
+        <div class="h4 mb-0 text-success">{{ totals.download_ready }}</div>
+        <div class="small text-muted">GST/TDS packs ready</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Blockers</div>
+        <div class="h4 mb-0 {% if totals.critical %}text-danger{% else %}text-success{% endif %}">{{ totals.critical }}</div>
+        <div class="small text-muted">{{ totals.warnings }} warnings</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-body d-flex justify-content-between align-items-center">
+        <div>
+          <div class="fw-semibold">GST Packs</div>
+          <div class="small text-muted">{{ totals.gst_ready }} ready, {{ totals.gst_filed }} filed</div>
+        </div>
+        <span class="badge {% if totals.gst_blocked %}bg-danger-subtle text-danger{% else %}bg-success-subtle text-success{% endif %}">
+          {{ totals.gst_blocked }} blocked
+        </span>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-body d-flex justify-content-between align-items-center">
+        <div>
+          <div class="fw-semibold">TDS RPU Packs</div>
+          <div class="small text-muted">{{ totals.tds_ready }} ready, {{ totals.tds_filed }} filed</div>
+        </div>
+        <span class="badge {% if totals.tds_blocked %}bg-danger-subtle text-danger{% else %}bg-success-subtle text-success{% endif %}">
+          {{ totals.tds_blocked }} blocked
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <h6 class="mb-0"><i class="bi bi-file-earmark-spreadsheet me-2"></i>Export Queue</h6>
+    <span class="small text-muted">Sorted by lowest readiness score</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Client</th>
+          <th class="text-end">Score</th>
+          <th>GST Filing Pack</th>
+          <th>TDS RPU Pack</th>
+          <th>Primary Blocker</th>
+          <th class="text-end pe-3">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td>
+              <a href="{% url 'core:client_360' row.company.pk %}" class="fw-semibold text-decoration-none">{{ row.company.name }}</a>
+              <div class="small text-muted">{{ row.company.gstin|default:"No GSTIN" }}{% if row.company.tan %} | TAN {{ row.company.tan }}{% endif %}</div>
+            </td>
+            <td class="text-end">
+              <span class="badge bg-{{ row.score_class }}-subtle text-{{ row.score_class }} export-score">
+                {{ row.score }}%
+              </span>
+            </td>
+            <td>
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <span class="badge bg-{{ row.gst.score_class }}-subtle text-{{ row.gst.score_class }}">{{ row.gst.score }}%</span>
+                <span class="fw-semibold">{{ row.gst.status }}</span>
+              </div>
+              <div class="small text-muted">
+                {{ row.gst.critical_count }} critical, {{ row.gst.warning_count }} warnings
+                {% if row.gst.is_filed %} | filed{% endif %}
+              </div>
+            </td>
+            <td>
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <span class="badge bg-{{ row.tds.score_class }}-subtle text-{{ row.tds.score_class }}">{{ row.tds.score }}%</span>
+                <span class="fw-semibold">{{ row.tds.status }}</span>
+              </div>
+              <div class="small text-muted">
+                {{ row.tds.deductee_rows }} deductees, {{ row.tds.challan_rows }} challans
+                {% if row.tds.is_filed %} | filed{% endif %}
+              </div>
+            </td>
+            <td class="export-blocker">
+              {% if row.gst.primary_blocker %}
+                <div class="small">
+                  <span class="badge {% if row.gst.primary_blocker.severity == 'critical' %}bg-danger{% else %}bg-warning text-dark{% endif %} me-1">GST</span>
+                  <span class="fw-semibold">{{ row.gst.primary_blocker.title }}</span>
+                </div>
+                <div class="small text-muted">{{ row.gst.primary_blocker.description|truncatechars:90 }}</div>
+              {% elif row.tds.primary_blocker %}
+                <div class="small">
+                  <span class="badge {% if row.tds.primary_blocker.severity == 'critical' %}bg-danger{% else %}bg-warning text-dark{% endif %} me-1">TDS</span>
+                  <span class="fw-semibold">{{ row.tds.primary_blocker.title }}</span>
+                </div>
+                <div class="small text-muted">{{ row.tds.primary_blocker.description|truncatechars:90 }}</div>
+              {% else %}
+                <span class="small text-success">No export blocker.</span>
+              {% endif %}
+            </td>
+            <td class="text-end pe-3">
+              <div class="btn-group btn-group-sm mb-1">
+                <a href="{{ row.gst.links.open }}" class="btn btn-outline-primary">GST</a>
+                <a href="{{ row.tds.links.open }}" class="btn btn-outline-primary">TDS</a>
+              </div>
+              <div class="btn-group btn-group-sm">
+                {% if row.gst.links.xlsx %}
+                  <a href="{{ row.gst.links.xlsx }}" class="btn btn-outline-success">GST XLSX</a>
+                {% endif %}
+                {% if row.tds.links.xlsx %}
+                  <a href="{{ row.tds.links.xlsx }}" class="btn btn-outline-success">TDS XLSX</a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" class="text-center text-muted py-5">No assigned client workspaces found.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

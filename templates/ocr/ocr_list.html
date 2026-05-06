@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}OCR Submissions – Akshaya Vistara{% endblock %}
+{% block page_title %}OCR Submissions{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="mb-0">Bill Submissions — {{ current_company.name }}</h5>
+  <a href="{% url 'ocr:upload' %}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus"></i> Scan New Bill
+  </a>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>File</th>
+            <th>Vendor</th>
+            <th>GSTIN</th>
+            <th>Date</th>
+            <th class="text-end">Amount</th>
+            <th>Status</th>
+            <th>Voucher</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sub in submissions %}
+          <tr>
+            <td class="text-muted small">#{{ sub.pk }}</td>
+            <td>
+              <a href="{{ sub.file.url }}" target="_blank"
+                 class="text-decoration-none small"
+                 title="{{ sub.filename }}">
+                <i class="bi bi-{% if sub.is_pdf %}file-earmark-pdf text-danger{% else %}file-earmark-image text-primary{% endif %} me-1"></i>
+                {{ sub.filename|truncatechars:22 }}
+              </a>
+            </td>
+            <td class="small">{{ sub.parsed_json.vendor_name|default:"—"|truncatechars:25 }}</td>
+            <td><code class="small">{{ sub.parsed_json.gstin|default:"—" }}</code></td>
+            <td class="small">{{ sub.parsed_json.date|default:"—" }}</td>
+            <td class="text-end small fw-semibold">
+              {% if sub.parsed_json.total_amount %}
+                ₹{{ sub.parsed_json.total_amount }}
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if sub.status == "Confirmed" %}
+                <span class="badge bg-success bg-opacity-10 text-success">
+                  <i class="bi bi-check-circle me-1"></i>Confirmed
+                </span>
+              {% elif sub.status == "Rejected" %}
+                <span class="badge bg-danger bg-opacity-10 text-danger">
+                  <i class="bi bi-x-circle me-1"></i>Rejected
+                </span>
+              {% else %}
+                <span class="badge bg-warning bg-opacity-10 text-warning">
+                  <i class="bi bi-clock me-1"></i>Pending
+                </span>
+              {% endif %}
+            </td>
+            <td>
+              {% if sub.linked_voucher %}
+                <a href="{% url 'vouchers:detail' sub.linked_voucher.pk %}"
+                   class="badge bg-primary bg-opacity-10 text-primary text-decoration-none small">
+                  <i class="bi bi-receipt me-1"></i>{{ sub.linked_voucher.number }}
+                </a>
+              {% else %}—{% endif %}
+            </td>
+            <td class="text-end">
+              {% if sub.status == "Pending" %}
+                <a href="{% url 'ocr:verify' sub.pk %}"
+                   class="btn btn-sm btn-outline-primary me-1"
+                   title="Verify">
+                  <i class="bi bi-pencil-square"></i>
+                </a>
+                <a href="{% url 'ocr:reject' sub.pk %}"
+                   class="btn btn-sm btn-outline-danger"
+                   title="Reject">
+                  <i class="bi bi-x"></i>
+                </a>
+              {% else %}
+                <a href="{% url 'ocr:verify' sub.pk %}"
+                   class="btn btn-sm btn-outline-secondary"
+                   title="View">
+                  <i class="bi bi-eye"></i>
+                </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="9" class="text-center text-muted py-5">
+              <i class="bi bi-camera-fill fs-1 d-block mb-2 opacity-25"></i>
+              No bills scanned yet.
+              <a href="{% url 'ocr:upload' %}">Upload your first bill.</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

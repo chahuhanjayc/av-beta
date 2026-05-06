@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}TDS Sections – Akshaya Vistara{% endblock %}
+{% block page_title %}TDS / TCS Sections{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-end mb-3">
+  <a href="{% url 'tds:section_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>New Section</a>
+</div>
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    {% if sections %}
+    <table class="table table-hover table-sm mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Nature</th><th>Section</th><th>Description</th>
+          <th class="text-end">Threshold (₹)</th>
+          <th class="text-end">Rate Ind%</th><th class="text-end">Rate Co%</th>
+          <th>Active</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in sections %}
+        <tr>
+          <td><span class="badge {% if s.nature == 'TDS' %}bg-primary{% else %}bg-warning text-dark{% endif %}">{{ s.nature }}</span></td>
+          <td class="fw-semibold">{{ s.section_code }}</td>
+          <td>{{ s.description|truncatechars:60 }}</td>
+          <td class="text-end">{{ s.threshold|floatformat:0 }}</td>
+          <td class="text-end">{{ s.rate_individual }}%</td>
+          <td class="text-end">{{ s.rate_company }}%</td>
+          <td>{% if s.is_active %}<i class="bi bi-check-circle text-success"></i>{% else %}—{% endif %}</td>
+          <td class="text-end">
+            <a href="{% url 'tds:section_edit' pk=s.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-center py-5 text-muted">No sections. <a href="{% url 'tds:section_create' %}">Add one</a></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

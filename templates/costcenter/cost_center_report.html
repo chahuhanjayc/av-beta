@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Cost Center Report – Akshaya Vistara{% endblock %}
+{% block page_title %}Cost Center P&L Report{% endblock %}
+
+{% block extra_head %}
+<style>
+  .cc-card   { border-left: 4px solid #6366f1; }
+  .drill-row { background: #fafafa; font-size: .83rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+{# ── Date filter ── #}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3">
+    <form class="row g-2 align-items-end" method="get">
+      <div class="col-auto">
+        <label class="form-label small mb-1">From</label>
+        <input type="date" name="start_date" value="{{ start_date }}" class="form-control form-control-sm">
+      </div>
+      <div class="col-auto">
+        <label class="form-label small mb-1">To</label>
+        <input type="date" name="end_date" value="{{ end_date }}" class="form-control form-control-sm">
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── Summary totals ── #}
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="text-muted small">Total Income (Tagged)</div>
+      <div class="fw-bold fs-5 text-success">₹{{ grand_income|floatformat:2 }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="text-muted small">Total Expense (Tagged)</div>
+      <div class="fw-bold fs-5 text-danger">₹{{ grand_expense|floatformat:2 }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="text-muted small">Net Profit (Tagged)</div>
+      <div class="fw-bold fs-5 {% if grand_net >= 0 %}text-success{% else %}text-danger{% endif %}">
+        ₹{{ grand_net|floatformat:2 }}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="text-muted small">Untagged Income / Expense</div>
+      <div class="small text-muted">
+        <span class="text-success">₹{{ untagged_income|floatformat:2 }}</span> /
+        <span class="text-danger">₹{{ untagged_expense|floatformat:2 }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ── Per cost center breakdown ── #}
+{% if cc_rows %}
+  {% for row in cc_rows %}
+  <div class="card border-0 shadow-sm mb-3 cc-card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
+      <div>
+        <span class="fw-semibold">{{ row.cc.name }}</span>
+        {% if row.cc.code %}<span class="badge bg-secondary-subtle text-secondary ms-2">{{ row.cc.code }}</span>{% endif %}
+      </div>
+      <div class="d-flex gap-3 text-end">
+        <div>
+          <div class="text-muted" style="font-size:.7rem">Income</div>
+          <div class="text-success fw-semibold">₹{{ row.income|floatformat:2 }}</div>
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:.7rem">Expense</div>
+          <div class="text-danger fw-semibold">₹{{ row.expense|floatformat:2 }}</div>
+        </div>
+        <div>
+          <div class="text-muted" style="font-size:.7rem">Net</div>
+          <div class="fw-bold {% if row.net >= 0 %}text-success{% else %}text-danger{% endif %}">₹{{ row.net|floatformat:2 }}</div>
+        </div>
+      </div>
+    </div>
+    {% if row.ledger_lines %}
+    <div class="card-body p-0">
+      <table class="table table-sm mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Ledger</th>
+            <th>Group</th>
+            <th class="text-end" style="width:120px;">Debit (₹)</th>
+            <th class="text-end" style="width:120px;">Credit (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for line in row.ledger_lines %}
+          <tr class="drill-row">
+            <td>{{ line.name }}</td>
+            <td class="text-muted">{{ line.group }}</td>
+            <td class="text-end">
+              {% if line.debit > 0 %}
+                <span class="text-danger">₹{{ line.debit|floatformat:2 }}</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              {% if line.credit > 0 %}
+                <span class="text-success">₹{{ line.credit|floatformat:2 }}</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+{% else %}
+<div class="text-center py-5 text-muted">
+  <i class="bi bi-diagram-3 fs-1 d-block mb-2"></i>
+  No cost center activity for the selected period.
+  <a href="{% url 'costcenter:cost_center_create' %}">Add cost centers</a> and tag voucher items to them.
+</div>
+{% endif %}
+{% endblock %}

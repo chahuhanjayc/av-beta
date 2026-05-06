@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}Voucher Quality - Akshaya Vistara{% endblock %}
+{% block page_title %}Voucher Quality{% endblock %}
+
+{% block extra_head %}
+<style>
+  .quality-score {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .quality-filter {
+    background: var(--surface-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 0.85rem 1rem;
+  }
+  .quality-filter label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+  }
+  .issue-message {
+    max-width: 34rem;
+  }
+  .issue-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 0.72rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h5 class="mb-0">Voucher Quality</h5>
+    <small class="text-muted">{{ current_company.name }} | {{ filters.start_date }} to {{ filters.end_date }}</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="?{{ export_query }}" class="btn btn-outline-success btn-sm">
+      <i class="bi bi-download"></i> CSV
+    </a>
+    <a href="{% url 'vouchers:list' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-receipt"></i> Vouchers
+    </a>
+    {% if report.issues and can_create_tasks %}
+    <form method="post" action="{{ request.get_full_path }}" class="m-0">
+      {% csrf_token %}
+      <button type="submit" name="action" value="create_tasks" class="btn btn-primary btn-sm">
+        <i class="bi bi-list-check"></i> Create Tasks
+      </button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<form method="get" class="quality-filter mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-sm-6 col-lg-2">
+      <label for="start_date">From</label>
+      <input type="date" id="start_date" name="start_date" value="{{ filters.start_date }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-sm-6 col-lg-2">
+      <label for="end_date">To</label>
+      <input type="date" id="end_date" name="end_date" value="{{ filters.end_date }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-sm-6 col-lg-2">
+      <label for="status">Status</label>
+      <select id="status" name="status" class="form-select form-select-sm">
+        {% for value, label in status_choices %}
+        <option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-sm-6 col-lg-2">
+      <label for="voucher_type">Type</label>
+      <select id="voucher_type" name="voucher_type" class="form-select form-select-sm">
+        <option value="">All types</option>
+        {% for value, label in voucher_types %}
+        <option value="{{ value }}" {% if filters.voucher_type == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-sm-8 col-lg-3">
+      <label for="q">Search</label>
+      <input type="text" id="q" name="q" value="{{ filters.q }}" class="form-control form-control-sm" placeholder="Voucher, narration, party, reference">
+    </div>
+    <div class="col-sm-4 col-lg-1 d-flex gap-1">
+      <button type="submit" class="btn btn-primary btn-sm w-100" title="Apply filters">
+        <i class="bi bi-funnel"></i>
+      </button>
+      <a href="{% url 'vouchers:quality' %}" class="btn btn-outline-secondary btn-sm w-100" title="Reset filters">
+        <i class="bi bi-x-lg"></i>
+      </a>
+    </div>
+  </div>
+</form>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Quality Score</div>
+        <div class="quality-score {% if report.score >= 90 %}text-success{% elif report.score >= 70 %}text-warning{% else %}text-danger{% endif %}">
+          {{ report.score }}%
+        </div>
+        <div class="small text-muted">{{ report.status }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Critical</div>
+        <div class="quality-score text-danger">{{ report.critical_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Warnings</div>
+        <div class="quality-score text-warning">{{ report.warning_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Checked</div>
+        <div class="quality-score">{{ report.vouchers_checked }}</div>
+        <div class="small text-muted">{{ report.clean_count }} clean</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-8">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-shield-exclamation me-2"></i>Quality Exceptions</h6>
+        <span class="badge bg-secondary">{{ report.issues|length }} issue{{ report.issues|length|pluralize }}</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Voucher</th>
+              <th>Issue</th>
+              <th>Party</th>
+              <th class="text-end">Amount</th>
+              <th class="text-end pe-3">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for issue in report.issues %}
+            <tr>
+              <td class="ps-3">
+                <a href="{{ issue.voucher_url }}" class="fw-semibold">{{ issue.voucher.number }}</a>
+                <div class="small text-muted">{{ issue.voucher.voucher_type }} | {{ issue.voucher.date|date:"d M Y" }}</div>
+              </td>
+              <td>
+                <span class="badge {% if issue.severity == 'critical' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                  {{ issue.severity|title }}
+                </span>
+                <div class="fw-semibold mt-1">{{ issue.title }}</div>
+                <div class="small text-muted issue-message">{{ issue.message }}</div>
+                <div class="text-muted issue-code">{{ issue.code }}</div>
+              </td>
+              <td>{{ issue.party_name|default:"-" }}</td>
+              <td class="text-end">Rs.{{ issue.amount|floatformat:2 }}</td>
+              <td class="text-end pe-3">
+                <a href="{{ issue.voucher_url }}" class="btn btn-sm btn-outline-secondary">
+                  Review
+                </a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="text-center text-muted py-4">No voucher quality issues found for this filter.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-4">
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-bar-chart-steps me-2"></i>Issue Mix</h6>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for code, count in report.by_code.items %}
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+          <span class="issue-code">{{ code }}</span>
+          <span class="badge bg-secondary">{{ count }}</span>
+        </div>
+        {% empty %}
+        <div class="list-group-item text-muted">No issue categories in this period.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

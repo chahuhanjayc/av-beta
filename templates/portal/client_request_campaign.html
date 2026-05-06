@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Client Request Campaign - Akshaya Vistara{% endblock %}
+{% block page_title %}Client Request Campaign{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h5 class="mb-0">Client Request Campaign</h5>
+    <small class="text-muted">Create the same upload request for multiple portal clients in one pass.</small>
+  </div>
+  <a href="{% url 'portal:client_requests' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left"></i> Client Requests
+  </a>
+</div>
+
+<form method="post" class="card border-0 shadow-sm">
+  {% csrf_token %}
+  <div class="card-body">
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label small fw-semibold" for="{{ form.template.id_for_label }}">Template</label>
+        {{ form.template }}
+        {% if form.template.errors %}<div class="text-danger small">{{ form.template.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small fw-semibold" for="{{ form.company.id_for_label }}">Company</label>
+        {{ form.company }}
+        {% if form.company.errors %}<div class="text-danger small">{{ form.company.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small fw-semibold" for="{{ form.document_type.id_for_label }}">Document Type</label>
+        {{ form.document_type }}
+        {% if form.document_type.errors %}<div class="text-danger small">{{ form.document_type.errors|join:", " }}</div>{% endif %}
+      </div>
+
+      <div class="col-md-8">
+        <label class="form-label small fw-semibold" for="{{ form.title.id_for_label }}">Request Title</label>
+        {{ form.title }}
+        {% if form.title.errors %}<div class="text-danger small">{{ form.title.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small fw-semibold" for="{{ form.due_date.id_for_label }}">Due Date</label>
+        {{ form.due_date }}
+        {% if form.due_date.errors %}<div class="text-danger small">{{ form.due_date.errors|join:", " }}</div>{% endif %}
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label small fw-semibold" for="{{ form.source_reference_prefix.id_for_label }}">Campaign Reference</label>
+        {{ form.source_reference_prefix }}
+        <div class="form-text">Used for deduplication. Example: GST-APR-2026.</div>
+        {% if form.source_reference_prefix.errors %}<div class="text-danger small">{{ form.source_reference_prefix.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="col-md-6">
+        <div class="border rounded p-3 h-100">
+          <div class="form-check mb-2">
+            {{ form.create_task }}
+            <label class="form-check-label" for="{{ form.create_task.id_for_label }}">Create linked practice tasks</label>
+          </div>
+          <div class="form-check">
+            {{ form.send_email }}
+            <label class="form-check-label" for="{{ form.send_email.id_for_label }}">Send email reminders immediately</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12">
+        <label class="form-label small fw-semibold" for="{{ form.notes.id_for_label }}">Notes for Client</label>
+        {{ form.notes }}
+        {% if form.notes.errors %}<div class="text-danger small">{{ form.notes.errors|join:", " }}</div>{% endif %}
+      </div>
+
+      <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <label class="form-label small fw-semibold mb-0">Portal Clients</label>
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="selectAllClients">
+            <i class="bi bi-check2-square"></i> Select All
+          </button>
+        </div>
+        {% if form.portal_users.errors %}<div class="text-danger small mb-2">{{ form.portal_users.errors|join:", " }}</div>{% endif %}
+        <div class="border rounded p-2" style="max-height: 340px; overflow: auto;">
+          <div class="row g-2">
+            {% for choice in form.portal_users %}
+            <div class="col-md-6 col-xl-4">
+              <label class="form-check border rounded p-2 h-100">
+                {{ choice.tag }}
+                <span class="form-check-label ms-1">{{ choice.choice_label }}</span>
+              </label>
+            </div>
+            {% empty %}
+            <div class="col-12 text-muted small p-3">No active portal clients are available for this company.</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card-footer bg-white d-flex justify-content-end gap-2">
+    <a href="{% url 'portal:client_requests' %}" class="btn btn-light border">Cancel</a>
+    <button type="submit" class="btn btn-primary">
+      <i class="bi bi-send"></i> Create Campaign
+    </button>
+  </div>
+</form>
+
+{{ request_templates|json_script:"client-request-template-data" }}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const templateSelect = document.getElementById("id_template");
+  const docType = document.getElementById("id_document_type");
+  const title = document.getElementById("id_title");
+  const notes = document.getElementById("id_notes");
+  const dueDate = document.getElementById("id_due_date");
+  const templateData = JSON.parse(document.getElementById("client-request-template-data").textContent);
+  const selectAll = document.getElementById("selectAllClients");
+
+  function addDays(days) {
+    const value = new Date();
+    value.setDate(value.getDate() + Number(days || 0));
+    return value.toISOString().slice(0, 10);
+  }
+
+  templateSelect?.addEventListener("change", () => {
+    const selected = templateData[templateSelect.value];
+    if (!selected) return;
+    docType.value = selected.document_type || docType.value;
+    title.value = selected.title || title.value;
+    notes.value = selected.notes || notes.value;
+    dueDate.value = addDays(selected.due_days);
+  });
+
+  selectAll?.addEventListener("click", () => {
+    const boxes = Array.from(document.querySelectorAll('input[name="portal_users"]'));
+    const shouldCheck = boxes.some((box) => !box.checked);
+    boxes.forEach((box) => {
+      box.checked = shouldCheck;
+    });
+  });
+});
+</script>
+{% endblock %}

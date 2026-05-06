@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}GSTR-2B Reconciliation – Akshaya Vistara{% endblock %}
+{% block page_title %}GSTR-2B Reconciliation{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h5 class="mb-0">GSTR-2B Reconciliation (ITC Matching)</h5>
+        <small class="text-muted">Match GST portal data with your books</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'gstr2b:results' %}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-check2-square me-1"></i> IMS Console
+        </a>
+        <a href="{% url 'gstr2b:vendor_register' %}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-building-check me-1"></i> Vendor Register
+        </a>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <div class="alert bg-info bg-opacity-10 text-info border-0 py-2 mb-4">
+            <i class="bi bi-info-circle me-1"></i> Download your GSTR-2B JSON file from the GST Portal and upload it here to match with your Books.
+        </div>
+        
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label class="form-label fw-semibold text-muted small uppercase">Select GSTR-2B JSON File</label>
+                <input type="file" name="json_file" class="form-control" accept=".json" required>
+            </div>
+            <div class="border-top pt-3">
+                <button type="submit" class="btn btn-primary px-4">
+                    <i class="bi bi-cloud-upload me-1"></i> Upload & Reconcile
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

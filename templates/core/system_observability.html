@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block title %}System Observability - Akshaya Vistara{% endblock %}
+{% block page_title %}System Observability{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h5 class="mb-1">System Observability</h5>
+    <small class="text-muted">Runtime diagnostics for database, migrations, cache, storage, workers, backups, and provider queues.</small>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{% url 'core:operations_monitor' %}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-activity me-1"></i>Operations Monitor
+    </a>
+    <a href="{% url 'core:practice_tasks' %}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-list-check me-1"></i>Work Queue
+    </a>
+    <a href="{% url 'core:production_trust_center' %}" class="btn btn-outline-dark btn-sm">
+      <i class="bi bi-shield-lock me-1"></i>Production Trust
+    </a>
+    <a href="{% url 'core:go_live_certificate' %}" class="btn btn-outline-success btn-sm">
+      <i class="bi bi-patch-check me-1"></i>Go-Live Certificate
+    </a>
+    <a href="{% url 'core:system_observability_api' %}{% if include_deploy %}?deploy=1{% endif %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-braces me-1"></i>JSON
+    </a>
+    <a href="{% url 'core:system_observability' %}{% if not include_deploy %}?deploy=1{% endif %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-shield-check me-1"></i>{% if include_deploy %}Hide Deploy Checks{% else %}Include Deploy Checks{% endif %}
+    </a>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div class="small text-muted">
+      {{ report.taskable_checks|length }} diagnostic issue{{ report.taskable_checks|length|pluralize }} can be turned into accountable work.
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      {% if include_deploy %}<input type="hidden" name="deploy" value="1">{% endif %}
+      <button type="submit" name="action" value="sync_observability_tasks" class="btn btn-primary btn-sm" {% if not report.has_taskable_checks %}disabled{% endif %}>
+        <i class="bi bi-list-check me-1"></i>Sync Diagnostic Tasks
+      </button>
+    </form>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>
+      <h6 class="mb-0"><i class="bi bi-database-check me-2"></i>Backup Go-Live Actions</h6>
+      <div class="small text-muted">Create fresh backup and scheduled/offsite evidence for the diagnostics above.</div>
+    </div>
+    <a href="{% url 'core:production_trust_center' %}" class="btn btn-outline-dark btn-sm">
+      <i class="bi bi-shield-lock me-1"></i>Open Trust Center
+    </a>
+  </div>
+  <div class="card-body">
+    <form method="post" class="d-flex flex-wrap align-items-center gap-2">
+      {% csrf_token %}
+      {% if include_deploy %}<input type="hidden" name="deploy" value="1">{% endif %}
+      <label class="form-check form-check-inline small mb-0">
+        <input class="form-check-input" type="checkbox" name="encrypt_backup" value="1" {% if backup_encryption_available %}checked{% else %}disabled{% endif %}>
+        <span class="{% if not backup_encryption_available %}text-muted{% endif %}">Encrypt</span>
+      </label>
+      <label class="form-check form-check-inline small mb-0">
+        <input class="form-check-input" type="checkbox" name="prune_backups" value="1" checked>
+        <span>Prune old</span>
+      </label>
+      <label class="form-check form-check-inline small mb-0">
+        <input class="form-check-input" type="checkbox" name="copy_offsite" value="1" {% if backup_offsite_configured %}checked{% else %}disabled{% endif %}>
+        <span class="{% if not backup_offsite_configured %}text-muted{% endif %}">Offsite</span>
+      </label>
+      <button type="submit" name="action" value="run_observability_backup_drill" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-database-down me-1"></i>Run Backup Drill
+      </button>
+      <button type="submit" name="action" value="run_observability_scheduled_backup" class="btn btn-primary btn-sm">
+        <i class="bi bi-cloud-arrow-up me-1"></i>Run Scheduled Evidence
+      </button>
+    </form>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Runtime Score</div>
+        <div class="h3 mb-0"><span class="badge {{ report.badge_class }}">{{ report.score }}% {{ report.status_label }}</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Critical</div>
+        <div class="h3 mb-0 {% if report.totals.critical %}text-danger{% else %}text-success{% endif %}">{{ report.totals.critical }}</div>
+        <div class="small text-muted">{{ report.totals.warning }} warning(s)</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Passed</div>
+        <div class="h3 mb-0">{{ report.totals.ok }}</div>
+        <div class="small text-muted">of {{ report.totals.check_count }} checks</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Mode</div>
+        <div class="h5 mb-0">{% if include_deploy %}Runtime + Deploy{% else %}Runtime{% endif %}</div>
+        <div class="small text-muted">{{ report.as_of|date:"d M Y H:i" }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <h6 class="mb-0"><i class="bi bi-cpu me-2"></i>Runtime Profile</h6>
+    <span class="badge {{ report.badge_class }}">{{ report.status_label }}</span>
+  </div>
+  <div class="card-body">
+    <div class="row g-3 small">
+      <div class="col-md-3">
+        <div class="text-muted text-uppercase fw-semibold">Django Debug</div>
+        <div>{% if report.runtime.debug %}On{% else %}Off{% endif %}</div>
+      </div>
+      <div class="col-md-3">
+        <div class="text-muted text-uppercase fw-semibold">Database</div>
+        <div class="text-truncate">{{ report.runtime.database_engine|default:"-" }}</div>
+      </div>
+      <div class="col-md-3">
+        <div class="text-muted text-uppercase fw-semibold">Celery Eager</div>
+        <div>{% if report.runtime.celery_eager %}On{% else %}Off{% endif %}</div>
+      </div>
+      <div class="col-md-3">
+        <div class="text-muted text-uppercase fw-semibold">Backup Schedule</div>
+        <div>{% if report.runtime.backup_schedule_enabled %}Enabled{% else %}Disabled{% endif %}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h6 class="mb-0"><i class="bi bi-list-check me-2"></i>Diagnostic Checks</h6>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th class="ps-3">Component</th>
+          <th>Check</th>
+          <th>Status</th>
+          <th>Result</th>
+          <th class="pe-3 text-end">Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for check in report.checks %}
+          <tr>
+            <td class="ps-3 fw-semibold">{{ check.component }}</td>
+            <td>{{ check.name }}</td>
+            <td><span class="badge {{ check.badge_class }}">{{ check.level|title }}</span></td>
+            <td>
+              <div>{{ check.message }}</div>
+              {% if check.hint %}<div class="small text-muted">{{ check.hint }}</div>{% endif %}
+            </td>
+            <td class="pe-3 text-end text-muted small">
+              {% if check.duration_ms is not None %}{{ check.duration_ms }} ms{% else %}-{% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5" class="text-center text-muted py-5">
+              <i class="bi bi-check2-circle d-block h3 mb-2 text-success"></i>
+              No diagnostics returned.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

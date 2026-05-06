@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Akshaya Vistara — Offline</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #f5f6fa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .card {
+      background: white;
+      border-radius: 1rem;
+      padding: 3rem 2.5rem;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,.08);
+      max-width: 420px;
+    }
+    .icon { font-size: 4rem; margin-bottom: 1rem; }
+    h2 { color: #1e293b; margin-bottom: .5rem; }
+    p  { color: #64748b; margin-bottom: 1.5rem; }
+    button {
+      background: #4f46e5;
+      color: white;
+      border: none;
+      padding: .75rem 1.5rem;
+      border-radius: .5rem;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    button:hover { background: #4338ca; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">📡</div>
+    <h2>You're Offline</h2>
+    <p>
+      Akshaya Vistara needs an internet connection to sync your data.
+      Please check your connection and try again.
+    </p>
+    <button onclick="window.location.reload()">Try Again</button>
+  </div>
+</body>
+</html>

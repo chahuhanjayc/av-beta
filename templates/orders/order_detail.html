@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}{{ order.number }} – Akshaya Vistara{% endblock %}
+{% block page_title %}{{ order.order_type }} Order {{ order.number }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .status-badge { font-size: .9rem; }
+  .meta-label   { font-size: .75rem; color: #6c757d; text-transform: uppercase; letter-spacing: .05em; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+
+  {# ── Order Info ── #}
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">Order Information</span>
+        {# Status badge #}
+        {% if order.status == "Draft" %}<span class="badge bg-secondary status-badge">Draft</span>
+        {% elif order.status == "Confirmed" %}<span class="badge bg-primary status-badge">Confirmed</span>
+        {% elif order.status == "Partially Fulfilled" %}<span class="badge bg-warning text-dark status-badge">Partially Fulfilled</span>
+        {% elif order.status == "Fulfilled" %}<span class="badge bg-success status-badge">Fulfilled</span>
+        {% elif order.status == "Cancelled" %}<span class="badge bg-danger status-badge">Cancelled</span>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <div class="meta-label">Order Number</div>
+            <div class="fw-semibold">{{ order.number }}</div>
+          </div>
+          <div class="col-md-4">
+            <div class="meta-label">Type</div>
+            <div>{{ order.order_type }} Order</div>
+          </div>
+          <div class="col-md-4">
+            <div class="meta-label">Party</div>
+            <div class="fw-semibold">{{ order.party_ledger.name }}</div>
+          </div>
+          <div class="col-md-4">
+            <div class="meta-label">Order Date</div>
+            <div>{{ order.order_date }}</div>
+          </div>
+          <div class="col-md-4">
+            <div class="meta-label">Expected Date</div>
+            <div>{{ order.expected_date|default:"—" }}</div>
+          </div>
+          {% if order.fulfilled_voucher %}
+          <div class="col-md-4">
+            <div class="meta-label">Voucher</div>
+            <div>
+              <a href="{% url 'vouchers:detail' pk=order.fulfilled_voucher.pk %}">
+                {{ order.fulfilled_voucher.number }}
+              </a>
+            </div>
+          </div>
+          {% endif %}
+          {% if order.narration %}
+          <div class="col-12">
+            <div class="meta-label">Narration</div>
+            <div class="text-muted">{{ order.narration }}</div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# ── Items table ── #}
+    <div class="card border-0 shadow-sm mt-4">
+      <div class="card-header bg-white fw-semibold py-3">Items</div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Item</th>
+              <th class="text-end">Qty</th>
+              <th class="text-end">Rate (₹)</th>
+              <th class="text-end">Amount (₹)</th>
+              <th class="text-end">Fulfilled</th>
+              <th class="text-end">Pending</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in items %}
+            <tr>
+              <td>{{ item.stock_item.name|default:item.description }}</td>
+              <td class="text-end">{{ item.quantity }}</td>
+              <td class="text-end">{{ item.rate|floatformat:2 }}</td>
+              <td class="text-end fw-semibold">{{ item.amount|floatformat:2 }}</td>
+              <td class="text-end text-success">{{ item.fulfilled_qty }}</td>
+              <td class="text-end {% if item.pending_qty > 0 %}text-warning{% endif %}">{{ item.pending_qty }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot class="table-light fw-semibold">
+            <tr>
+              <td colspan="3" class="text-end">Total</td>
+              <td class="text-end">₹{{ order.total_amount|floatformat:2 }}</td>
+              <td colspan="2"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  {# ── Actions ── #}
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold py-3">Actions</div>
+      <div class="card-body d-grid gap-2">
+
+        {% if order.is_editable %}
+        <a href="{% url 'orders:order_edit' pk=order.pk %}" class="btn btn-outline-primary">
+          <i class="bi bi-pencil me-2"></i>Edit Order
+        </a>
+        {% endif %}
+
+        {% if order.status == "Draft" %}
+        <form method="post" action="{% url 'orders:order_confirm' pk=order.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-success w-100">
+            <i class="bi bi-check-circle me-2"></i>Confirm Order
+          </button>
+        </form>
+        {% endif %}
+
+        {% if order.status in "Confirmed,Partially Fulfilled" %}
+        <form method="post" action="{% url 'orders:order_convert' pk=order.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary w-100"
+            onclick="return confirm('Convert this order to a voucher?')">
+            <i class="bi bi-arrow-right-circle me-2"></i>Convert to Voucher
+          </button>
+        </form>
+        {% endif %}
+
+        {% if order.status in "Draft,Confirmed" %}
+        <form method="post" action="{% url 'orders:order_cancel' pk=order.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-outline-danger w-100"
+            onclick="return confirm('Cancel this order?')">
+            <i class="bi bi-x-circle me-2"></i>Cancel Order
+          </button>
+        </form>
+        {% endif %}
+
+        <a href="{% url 'orders:order_list' %}" class="btn btn-outline-secondary">
+          <i class="bi bi-arrow-left me-2"></i>Back to Orders
+        </a>
+      </div>
+    </div>
+
+    {# ── Metadata ── #}
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-body">
+        <div class="meta-label mb-1">Created</div>
+        <div class="small text-muted">{{ order.created_at|date:"d M Y, H:i" }}</div>
+        <div class="meta-label mt-2 mb-1">Last Updated</div>
+        <div class="small text-muted">{{ order.updated_at|date:"d M Y, H:i" }}</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

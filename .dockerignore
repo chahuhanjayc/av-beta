@@ -1,0 +1,51 @@
+# .dockerignore — keeps the Docker build context lean
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Development database
+*.sqlite3
+*.db
+
+# Environment files (injected at runtime via docker-compose env_file)
+.env
+.env.*
+!.env.example
+!.env.docker.example
+!.env.production.example
+
+# Media and static output (mounted as volumes)
+media/
+staticfiles/
+
+# Test artifacts
+.coverage
+htmlcov/
+.pytest_cache/
+backups/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+!requirements.txt
+
+# OS
+.DS_Store
+Thumbs.db

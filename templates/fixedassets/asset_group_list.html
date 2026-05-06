@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Asset Groups – Akshaya Vistara{% endblock %}
+{% block page_title %}Asset Groups{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-end mb-3">
+  <a href="{% url 'fixedassets:asset_group_create' %}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-lg me-1"></i>New Group
+  </a>
+</div>
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    {% if groups %}
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr><th>Name</th><th>Asset Ledger</th><th>Depr. Ledger</th><th>Accum. Depr. Ledger</th><th>Active</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for g in groups %}
+        <tr>
+          <td class="fw-semibold">{{ g.name }}</td>
+          <td>{{ g.asset_ledger|default:"—" }}</td>
+          <td>{{ g.depreciation_ledger|default:"—" }}</td>
+          <td>{{ g.accumulated_depr_ledger|default:"—" }}</td>
+          <td>{% if g.is_active %}<i class="bi bi-check-circle text-success"></i>{% else %}—{% endif %}</td>
+          <td class="text-end">
+            <a href="{% url 'fixedassets:asset_group_edit' pk=g.pk %}" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-pencil"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      No asset groups. <a href="{% url 'fixedassets:asset_group_create' %}">Create one</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

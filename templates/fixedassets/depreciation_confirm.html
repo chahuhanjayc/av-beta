@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Post Depreciation – Akshaya Vistara{% endblock %}
+{% block page_title %}Post Depreciation{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-success text-white py-3">
+        <h6 class="mb-0"><i class="bi bi-arrow-down-circle me-2"></i>Confirm Depreciation</h6>
+      </div>
+      <div class="card-body">
+        <p class="fw-semibold fs-5 mb-1">{{ asset.name }}</p>
+        <p class="text-muted small mb-3">{{ asset.asset_group.name }} — {{ asset.depreciation_method }}</p>
+        <table class="table table-sm">
+          <tr><td>Financial Year</td><td class="fw-semibold">{{ fy }}</td></tr>
+          <tr><td>Opening Book Value</td><td>₹{{ opening_bv|floatformat:2 }}</td></tr>
+          <tr><td>Depreciation Amount</td><td class="text-danger fw-semibold">₹{{ depr_amount|floatformat:2 }}</td></tr>
+          <tr><td>Closing Book Value</td><td class="text-primary fw-semibold">₹{{ closing_bv|floatformat:2 }}</td></tr>
+        </table>
+        {% if asset.asset_group.depreciation_ledger %}
+        <div class="alert alert-info small">
+          <i class="bi bi-info-circle me-1"></i>
+          A journal voucher will be created:
+          Dr <strong>{{ asset.asset_group.depreciation_ledger.name }}</strong> /
+          Cr <strong>{{ asset.asset_group.accumulated_depr_ledger.name }}</strong>
+        </div>
+        {% else %}
+        <div class="alert alert-warning small">
+          <i class="bi bi-exclamation-triangle me-1"></i>
+          No depreciation ledgers configured for asset group "{{ asset.asset_group.name }}". A depreciation record will be saved, but no voucher will be created.
+          <a href="{% url 'fixedassets:asset_group_edit' pk=asset.asset_group.pk %}">Configure ledgers</a>
+        </div>
+        {% endif %}
+        <form method="post">
+          {% csrf_token %}
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-success"><i class="bi bi-check-lg me-1"></i>Post</button>
+            <a href="{% url 'fixedassets:asset_detail' pk=asset.pk %}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

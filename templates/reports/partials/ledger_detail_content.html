@@ -1,0 +1,61 @@
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover table-compact mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width: 120px;">Date</th>
+            <th style="width: 150px;">Voucher No</th>
+            <th>Particulars (Opposite Ledger)</th>
+            <th class="text-end" style="width: 150px;">Debit (₹)</th>
+            <th class="text-end" style="width: 150px;">Credit (₹)</th>
+            <th class="text-end" style="width: 180px;">Running Balance (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Opening Balance Row -->
+          <tr class="table-info bg-opacity-10">
+            <td colspan="3" class="fw-bold">Opening Balance</td>
+            <td class="text-end"></td>
+            <td class="text-end"></td>
+            <td class="text-end fw-bold">₹{{ opening_balance|floatformat:2 }}</td>
+          </tr>
+
+          {% for row in history %}
+          <tr>
+            <td>{{ row.date|date:"d-m-Y" }}</td>
+            <td>
+              <a href="{% url 'vouchers:detail' row.voucher_id %}" class="fw-bold text-decoration-none">
+                {{ row.voucher_number }}
+              </a>
+            </td>
+            <td>
+              <span class="text-muted small">{{ row.voucher_type }}:</span>
+              {{ row.particulars }}
+            </td>
+            <td class="text-end text-success">
+              {% if row.debit > 0 %}{{ row.debit|floatformat:2 }}{% else %}—{% endif %}
+            </td>
+            <td class="text-end text-danger">
+              {% if row.credit > 0 %}{{ row.credit|floatformat:2 }}{% else %}—{% endif %}
+            </td>
+            <td class="text-end fw-bold">₹{{ row.running_balance|floatformat:2 }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center py-4 text-muted">No transactions found for this period.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot class="table-light fw-bold">
+          <tr>
+            <td colspan="3">Total Movements &amp; Closing Balance</td>
+            <td class="text-end text-success">₹{{ total_debit|floatformat:2 }}</td>
+            <td class="text-end text-danger">₹{{ total_credit|floatformat:2 }}</td>
+            <td class="text-end bg-primary bg-opacity-10">₹{{ closing_balance|floatformat:2 }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>

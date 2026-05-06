@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}{{ title }} – Akshaya Vistara{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-8">
+  <form method="post">
+    {% csrf_token %}
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold py-3">TDS / TCS Entry</div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-4">{{ form.section|as_crispy_field }}</div>
+          <div class="col-md-4">{{ form.transaction_date|as_crispy_field }}</div>
+          <div class="col-md-4">{{ form.deductee_type|as_crispy_field }}</div>
+          <div class="col-md-6">{{ form.deductee_ledger|as_crispy_field }}</div>
+          <div class="col-md-6">{{ form.tds_ledger|as_crispy_field }}</div>
+          <div class="col-md-4">{{ form.deductible_amount|as_crispy_field }}</div>
+          <div class="col-md-4">{{ form.rate_applied|as_crispy_field }}</div>
+          <div class="col-md-4">{{ form.tds_amount|as_crispy_field }}</div>
+          <div class="col-md-4">{{ form.pan_number|as_crispy_field }}</div>
+          <div class="col-md-8">{{ form.voucher|as_crispy_field }}</div>
+          <div class="col-12">{{ form.notes|as_crispy_field }}</div>
+        </div>
+      </div>
+      <div class="card-footer bg-white d-flex gap-2 justify-content-end">
+        <a href="{% url 'tds:entry_list' %}" class="btn btn-outline-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i>Save</button>
+      </div>
+    </div>
+  </form>
+</div></div>
+
+{% block extra_body %}
+<script>
+// Auto-compute TDS amount from base amount * rate
+const baseInput = document.querySelector('[name="deductible_amount"]');
+const rateInput = document.querySelector('[name="rate_applied"]');
+const tdsInput  = document.querySelector('[name="tds_amount"]');
+function computeTDS() {
+  const base = parseFloat(baseInput.value) || 0;
+  const rate = parseFloat(rateInput.value) || 0;
+  tdsInput.value = (base * rate / 100).toFixed(2);
+}
+baseInput?.addEventListener('input', computeTDS);
+rateInput?.addEventListener('input', computeTDS);
+
+// Auto-fill rate from section selection
+const sectionSelect = document.querySelector('[name="section"]');
+sectionSelect?.addEventListener('change', () => {
+  // Rate auto-fill would need AJAX — for now just clear
+  // rateInput.value = '';
+});
+</script>
+{% endblock %}
+{% endblock %}

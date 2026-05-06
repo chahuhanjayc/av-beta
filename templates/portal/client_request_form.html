@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}New Client Request - Akshaya Vistara{% endblock %}
+{% block page_title %}New Client Request{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h5 class="mb-0">New Client Request</h5>
+    <small class="text-muted">Create an upload link and optional practice task for client-side data collection.</small>
+  </div>
+  <a href="{% url 'portal:client_requests' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left"></i> Client Requests
+  </a>
+</div>
+
+{% if created_request %}
+<div class="alert alert-success border-0 shadow-sm">
+  <div class="d-flex justify-content-between align-items-start gap-3">
+    <div>
+      <div class="fw-semibold">Upload link ready for {{ created_request.company.name }}</div>
+      <div class="small">{{ created_request.title }}</div>
+      {% if created_request.related_task %}
+      <div class="small text-muted">Linked task: {{ created_request.related_task.title }}</div>
+      {% endif %}
+    </div>
+    <a href="{{ upload_url }}" target="_blank" class="btn btn-sm btn-success">
+      <i class="bi bi-box-arrow-up-right"></i> Open Link
+    </a>
+  </div>
+  <div class="input-group input-group-sm mt-3">
+    <input type="text" class="form-control" value="{{ upload_url }}" readonly id="uploadLink">
+    <button type="button" class="btn btn-outline-success" onclick="navigator.clipboard && navigator.clipboard.writeText(document.getElementById('uploadLink').value)">
+      <i class="bi bi-clipboard"></i> Copy
+    </button>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header">
+    <h6 class="mb-0"><i class="bi bi-inbox me-2"></i>Request Details</h6>
+  </div>
+  <div class="card-body">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold" for="{{ form.template.id_for_label }}">Template</label>
+          {{ form.template }}
+          {% if form.template.errors %}<div class="text-danger small">{{ form.template.errors|join:", " }}</div>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold" for="{{ form.company.id_for_label }}">Company</label>
+          {{ form.company }}
+          {% if form.company.errors %}<div class="text-danger small">{{ form.company.errors|join:", " }}</div>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold" for="{{ form.portal_user.id_for_label }}">Portal User</label>
+          {{ form.portal_user }}
+          {% if form.portal_user.errors %}<div class="text-danger small">{{ form.portal_user.errors|join:", " }}</div>{% endif %}
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold" for="{{ form.recipient_email.id_for_label }}">Reminder Email</label>
+          {{ form.recipient_email }}
+          {% if form.recipient_email.errors %}<div class="text-danger small">{{ form.recipient_email.errors|join:", " }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold" for="{{ form.recipient_whatsapp_number.id_for_label }}">Reminder WhatsApp</label>
+          {{ form.recipient_whatsapp_number }}
+          {% if form.recipient_whatsapp_number.errors %}<div class="text-danger small">{{ form.recipient_whatsapp_number.errors|join:", " }}</div>{% endif %}
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold" for="{{ form.document_type.id_for_label }}">Document Type</label>
+          {{ form.document_type }}
+          {% if form.document_type.errors %}<div class="text-danger small">{{ form.document_type.errors|join:", " }}</div>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold" for="{{ form.due_date.id_for_label }}">Due Date</label>
+          {{ form.due_date }}
+          {% if form.due_date.errors %}<div class="text-danger small">{{ form.due_date.errors|join:", " }}</div>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold" for="{{ form.source_reference.id_for_label }}">Source Reference</label>
+          {{ form.source_reference }}
+          {% if form.source_reference.errors %}<div class="text-danger small">{{ form.source_reference.errors|join:", " }}</div>{% endif %}
+        </div>
+
+        <div class="col-12">
+          <label class="form-label small fw-semibold" for="{{ form.title.id_for_label }}">Title</label>
+          {{ form.title }}
+          {% if form.title.errors %}<div class="text-danger small">{{ form.title.errors|join:", " }}</div>{% endif %}
+        </div>
+        <div class="col-12">
+          <label class="form-label small fw-semibold" for="{{ form.notes.id_for_label }}">Notes for Client</label>
+          {{ form.notes }}
+          {% if form.notes.errors %}<div class="text-danger small">{{ form.notes.errors|join:", " }}</div>{% endif %}
+        </div>
+        <div class="col-12">
+          <div class="form-check">
+            {{ form.create_task }}
+            <label class="form-check-label" for="{{ form.create_task.id_for_label }}">
+              Create linked practice task
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-end gap-2 mt-4">
+        <a href="{% url 'portal:client_requests' %}" class="btn btn-light border">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-link-45deg"></i> Create Request
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{{ request_templates|json_script:"client-request-template-data" }}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const templateSelect = document.getElementById('id_template');
+  const docType = document.getElementById('id_document_type');
+  const title = document.getElementById('id_title');
+  const notes = document.getElementById('id_notes');
+  const dueDate = document.getElementById('id_due_date');
+  const templateData = JSON.parse(document.getElementById('client-request-template-data').textContent);
+
+  function addDays(days) {
+    const value = new Date();
+    value.setDate(value.getDate() + Number(days || 0));
+    return value.toISOString().slice(0, 10);
+  }
+
+  templateSelect?.addEventListener('change', () => {
+    const selected = templateData[templateSelect.value];
+    if (!selected) return;
+    docType.value = selected.document_type || docType.value;
+    title.value = selected.title || title.value;
+    notes.value = selected.notes || notes.value;
+    dueDate.value = addDays(selected.due_days);
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}Vendor GST Register - Akshaya Vistara{% endblock %}
+{% block page_title %}Vendor GST Register{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h5 class="mb-0">Vendor GST Register</h5>
+        <small class="text-muted">{{ period_start|date:"d M Y" }} to {{ period_end|date:"d M Y" }}</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'gstr2b:results' %}?period={{ to_period }}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-arrow-left me-1"></i> IMS Console
+        </a>
+        <a href="{% url 'gstr2b:vendor_register' %}?{{ query }}&export=csv" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-download me-1"></i> Export CSV
+        </a>
+    </div>
+</div>
+
+<form method="get" class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-6 col-lg-2">
+                <label class="form-label small text-muted" for="from_period">From</label>
+                <input type="month" id="from_period" name="from_period" class="form-control form-control-sm" value="{{ from_period }}">
+            </div>
+            <div class="col-6 col-lg-2">
+                <label class="form-label small text-muted" for="to_period">To</label>
+                <input type="month" id="to_period" name="to_period" class="form-control form-control-sm" value="{{ to_period }}">
+            </div>
+            <div class="col-12 col-lg-6">
+                <label class="form-label small text-muted" for="q">Vendor</label>
+                <input type="search" id="q" name="q" class="form-control form-control-sm" value="{{ q }}" placeholder="Supplier, GSTIN, email">
+            </div>
+            <div class="col-12 col-lg-2 d-grid">
+                <button type="submit" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-funnel me-1"></i> Apply
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<div class="row g-3 mb-3">
+    <div class="col-6 col-xl-2">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body py-3">
+                <div class="text-muted small text-uppercase fw-semibold">Vendors</div>
+                <div class="h5 mb-0">{{ summary.vendor_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-2">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body py-3">
+                <div class="text-muted small text-uppercase fw-semibold">High Risk</div>
+                <div class="h5 mb-0 text-danger">{{ summary.high_risk_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-2">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body py-3">
+                <div class="text-muted small text-uppercase fw-semibold">ITC At Risk</div>
+                <div class="h5 mb-0 text-danger">Rs. {{ summary.itc_at_risk|floatformat:2 }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-2">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body py-3">
+                <div class="text-muted small text-uppercase fw-semibold">Missing Books</div>
+                <div class="h5 mb-0 text-warning">{{ summary.missing_books_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-2">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body py-3">
+                <div class="text-muted small text-uppercase fw-semibold">Missing 2B</div>
+                <div class="h5 mb-0 text-warning">{{ summary.missing_portal_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-2">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body py-3">
+                <div class="text-muted small text-uppercase fw-semibold">Tasks</div>
+                <div class="h5 mb-0 text-primary">{{ summary.task_count }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form method="post" action="{% url 'gstr2b:vendor_tasks' %}" class="card border-0 shadow-sm">
+    {% csrf_token %}
+    <input type="hidden" name="from_period" value="{{ from_period }}">
+    <input type="hidden" name="to_period" value="{{ to_period }}">
+    <div class="card-body p-0">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 p-3 border-bottom">
+            <button type="submit" class="btn btn-sm btn-outline-secondary" id="vendorTaskButton" disabled>
+                <i class="bi bi-list-task me-1"></i> Create Follow-up Tasks
+            </button>
+            <div class="form-check small">
+                <input type="checkbox" id="selectVendors" class="form-check-input">
+                <label class="form-check-label text-muted" for="selectVendors">Select visible</label>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 42px;"></th>
+                        <th>Vendor</th>
+                        <th>GSTIN</th>
+                        <th>Contact</th>
+                        <th class="text-end">ITC At Risk</th>
+                        <th class="text-center">2B</th>
+                        <th class="text-center">Books Gap</th>
+                        <th class="text-center">2B Gap</th>
+                        <th class="text-center">IMS</th>
+                        <th>Risk</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr>
+                        <td><input type="checkbox" name="vendor_keys" value="{{ row.key }}" class="form-check-input vendor-checkbox"></td>
+                        <td class="fw-medium">
+                            {{ row.supplier_name }}
+                            {% if row.last_invoice_date %}
+                                <div class="small text-muted">Last {{ row.last_invoice_date|date:"d M Y" }}</div>
+                            {% endif %}
+                        </td>
+                        <td>{% if row.gstin %}<code>{{ row.gstin }}</code>{% else %}<span class="text-muted">-</span>{% endif %}</td>
+                        <td>
+                            {% if row.email %}
+                                <div><i class="bi bi-envelope text-muted me-1"></i><a href="mailto:{{ row.email }}" class="text-decoration-none">{{ row.email }}</a></div>
+                            {% endif %}
+                            {% if row.whatsapp_number %}
+                                <div class="small text-muted"><i class="bi bi-whatsapp me-1"></i>{{ row.whatsapp_number }}</div>
+                            {% endif %}
+                            {% if not row.email and not row.whatsapp_number %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">Rs. {{ row.itc_at_risk|floatformat:2 }}</td>
+                        <td class="text-center">{{ row.portal_count }}</td>
+                        <td class="text-center">
+                            <span class="{% if row.missing_books_count %}text-danger fw-semibold{% else %}text-muted{% endif %}">{{ row.missing_books_count }}</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="{% if row.missing_portal_count %}text-danger fw-semibold{% else %}text-muted{% endif %}">{{ row.missing_portal_count }}</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge text-bg-light text-muted">{{ row.pending_count }} P</span>
+                            <span class="badge text-bg-light text-muted">{{ row.rejected_count }} R</span>
+                            <span class="badge text-bg-light text-muted">{{ row.no_action_count }} N</span>
+                        </td>
+                        <td>
+                            <span class="badge {{ row.risk_badge_class }}">{{ row.risk_level }}</span>
+                            <div class="small text-muted">{{ row.risk_score }}/100</div>
+                        </td>
+                        <td>
+                            <div class="small fw-medium">{{ row.recommended_action }}</div>
+                            {% if row.task_exists %}
+                                <span class="badge text-bg-secondary">Task open</span>
+                            {% endif %}
+                            <div class="mt-1">
+                                <a href="{% url 'gstr2b:vendor_followup' %}?{{ row.followup_query }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-send me-1"></i> Follow up
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="11" class="text-center text-muted py-4">No vendor risk found for this range.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</form>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const selectAll = document.getElementById("selectVendors");
+    const boxes = Array.from(document.querySelectorAll(".vendor-checkbox"));
+    const button = document.getElementById("vendorTaskButton");
+
+    const sync = () => {
+        const checked = boxes.filter((box) => box.checked).length;
+        button.disabled = checked === 0;
+        selectAll.checked = boxes.length > 0 && checked === boxes.length;
+        selectAll.indeterminate = checked > 0 && checked < boxes.length;
+    };
+
+    if (selectAll) {
+        selectAll.addEventListener("change", () => {
+            boxes.forEach((box) => {
+                box.checked = selectAll.checked;
+            });
+            sync();
+        });
+    }
+    boxes.forEach((box) => box.addEventListener("change", sync));
+    sync();
+});
+</script>
+{% endblock %}

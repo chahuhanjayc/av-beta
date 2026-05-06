@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block title %}Go-Live Certificate - Akshaya Vistara{% endblock %}
+{% block page_title %}Go-Live Certificate{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h5 class="mb-1">Go-Live Certificate</h5>
+    <small class="text-muted">Auditable production readiness across runtime, deployment, storage, workers, recovery, and integrations.</small>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{% url 'core:system_observability' %}{% if include_deploy %}?deploy=1{% endif %}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-cpu me-1"></i>System Observability
+    </a>
+    <a href="{% url 'core:production_trust_center' %}{% if include_deploy %}?deploy=1{% endif %}" class="btn btn-outline-dark btn-sm">
+      <i class="bi bi-shield-lock me-1"></i>Production Trust
+    </a>
+    <a href="{% url 'core:go_live_certificate_api' %}{% if not include_deploy %}?deploy=0{% endif %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-braces me-1"></i>JSON
+    </a>
+    <a href="{% url 'core:go_live_evidence_pack' %}{% if not include_deploy %}?deploy=0{% endif %}" class="btn btn-outline-success btn-sm">
+      <i class="bi bi-download me-1"></i>Evidence Pack
+    </a>
+    <a href="{% url 'core:go_live_certificate' %}{% if include_deploy %}?deploy=0{% endif %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-shield-check me-1"></i>{% if include_deploy %}Runtime Only{% else %}Include Deploy Checks{% endif %}
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-5">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start gap-3">
+          <div>
+            <div class="text-muted small text-uppercase fw-semibold">Certificate</div>
+            <div class="h5 mb-1">{{ certificate.certificate_id }}</div>
+            <div class="small text-muted">{{ certificate.generated_at|date:"d M Y H:i" }}</div>
+          </div>
+          <span class="badge {{ certificate.badge_class }}">{{ certificate.status_label }}</span>
+        </div>
+        <div class="mt-3 small text-muted">{{ certificate.summary }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Score</div>
+        <div class="h3 mb-0">{{ certificate.score }}%</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Blocked</div>
+        <div class="h3 mb-0 {% if certificate.totals.blocked %}text-danger{% else %}text-success{% endif %}">{{ certificate.totals.blocked }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Mode</div>
+        <div class="h5 mb-0">{% if include_deploy %}Runtime + Deploy{% else %}Runtime{% endif %}</div>
+        <div class="small text-muted">{{ certificate.totals.ready }}/{{ certificate.totals.gates }} ready gates</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div class="small text-muted">
+      {{ certificate.totals.blocked }} blocker{{ certificate.totals.blocked|pluralize }} and {{ certificate.totals.watch }} warning{{ certificate.totals.watch|pluralize }} can be assigned to the Work Queue.
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      {% if not include_deploy %}<input type="hidden" name="deploy" value="0">{% endif %}
+      <button type="submit" name="action" value="sync_go_live_tasks" class="btn btn-primary btn-sm" {% if not certificate.blockers and not certificate.warnings %}disabled{% endif %}>
+        <i class="bi bi-list-check me-1"></i>Sync Go-Live Tasks
+      </button>
+    </form>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-xl-7">
+    <div class="card h-100">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-sliders me-2"></i>Deployment Pack</h6>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Setting</th>
+              <th>Target</th>
+              <th>Status</th>
+              <th class="pe-3">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in certificate.remediation_pack.environment %}
+              <tr>
+                <td class="ps-3 fw-semibold">{{ item.name }}</td>
+                <td><code>{{ item.target }}</code></td>
+                <td><span class="badge {{ item.badge_class }}">{{ item.status|title }}</span></td>
+                <td class="pe-3 small text-muted">{{ item.action }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-5">
+    <div class="card h-100">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-terminal me-2"></i>Go-Live Commands</h6>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for item in certificate.remediation_pack.commands %}
+          <div class="list-group-item">
+            <div class="d-flex justify-content-between gap-2">
+              <div>
+                <div class="fw-semibold">{{ item.name }}</div>
+                <code class="small">{{ item.command }}</code>
+              </div>
+              <span class="badge bg-secondary-subtle text-secondary align-self-start">{{ item.area }}</span>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <h6 class="mb-0"><i class="bi bi-patch-check me-2"></i>Certificate Gates</h6>
+    <span class="badge {{ certificate.badge_class }}">{{ certificate.status_label }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th class="ps-3">Area</th>
+          <th>Gate</th>
+          <th>Status</th>
+          <th>Evidence</th>
+          <th class="pe-3">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for gate in certificate.gates %}
+          <tr>
+            <td class="ps-3"><span class="badge bg-secondary-subtle text-secondary">{{ gate.area }}</span></td>
+            <td class="fw-semibold">{{ gate.name }}</td>
+            <td><span class="badge {{ gate.badge_class }}">{{ gate.status_label }}</span></td>
+            <td>
+              <div>{{ gate.message }}</div>
+              <div class="small text-muted">{{ gate.evidence }}</div>
+            </td>
+            <td class="pe-3">
+              <div class="small text-muted" style="max-width: 24rem;">{{ gate.recommendation }}</div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

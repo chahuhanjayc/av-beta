@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Move from Tally – Akshaya Vistara{% endblock %}
+{% block page_title %}Move from Tally{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h5 class="mb-0">Move from Tally (Excel/CSV Import)</h5>
+        <small class="text-muted">Import vouchers and ledgers from external files</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'migration:sessions' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-clock-history me-1"></i> History
+        </a>
+        <a href="{% url 'migration:template' %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-download me-1"></i> Template
+        </a>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <div class="alert bg-secondary bg-opacity-10 text-secondary border-0 py-2 mb-4">
+            <i class="bi bi-info-circle me-1"></i> Upload your Tally export file and tag the source, period, and sync mode. The system stores a SHA-256 fingerprint so repeated imports can be caught before confirmation.
+        </div>
+        
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form|crispy }}
+            <div class="mt-4 border-top pt-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-cloud-upload me-1"></i> Upload & Preview
+                </button>
+                <a href="{% url 'core:dashboard' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

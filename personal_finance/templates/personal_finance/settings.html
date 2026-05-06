@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}SpendSight Settings{% endblock %}
+{% block page_title %}SpendSight Settings{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-white py-3"><h6 class="mb-0 fw-bold">Display and Billing</h6></div>
+      <div class="card-body">
+        <form method="post" class="row g-3">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="save">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Billing Start Day</label>
+            <input type="number" min="1" max="28" name="billing_start_day" class="form-control" value="{{ finance_settings.billing_start_day }}">
+            <div class="form-text">Current window: {{ billing_preview }}</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Currency</label>
+            <select name="currency_code" class="form-select">
+              {% for currency in currencies %}
+              <option value="{{ currency.code }}" {% if finance_settings.currency_code == currency.code %}selected{% endif %}>{{ currency.name }} ({{ currency.symbol }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Payment Methods</label>
+            {% for method in payment_methods %}
+            <input type="text" name="payment_methods" class="form-control mb-2" value="{{ method }}">
+            {% endfor %}
+            <input type="text" name="payment_methods" class="form-control" placeholder="Add another method">
+          </div>
+          <div class="col-12"><button type="submit" class="btn btn-primary">Save Settings</button></div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-white py-3"><h6 class="mb-0 fw-bold">Import Legacy SpendSight Data</h6></div>
+      <div class="card-body">
+        <p class="text-muted small">This imports the original SpendSight JSON into the current Django user account without touching company data.</p>
+        <form method="post" class="row g-3">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="import_legacy">
+          <div class="col-12">
+            <label class="form-label fw-semibold">Source Folder</label>
+            <select name="legacy_source" class="form-select">
+              {% for source in legacy_sources %}
+              <option value="{{ source.value }}">{{ source.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12"><button type="submit" class="btn btn-outline-primary w-100">Import Data</button></div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

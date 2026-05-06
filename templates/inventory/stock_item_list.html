@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}Stock Items – Akshaya Vistara{% endblock %}
+{% block page_title %}Stock Items{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h5 class="mb-0">Stock Items</h5>
+    <small class="text-muted">{{ total_count }} item(s) found</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'inventory:low_stock' %}" class="btn btn-outline-warning btn-sm">
+      <i class="bi bi-exclamation-triangle me-1"></i> Low Stock Alerts
+    </a>
+    <a href="{% url 'inventory:bulk_create_ocr' %}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-camera me-1"></i> Bulk Add (Scan)
+    </a>
+    <a href="{% url 'inventory:create' %}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-circle me-1"></i> Add Item
+    </a>
+  </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body py-2">
+    <form method="get" class="row g-2 align-items-center">
+      <div class="col-md-5">
+        <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm"
+               placeholder="Search by item name…">
+      </div>
+      <div class="col-md-3">
+        <select name="show" class="form-select form-select-sm">
+          <option value="active"   {% if show == "active" %}selected{% endif %}>Active Items</option>
+          <option value="inactive" {% if show == "inactive" %}selected{% endif %}>Inactive Items</option>
+          <option value="all"      {% if show == "all" %}selected{% endif %}>All Items</option>
+        </select>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-search me-1"></i> Filter
+        </button>
+        <a href="{% url 'inventory:list' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Quick Report Links -->
+<div class="d-flex gap-2 mb-3">
+  <a href="{% url 'inventory:summary' %}" class="btn btn-outline-info btn-sm">
+    <i class="bi bi-table me-1"></i> Stock Summary
+  </a>
+  <a href="{% url 'inventory:valuation' %}" class="btn btn-outline-success btn-sm">
+    <i class="bi bi-currency-rupee me-1"></i> Stock Valuation
+  </a>
+</div>
+
+<!-- Items Table -->
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Item Name</th>
+          <th>Unit</th>
+          <th class="text-end">Opening Qty</th>
+          <th class="text-end">Closing Qty (Today)</th>
+          <th class="text-end">Purchase Price</th>
+          <th class="text-end">Selling Price</th>
+          <th>HSN / SAC</th>
+          <th>Tax Rate</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in items_with_qty %}
+        {% with item=row.item %}
+        <tr class="{% if not item.is_active %}table-secondary{% elif row.low %}table-warning{% endif %}">
+          <td>
+            <strong>{{ item.name }}</strong>
+            {% if row.low %}
+              <span class="badge bg-warning text-dark ms-1" title="Low Stock">
+                <i class="bi bi-exclamation-triangle"></i>
+              </span>
+            {% endif %}
+          </td>
+          <td>{{ item.unit }}</td>
+          <td class="text-end">{{ item.opening_quantity }}</td>
+          <td class="text-end fw-semibold
+            {% if row.closing <= 0 %}text-danger{% elif row.low %}text-warning{% else %}text-success{% endif %}">
+            {{ row.closing }}
+          </td>
+          <td class="text-end">₹{{ item.purchase_price }}</td>
+          <td class="text-end">₹{{ item.selling_price }}</td>
+          <td>
+            {% if item.hsn_sac %}
+              <code>{{ item.hsn_sac.code }}</code>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if item.tax_rate %}{{ item.tax_rate.rate }}%{% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td>
+            {% if item.is_active %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle">Active</span>
+            {% else %}
+              <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Inactive</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <a href="{% url 'inventory:edit' item.pk %}" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-pencil"></i>
+            </a>
+            {% if item.is_active %}
+            <a href="{% url 'inventory:deactivate' item.pk %}" class="btn btn-sm btn-outline-warning">
+              <i class="bi bi-archive"></i>
+            </a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endwith %}
+        {% empty %}
+        <tr>
+          <td colspan="10" class="text-center py-4 text-muted">
+            <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+            No stock items found.
+            <a href="{% url 'inventory:create' %}">Add your first item</a>.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<nav class="mt-3">
+  <ul class="pagination pagination-sm justify-content-center mb-0">
+    {% if page_obj.has_previous %}
+    <li class="page-item">
+      <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&show={{ show }}">‹</a>
+    </li>
+    {% endif %}
+    {% for num in page_obj.paginator.page_range %}
+    <li class="page-item {% if num == page_obj.number %}active{% endif %}">
+      <a class="page-link" href="?page={{ num }}&q={{ q }}&show={{ show }}">{{ num }}</a>
+    </li>
+    {% endfor %}
+    {% if page_obj.has_next %}
+    <li class="page-item">
+      <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}&show={{ show }}">›</a>
+    </li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+{% endblock %}

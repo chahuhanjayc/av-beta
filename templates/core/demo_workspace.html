@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+
+{% block title %}Demo Mode - Akshaya Vistara{% endblock %}
+{% block page_title %}Demo Mode{% endblock %}
+
+{% block extra_head %}
+<style>
+  .demo-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .demo-hero,
+  .demo-panel,
+  .demo-stat,
+  .demo-story,
+  .demo-route-row,
+  .demo-objection,
+  .demo-company-row {
+    background: var(--surface-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+  }
+
+  .demo-hero {
+    padding: 1rem;
+  }
+
+  .demo-eyebrow {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+  .demo-title {
+    color: var(--text-main);
+    font-size: 1.35rem;
+    font-weight: 800;
+    margin: 0.15rem 0 0.35rem;
+  }
+
+  .demo-copy {
+    color: var(--text-muted);
+    margin: 0;
+    max-width: 780px;
+  }
+
+  .demo-action-panel {
+    background: var(--surface-subtle);
+    border-radius: 8px;
+    min-width: min(100%, 320px);
+    padding: 0.85rem;
+  }
+
+  .demo-stat {
+    min-height: 96px;
+    padding: 0.85rem;
+  }
+
+  .demo-stat-icon,
+  .demo-story-icon,
+  .demo-route-step,
+  .demo-objection-icon,
+  .demo-company-icon {
+    align-items: center;
+    border-radius: 8px;
+    display: inline-flex;
+    height: 36px;
+    justify-content: center;
+    width: 36px;
+  }
+
+  .demo-stat-value {
+    color: var(--text-main);
+    font-size: 1.35rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .demo-stat-label,
+  .demo-story-text,
+  .demo-route-text,
+  .demo-objection-text,
+  .demo-company-meta {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+  }
+
+  .demo-panel {
+    padding: 1rem;
+  }
+
+  .demo-story {
+    height: 100%;
+    padding: 0.9rem;
+  }
+
+  .demo-company-list {
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  .demo-route-list {
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .demo-route-row {
+    align-items: center;
+    display: grid;
+    gap: 0.8rem;
+    grid-template-columns: 48px minmax(0, 1fr) minmax(90px, 120px) auto;
+    padding: 0.75rem;
+  }
+
+  .demo-route-step {
+    background: var(--surface-subtle);
+    color: var(--accent);
+    font-size: 0.78rem;
+    font-weight: 800;
+    height: 42px;
+    width: 42px;
+  }
+
+  .demo-objection {
+    height: 100%;
+    padding: 0.9rem;
+  }
+
+  .demo-checklist {
+    display: grid;
+    gap: 0.5rem;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .demo-check {
+    align-items: center;
+    background: var(--surface-subtle);
+    border-radius: 8px;
+    color: var(--text-main);
+    display: flex;
+    gap: 0.5rem;
+    min-height: 54px;
+    padding: 0.65rem;
+  }
+
+  .demo-company-row {
+    align-items: center;
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    padding: 0.75rem;
+  }
+
+  @media (max-width: 767.98px) {
+    .demo-route-row {
+      grid-template-columns: 42px minmax(0, 1fr);
+    }
+
+    .demo-route-row .badge,
+    .demo-route-row .btn {
+      grid-column: 2;
+      width: fit-content;
+    }
+
+    .demo-checklist {
+      grid-template-columns: 1fr;
+    }
+
+    .demo-company-row {
+      grid-template-columns: 36px minmax(0, 1fr);
+    }
+
+    .demo-company-row .badge {
+      grid-column: 2;
+      width: fit-content;
+    }
+  }
+
+  @media (min-width: 768px) and (max-width: 1199.98px) {
+    .demo-checklist {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="demo-shell">
+  <section class="demo-hero">
+    <div class="d-flex flex-column flex-xl-row justify-content-between gap-3">
+      <div>
+        <div class="demo-eyebrow">Sales workspace</div>
+        <h5 class="demo-title">Polished CA partner demo mode</h5>
+        <p class="demo-copy">
+          Create a ready-to-show workspace with rich sample clients, accounting entries, GST/TDS workflows, document requests, market proof, and dashboard activity.
+        </p>
+      </div>
+      <div class="demo-action-panel">
+        <div class="d-flex align-items-start gap-2 mb-3">
+          <span class="demo-stat-icon bg-primary-subtle text-primary">
+            <i class="bi bi-play-circle"></i>
+          </span>
+          <div>
+            <div class="fw-bold">{% if has_workspace %}Demo data found{% else %}Demo data not created{% endif %}</div>
+            <div class="small text-muted">
+              {% if has_workspace %}
+                {% if has_access %}You can refresh and open it now.{% else %}Access will be granted when you open it.{% endif %}
+              {% else %}
+                Create it once and use it anytime for partner demos.
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <form method="post" class="d-grid">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-magic me-1"></i>
+            {% if has_workspace %}Refresh and Open Demo{% else %}Create Demo Workspace{% endif %}
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <div class="row g-3">
+    {% for stat in demo_stats %}
+      <div class="col-6 col-lg-4 col-xxl-2">
+        <div class="demo-stat">
+          <div class="d-flex justify-content-between gap-2">
+            <span class="demo-stat-icon bg-info-subtle text-info">
+              <i class="bi {{ stat.icon }}"></i>
+            </span>
+            <div class="demo-stat-value">{{ stat.value }}</div>
+          </div>
+          <div class="demo-stat-label mt-3">{{ stat.label }}</div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="row g-3">
+    {% for story in demo_stories %}
+      <div class="col-md-6 col-xl-3">
+        <div class="demo-story">
+          <span class="demo-story-icon bg-success-subtle text-success mb-3">
+            <i class="bi {{ story.icon }}"></i>
+          </span>
+          <h6 class="mb-2">{{ story.title }}</h6>
+          <div class="demo-story-text">{{ story.detail }}</div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <section class="demo-panel">
+    <div class="d-flex flex-column flex-lg-row justify-content-between gap-2 mb-3">
+      <div>
+        <h6 class="mb-1">Demo clients included</h6>
+        <div class="small text-muted">These companies are created with real app records so every linked module has something useful to show.</div>
+      </div>
+      {% if primary_company %}
+        <span class="badge bg-primary-subtle text-primary align-self-lg-start">{{ primary_company.name }}</span>
+      {% endif %}
+    </div>
+
+    {% if demo_companies %}
+      <div class="demo-company-list">
+        {% for company in demo_companies %}
+          <div class="demo-company-row">
+            <span class="demo-company-icon bg-secondary-subtle text-secondary">
+              <i class="bi bi-building"></i>
+            </span>
+            <div class="min-w-0">
+              <div class="fw-semibold text-truncate">{{ company.name }}</div>
+              <div class="demo-company-meta text-truncate">
+                GSTIN {{ company.gstin|default:"Pending" }} | TAN {{ company.tan|default:"Pending" }} | {{ company.bank_name|default:"Bank pending" }}
+              </div>
+            </div>
+            <span class="badge bg-success-subtle text-success">Ready</span>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-center py-4">
+        <i class="bi bi-database-add fs-2 text-primary d-block mb-2"></i>
+        <div class="fw-semibold">No demo companies yet</div>
+        <div class="small text-muted">Create the workspace to load the sales dataset.</div>
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="demo-panel">
+    <div class="d-flex flex-column flex-lg-row justify-content-between gap-2 mb-3">
+      <div>
+        <h6 class="mb-1">Partner demo route</h6>
+        <div class="small text-muted">A short sales path that moves from pain, to workflow depth, to proof.</div>
+      </div>
+      <span class="badge bg-info-subtle text-info align-self-lg-start">15 minutes</span>
+    </div>
+    <div class="demo-route-list">
+      {% for route in demo_route %}
+        <div class="demo-route-row">
+          <span class="demo-route-step">{{ route.step }}</span>
+          <div class="min-w-0">
+            <div class="fw-semibold text-truncate">{{ route.title }}</div>
+            <div class="demo-route-text">{{ route.talk_track }}</div>
+          </div>
+          <span class="badge bg-secondary-subtle text-secondary">{{ route.time }}</span>
+          <a href="{{ route.url }}" class="btn btn-sm btn-outline-primary">
+            {{ route.screen }}
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <div class="row g-3">
+    {% for objection in objection_cards %}
+      <div class="col-lg-4">
+        <div class="demo-objection">
+          <span class="demo-objection-icon bg-warning-subtle text-warning mb-3">
+            <i class="bi {{ objection.icon }}"></i>
+          </span>
+          <h6 class="mb-2">{{ objection.title }}</h6>
+          <div class="demo-objection-text mb-3">{{ objection.answer }}</div>
+          <a href="{{ objection.url }}" class="btn btn-sm btn-outline-secondary">
+            {{ objection.cta }}
+          </a>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <section class="demo-panel">
+    <div class="d-flex flex-column flex-lg-row justify-content-between gap-2 mb-3">
+      <div>
+        <h6 class="mb-1">Pre-call readiness</h6>
+        <div class="small text-muted">Use this as the final check before handing the screen to your CA partner.</div>
+      </div>
+      {% if has_workspace %}
+        <span class="badge bg-success-subtle text-success align-self-lg-start">Workspace available</span>
+      {% else %}
+        <span class="badge bg-warning-subtle text-warning align-self-lg-start">Create demo first</span>
+      {% endif %}
+    </div>
+    <div class="demo-checklist">
+      {% for item in close_checklist %}
+        <div class="demo-check">
+          <i class="bi bi-check2-circle text-success"></i>
+          <span class="small fw-semibold">{{ item }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="demo-panel">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+      <div>
+        <h6 class="mb-1">Best first screens for your CA partner</h6>
+        <div class="small text-muted">After opening demo mode, start with Dashboard, then CA Command Center, GST Filing Pack, Client Requests, and Market Proof.</div>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'core:dashboard' %}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-speedometer2 me-1"></i> Dashboard
+        </a>
+        <a href="{% url 'core:ca_command_center' %}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-kanban me-1"></i> Command Center
+        </a>
+        <a href="{% url 'core:market_proof_pack' %}" class="btn btn-primary btn-sm">
+          <i class="bi bi-award me-1"></i> Market Proof
+        </a>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

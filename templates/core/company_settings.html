@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+{% block title %}Company Settings – Akshaya Vistara{% endblock %}
+{% block page_title %}Company Settings{% endblock %}
+
+{% block extra_head %}
+<style>
+.settings-section-header {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6c757d;
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 0.4rem;
+  margin-bottom: 1rem;
+}
+.field-hint {
+  font-size: 0.78rem;
+  color: #6c757d;
+  margin-top: 0.2rem;
+}
+.upi-preview {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  color: #fff;
+}
+.upi-preview .label { font-size: 0.72rem; opacity: .7; text-transform: uppercase; letter-spacing: .06em; }
+.upi-preview .value { font-size: 1.1rem; font-weight: 700; letter-spacing: .03em; }
+.badge-required {
+  font-size: 0.68rem;
+  background: #fff3cd;
+  color: #856404;
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.4rem;
+  font-weight: 600;
+  vertical-align: middle;
+}
+@media print { #sidebar, #topbar, .no-print { display: none !important; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+
+  {# ── Left: Main form ── #}
+  <div class="col-lg-8">
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      {# ════════════════════════ Company Profile ════════════════════════ #}
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+          <div class="settings-section-header">
+            <i class="bi bi-building me-1"></i>Company Profile
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-8">
+              <label class="form-label fw-semibold" for="{{ form.name.id_for_label }}">
+                Company Name
+              </label>
+              {{ form.name }}
+              {% if form.name.errors %}
+                <div class="text-danger small mt-1">{{ form.name.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold" for="{{ form.short_code.id_for_label }}">
+                Voucher Prefix
+              </label>
+              {{ form.short_code }}
+              <div class="field-hint">{{ form.short_code.help_text }}</div>
+              {% if form.short_code.errors %}
+                <div class="text-danger small mt-1">{{ form.short_code.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="{{ form.gstin.id_for_label }}">
+                GSTIN
+              </label>
+              {{ form.gstin }}
+              {% if form.gstin.errors %}
+                <div class="text-danger small mt-1">{{ form.gstin.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="{{ form.tan.id_for_label }}">
+                TAN
+              </label>
+              {{ form.tan }}
+              <div class="field-hint">{{ form.tan.help_text }}</div>
+              {% if form.tan.errors %}
+                <div class="text-danger small mt-1">{{ form.tan.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="{{ form.financial_year_start.id_for_label }}">
+                Financial Year Start
+              </label>
+              {{ form.financial_year_start }}
+              {% if form.financial_year_start.errors %}
+                <div class="text-danger small mt-1">{{ form.financial_year_start.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="{{ form.tds_responsible_person.id_for_label }}">
+                TDS Responsible Person
+              </label>
+              {{ form.tds_responsible_person }}
+              {% if form.tds_responsible_person.errors %}
+                <div class="text-danger small mt-1">{{ form.tds_responsible_person.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="{{ form.tds_responsible_designation.id_for_label }}">
+                TDS Responsible Designation
+              </label>
+              {{ form.tds_responsible_designation }}
+              {% if form.tds_responsible_designation.errors %}
+                <div class="text-danger small mt-1">{{ form.tds_responsible_designation.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold" for="{{ form.address.id_for_label }}">
+                Registered Address
+              </label>
+              {{ form.address }}
+              {% if form.address.errors %}
+                <div class="text-danger small mt-1">{{ form.address.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# ════════════════════════ UPI Payment ════════════════════════════ #}
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+          <div class="settings-section-header">
+            <i class="bi bi-qr-code me-1"></i>UPI Payment
+            <span class="ms-2 badge-required">Enables Pay-Now QR on Sales invoices</span>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="{{ form.upi_id.id_for_label }}">
+                UPI ID
+              </label>
+              {{ form.upi_id }}
+              <div class="field-hint">{{ form.upi_id.help_text }}</div>
+              {% if form.upi_id.errors %}
+                <div class="text-danger small mt-1">{{ form.upi_id.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# Banking Details #}
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+          <div class="settings-section-header">
+            <i class="bi bi-bank me-1"></i>Banking Details
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="{{ form.bank_name.id_for_label }}">
+                Bank Name
+              </label>
+              {{ form.bank_name }}
+              {% if form.bank_name.errors %}
+                <div class="text-danger small mt-1">{{ form.bank_name.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="{{ form.ifsc_code.id_for_label }}">
+                IFSC Code
+              </label>
+              {{ form.ifsc_code }}
+              <div class="field-hint">{{ form.ifsc_code.help_text }}</div>
+              {% if form.ifsc_code.errors %}
+                <div class="text-danger small mt-1">{{ form.ifsc_code.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="{{ form.account_number.id_for_label }}">
+                Account Number
+              </label>
+              {{ form.account_number }}
+              {% if form.account_number.errors %}
+                <div class="text-danger small mt-1">{{ form.account_number.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# ── Save button ── #}
+      <div class="d-flex gap-2 no-print">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-floppy me-1"></i>Save Settings
+        </button>
+        <a href="{% url 'core:dashboard' %}" class="btn btn-outline-secondary">
+          Cancel
+        </a>
+      </div>
+
+    </form>
+  </div>
+
+  {# ── Right: Info panel ── #}
+  <div class="col-lg-4 no-print">
+
+    {# UPI Preview card ── #}
+    {% if company.upi_id %}
+    <div class="upi-preview mb-3">
+      <div class="label mb-1">UPI Payment Configured</div>
+      <div class="value">{{ company.upi_id }}</div>
+      <div class="mt-2" style="font-size:0.82rem; opacity:.85;">
+        A Pay-Now QR code will appear on all Sales vouchers.
+      </div>
+    </div>
+    {% else %}
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-body text-center py-4">
+        <i class="bi bi-qr-code-scan d-block mb-2 text-muted" style="font-size:2.5rem;"></i>
+        <div class="fw-semibold text-muted">No UPI ID configured</div>
+        <div class="small text-muted mt-1">
+          Set a UPI ID to enable Pay-Now QR codes on Sales invoices.
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {# Client Upload Portal card #}
+    <div class="card border-0 shadow-sm mb-3 border-start border-4 border-primary">
+      <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 text-primary fw-bold"><i class="bi bi-cloud-arrow-up me-1"></i>Client Upload Portal</h6>
+        <span class="badge bg-primary-subtle text-primary" style="font-size:0.65rem;">PUBLIC LINK</span>
+      </div>
+      <div class="card-body">
+        <p class="small text-muted mb-3">
+          Share this unique link with your clients. They can upload bills directly to your OCR queue without logging in.
+        </p>
+        <div class="input-group input-group-sm mb-2">
+          <input type="text" class="form-control bg-light" id="portal-url" readonly 
+                 value="{{ request.scheme }}://{{ request.get_host }}{% url 'ocr:client_portal' company.portal_token %}">
+          <button class="btn btn-primary" type="button" onclick="copyPortalUrl()">
+            <i class="bi bi-clipboard"></i>
+          </button>
+        </div>
+        <div id="copy-feedback" class="small text-success d-none"><i class="bi bi-check2 me-1"></i>Link copied!</div>
+        <div class="mt-2">
+          <a href="{% url 'ocr:client_portal' company.portal_token %}" target="_blank" class="small text-decoration-none">
+            <i class="bi bi-box-arrow-up-right me-1"></i>Open Portal
+          </a>
+        </div>
+      </div>
+    </div>
+
+    {# Bank details summary ── #}
+    {% if company.bank_name or company.account_number %}
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white py-2">
+        <h6 class="mb-0"><i class="bi bi-bank me-1 text-muted"></i>Bank Details</h6>
+      </div>
+      <div class="card-body" style="font-size:0.85rem;">
+        {% if company.bank_name %}
+        <div class="mb-1"><span class="text-muted">Bank:</span> {{ company.bank_name }}</div>
+        {% endif %}
+        {% if company.account_number %}
+        <div class="mb-1"><span class="text-muted">A/C:</span>
+          <code>{{ company.account_number }}</code>
+        </div>
+        {% endif %}
+        {% if company.ifsc_code %}
+        <div><span class="text-muted">IFSC:</span>
+          <code>{{ company.ifsc_code }}</code>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# Help card ── #}
+    <div class="card border-0 shadow-sm">
+      <div class="card-body" style="font-size:0.83rem; color:#495057;">
+        <div class="fw-semibold mb-2"><i class="bi bi-lightbulb me-1 text-warning"></i>Tips</div>
+        <ul class="mb-0 ps-3" style="line-height:1.8;">
+          <li>The <strong>Voucher Prefix</strong> appears in every voucher number (e.g. ABC2526-00001).</li>
+          <li>Your <strong>GSTIN</strong> is printed on GST reports and invoices.</li>
+          <li>Setting a <strong>UPI ID</strong> generates a scannable QR code on Sales vouchers so customers can pay instantly.</li>
+          <li>Banking details are displayed on printed invoices for NEFT/RTGS transfers.</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copyPortalUrl() {
+  copyInputValue("portal-url", "copy-feedback");
+}
+
+function copyInputValue(inputId, feedbackId) {
+  const urlInp = document.getElementById(inputId);
+  if (!urlInp) return;
+  urlInp.select();
+  urlInp.setSelectionRange(0, 99999);
+  navigator.clipboard.writeText(urlInp.value);
+
+  const fb = document.getElementById(feedbackId);
+  if (fb) {
+    fb.classList.remove("d-none");
+    setTimeout(() => fb.classList.add("d-none"), 3000);
+  }
+}
+</script>
+{% endblock %}

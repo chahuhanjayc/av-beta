@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Batch Summary | Akshaya Vistara{% endblock %}
+{% block page_title %}Batch Summary & Expiry Tracking{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm app-card">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold">Live Batch Inventory</h5>
+    </div>
+    <div class="card-body p-0 border-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Item Name</th>
+                        <th>Batch Number</th>
+                        <th>Godown</th>
+                        <th>Expiry Date</th>
+                        <th class="text-end pe-4">Available Qty</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr class="{% if row.is_expired %}table-danger{% elif row.is_near_expiry %}table-warning{% endif %}">
+                        <td class="ps-4 fw-bold">{{ row.item_name }}</td>
+                        <td>
+                            {{ row.batch_number }}
+                            {% if row.is_expired %}
+                                <span class="badge bg-danger ms-2">EXPIRED</span>
+                            {% elif row.is_near_expiry %}
+                                <span class="badge bg-warning text-dark ms-2">Expires Soon</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ row.godown_name }}</td>
+                        <td>{{ row.expiry_date|date:"d-m-Y"|default:"-" }}</td>
+                        <td class="text-end fw-bold font-monospace pe-4">{{ row.quantity|floatformat:3 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5 text-muted">No active batches found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

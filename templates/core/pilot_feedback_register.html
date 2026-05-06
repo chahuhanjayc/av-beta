@@ -1,0 +1,342 @@
+{% extends "base.html" %}
+{% block title %}Pilot Feedback Register - Akshaya Vistara{% endblock %}
+{% block page_title %}Pilot Feedback Register{% endblock %}
+
+{% block extra_head %}
+<style>
+.feedback-score {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.feedback-filter {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+.feedback-table td {
+  vertical-align: middle;
+}
+.feedback-summary {
+  max-width: 32rem;
+}
+.feedback-detail {
+  max-width: 34rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end flex-wrap gap-2 mb-3">
+  <a href="{% url 'core:pilot_feedback_register' %}?export=csv{% if export_query %}&{{ export_query }}{% endif %}" class="btn btn-outline-primary btn-sm">
+    <i class="bi bi-download me-1"></i>Export CSV
+  </a>
+  <a href="{% url 'core:pilot_adoption_evidence' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-clipboard2-pulse me-1"></i>Adoption Evidence
+  </a>
+  <a href="{% url 'core:practice_tasks' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-list-check me-1"></i>Work Queue
+  </a>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Active Signals</div>
+        <div class="feedback-score text-primary">{{ totals.open }}</div>
+        <div class="small text-muted">{{ totals.recent_30 }} captured in 30 days</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Pilot Blockers</div>
+        <div class="feedback-score {% if totals.blockers %}text-danger{% else %}text-success{% endif %}">{{ totals.blockers }}</div>
+        <div class="small text-muted">{{ totals.negative_open }} negative open signal{{ totals.negative_open|pluralize }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Avg Confidence</div>
+        <div class="feedback-score {% if totals.avg_confidence >= 8 %}text-success{% elif totals.avg_confidence >= 6 %}text-primary{% else %}text-warning{% endif %}">{{ totals.avg_confidence }}</div>
+        <div class="small text-muted">0 to 10 client confidence</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Replacement Proof</div>
+        <div class="feedback-score text-success">{{ totals.conversion_signals }}</div>
+        <div class="small text-muted">{{ totals.tally_mentions }} Tally mention{{ totals.tally_mentions|pluralize }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<form method="get" class="feedback-filter mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-3">
+      <label class="form-label small text-muted" for="feedback-q">Search</label>
+      <input id="feedback-q" type="search" class="form-control form-control-sm" name="q" value="{{ q }}" placeholder="Client, contact, signal, evidence">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small text-muted" for="feedback-company">Company</label>
+      <select id="feedback-company" class="form-select form-select-sm" name="company">
+        <option value="all" {% if company_filter == "all" %}selected{% endif %}>All Clients</option>
+        {% for company in company_options %}
+          <option value="{{ company.pk }}" {% if company_filter == company.pk|stringformat:"s" %}selected{% endif %}>{{ company.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small text-muted" for="feedback-status">Status</label>
+      <select id="feedback-status" class="form-select form-select-sm" name="status">
+        {% for value,label in status_options %}
+          <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small text-muted" for="feedback-severity">Severity</label>
+      <select id="feedback-severity" class="form-select form-select-sm" name="severity">
+        {% for value,label in severity_options %}
+          <option value="{{ value }}" {% if severity_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3 d-flex gap-2">
+      <button type="submit" class="btn btn-primary btn-sm">
+        <i class="bi bi-funnel me-1"></i>Apply
+      </button>
+      <a href="{% url 'core:pilot_feedback_register' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+    </div>
+  </div>
+  <div class="row g-2 mt-1">
+    <div class="col-md-3">
+      <select class="form-select form-select-sm" name="sentiment" aria-label="Sentiment">
+        {% for value,label in sentiment_options %}
+          <option value="{{ value }}" {% if sentiment_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <select class="form-select form-select-sm" name="type" aria-label="Type">
+        {% for value,label in type_options %}
+          <option value="{{ value }}" {% if type_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <select class="form-select form-select-sm" name="competitor" aria-label="Competitor">
+        {% for value,label in competitor_options %}
+          <option value="{{ value }}" {% if competitor_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+</form>
+
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-chat-square-text me-2"></i>Capture Pilot Signal</h6>
+      </div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="create_feedback">
+          <input type="hidden" name="q" value="{{ q }}">
+          <input type="hidden" name="company" value="{{ company_filter }}">
+          <input type="hidden" name="status" value="{{ status_filter }}">
+          <input type="hidden" name="severity" value="{{ severity_filter }}">
+          <input type="hidden" name="sentiment" value="{{ sentiment_filter }}">
+          <input type="hidden" name="type" value="{{ type_filter }}">
+          <input type="hidden" name="competitor" value="{{ competitor_filter }}">
+          {% if feedback_form.non_field_errors %}
+            <div class="alert alert-danger py-2">{{ feedback_form.non_field_errors }}</div>
+          {% endif %}
+          <div class="mb-2">
+            <label class="form-label small text-muted" for="{{ feedback_form.company.id_for_label }}">Company</label>
+            {{ feedback_form.company }}
+            {{ feedback_form.company.errors }}
+          </div>
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label small text-muted" for="{{ feedback_form.feedback_type.id_for_label }}">Type</label>
+              {{ feedback_form.feedback_type }}
+              {{ feedback_form.feedback_type.errors }}
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-muted" for="{{ feedback_form.occurred_on.id_for_label }}">Date</label>
+              {{ feedback_form.occurred_on }}
+              {{ feedback_form.occurred_on.errors }}
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-muted" for="{{ feedback_form.sentiment.id_for_label }}">Sentiment</label>
+              {{ feedback_form.sentiment }}
+              {{ feedback_form.sentiment.errors }}
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-muted" for="{{ feedback_form.confidence_score.id_for_label }}">Confidence</label>
+              {{ feedback_form.confidence_score }}
+              {{ feedback_form.confidence_score.errors }}
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-muted" for="{{ feedback_form.severity.id_for_label }}">Severity</label>
+              {{ feedback_form.severity }}
+              {{ feedback_form.severity.errors }}
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-muted" for="{{ feedback_form.status.id_for_label }}">Status</label>
+              {{ feedback_form.status }}
+              {{ feedback_form.status.errors }}
+            </div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label small text-muted" for="{{ feedback_form.summary.id_for_label }}">Summary</label>
+            {{ feedback_form.summary }}
+            {{ feedback_form.summary.errors }}
+          </div>
+          <div class="mt-2">
+            <label class="form-label small text-muted" for="{{ feedback_form.client_contact.id_for_label }}">Client Contact</label>
+            {{ feedback_form.client_contact }}
+            {{ feedback_form.client_contact.errors }}
+          </div>
+          <div class="mt-2">
+            <label class="form-label small text-muted" for="{{ feedback_form.competitor_reference.id_for_label }}">Competitor / Current Tool</label>
+            {{ feedback_form.competitor_reference }}
+            {{ feedback_form.competitor_reference.errors }}
+          </div>
+          <div class="mt-2">
+            <label class="form-label small text-muted" for="{{ feedback_form.evidence_reference.id_for_label }}">Evidence Reference</label>
+            {{ feedback_form.evidence_reference }}
+            {{ feedback_form.evidence_reference.errors }}
+          </div>
+          <div class="mt-2">
+            <label class="form-label small text-muted" for="{{ feedback_form.assigned_to.id_for_label }}">Owner</label>
+            {{ feedback_form.assigned_to }}
+            {{ feedback_form.assigned_to.errors }}
+          </div>
+          <div class="mt-2">
+            <label class="form-label small text-muted" for="{{ feedback_form.detail.id_for_label }}">Detail</label>
+            {{ feedback_form.detail }}
+            {{ feedback_form.detail.errors }}
+          </div>
+          <div class="form-check mt-3">
+            {{ feedback_form.create_follow_up_task }}
+            <label class="form-check-label" for="{{ feedback_form.create_follow_up_task.id_for_label }}">Create follow-up task</label>
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm mt-3 w-100">
+            <i class="bi bi-plus-circle me-1"></i>Capture Signal
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-table me-2"></i>Feedback Register</h6>
+        <span class="small text-muted">{{ totals.items }} visible signal{{ totals.items|pluralize }}</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover feedback-table mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Client Signal</th>
+              <th>Evidence</th>
+              <th class="text-end">Confidence</th>
+              <th class="pe-3 text-end">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+              {% with item=row.feedback %}
+                <tr>
+                  <td class="ps-3 feedback-summary">
+                    <a href="{% url 'core:client_360' item.company.pk %}" class="fw-semibold text-decoration-none">{{ item.company.name }}</a>
+                    <div class="fw-semibold">{{ item.summary }}</div>
+                    <div class="small text-muted">{{ item.occurred_on }} | {{ item.get_feedback_type_display }} | {{ item.client_contact|default:"No contact" }}</div>
+                    <div class="mt-1">
+                      <span class="badge {{ item.severity_badge_class }}">{{ item.get_severity_display }}</span>
+                      <span class="badge {{ item.sentiment_badge_class }}">{{ item.get_sentiment_display }}</span>
+                      <span class="badge {{ item.status_badge_class }}">{{ item.get_status_display }}</span>
+                    </div>
+                  </td>
+                  <td class="feedback-detail">
+                    <div class="small">
+                      <span class="text-muted">Tool:</span> {{ item.get_competitor_reference_display }}
+                    </div>
+                    {% if item.evidence_reference %}
+                      <div class="small"><span class="text-muted">Evidence:</span> {{ item.evidence_reference }}</div>
+                    {% endif %}
+                    {% if item.detail %}
+                      <div class="small text-muted mt-1">{{ item.detail|truncatechars:180 }}</div>
+                    {% endif %}
+                    {% if item.follow_up_task %}
+                      <a href="{{ row.tasks_url }}" class="badge bg-primary-subtle text-primary text-decoration-none mt-1">Task linked</a>
+                    {% endif %}
+                  </td>
+                  <td class="text-end">
+                    <div class="fw-bold">{{ item.confidence_score }}/10</div>
+                    <div class="small text-muted">
+                      {% if item.assigned_to %}{{ item.assigned_to.email }}{% else %}Unassigned{% endif %}
+                    </div>
+                  </td>
+                  <td class="pe-3 text-end">
+                    {% if row.can_manage and item.is_open %}
+                      <form method="post" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="resolve_feedback">
+                        <input type="hidden" name="feedback_id" value="{{ item.pk }}">
+                        <input type="hidden" name="q" value="{{ q }}">
+                        <input type="hidden" name="company" value="{{ company_filter }}">
+                        <input type="hidden" name="status" value="{{ status_filter }}">
+                        <input type="hidden" name="severity" value="{{ severity_filter }}">
+                        <input type="hidden" name="sentiment" value="{{ sentiment_filter }}">
+                        <input type="hidden" name="type" value="{{ type_filter }}">
+                        <input type="hidden" name="competitor" value="{{ competitor_filter }}">
+                        <button type="submit" class="btn btn-sm btn-outline-success">Resolve</button>
+                      </form>
+                    {% elif row.can_manage %}
+                      <form method="post" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="reopen_feedback">
+                        <input type="hidden" name="feedback_id" value="{{ item.pk }}">
+                        <input type="hidden" name="q" value="{{ q }}">
+                        <input type="hidden" name="company" value="{{ company_filter }}">
+                        <input type="hidden" name="status" value="{{ status_filter }}">
+                        <input type="hidden" name="severity" value="{{ severity_filter }}">
+                        <input type="hidden" name="sentiment" value="{{ sentiment_filter }}">
+                        <input type="hidden" name="type" value="{{ type_filter }}">
+                        <input type="hidden" name="competitor" value="{{ competitor_filter }}">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">Reopen</button>
+                      </form>
+                    {% else %}
+                      <span class="badge bg-secondary-subtle text-secondary">Read only</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endwith %}
+            {% empty %}
+              <tr>
+                <td colspan="4" class="text-center text-muted py-5">
+                  No pilot feedback matches the current filter.
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload Document - Akshaya Vistara</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <style>
+    :root {
+      --surface-bg: #ffffff;
+      --surface-muted: #f1f5f9;
+      --border-color: #dde3ea;
+      --text-muted: #667085;
+    }
+    body {
+      min-height: 100vh;
+    }
+    .upload-shell {
+      max-width: 980px;
+    }
+    .upload-panel {
+      border-radius: 0.5rem;
+    }
+    .upload-control {
+      min-height: 3rem;
+    }
+    .pack-panel {
+      background: var(--surface-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 0.5rem;
+    }
+    .pack-item {
+      border-top: 1px solid var(--border-color);
+      padding: 0.75rem 0;
+    }
+    .pack-item:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+    .pack-meta {
+      color: var(--text-muted);
+      font-size: 0.82rem;
+    }
+    .metric {
+      background: var(--surface-muted);
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+      min-height: 4.5rem;
+    }
+    .sticky-upload {
+      position: sticky;
+      bottom: 0;
+      background: rgba(248, 249, 250, 0.94);
+      border-top: 1px solid var(--border-color);
+      margin: 1rem -1.5rem -1.5rem;
+      padding: 0.85rem 1.5rem;
+      backdrop-filter: blur(8px);
+    }
+    @media (max-width: 575.98px) {
+      .upload-shell {
+        padding: 1rem;
+      }
+      .upload-panel .card-body {
+        padding: 1.25rem !important;
+      }
+      .upload-submit,
+      .pack-item .btn {
+        width: 100%;
+      }
+      .sticky-upload {
+        margin-left: -1.25rem;
+        margin-right: -1.25rem;
+        margin-bottom: -1.25rem;
+        padding-left: 1.25rem;
+        padding-right: 1.25rem;
+      }
+    }
+  </style>
+</head>
+<body class="bg-light">
+  <div class="container py-4 py-md-5 upload-shell">
+    <div class="row g-3">
+      <div class="col-lg-7">
+        <div class="card shadow-sm border-0 upload-panel">
+          <div class="card-body p-4">
+            <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-3">
+              <div>
+                <h4 class="fw-bold mb-1">{{ doc_request.title }}</h4>
+                <div class="text-muted small">{{ doc_request.company.name }}</div>
+              </div>
+              <span class="badge bg-primary-subtle text-primary">{{ doc_request.get_document_type_display }}</span>
+            </div>
+            {% if doc_request.notes %}
+              <div class="alert alert-light border small">{{ doc_request.notes|linebreaksbr }}</div>
+            {% endif %}
+            {% if doc_request.due_date %}
+              <div class="small mb-3 {% if doc_request.is_overdue %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+                Due: {{ doc_request.due_date|date:"d M Y" }}
+                {% if request_pack.current_position %}<span class="text-muted"> | {{ request_pack.current_position }} in your queue</span>{% endif %}
+              </div>
+            {% endif %}
+            {% if messages %}
+              {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} small">{{ message }}</div>
+              {% endfor %}
+            {% endif %}
+            <form method="post" enctype="multipart/form-data">
+              {% csrf_token %}
+              <div class="mb-3">
+                <label class="form-label">Document</label>
+                <input type="file" name="file" class="form-control upload-control" accept=".pdf,.png,.jpg,.jpeg,.webp,.tiff,.bmp,.xlsx,.xls,.csv,.doc,.docx" required>
+                <div class="form-text">PDF, image, Excel, CSV, or Word file up to 20 MB.</div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Note</label>
+                <textarea name="response_note" rows="3" class="form-control" placeholder="Optional note for your CA"></textarea>
+              </div>
+              <div class="sticky-upload">
+                <button type="submit" class="btn btn-primary upload-submit">
+                  <i class="bi bi-cloud-upload me-1"></i> Upload Document
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-5">
+        <div class="pack-panel p-3 mb-3">
+          <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+            <div>
+              <div class="text-muted small fw-semibold text-uppercase">Request Pack</div>
+              <h5 class="mb-0">Pending from you</h5>
+            </div>
+            <span class="badge {% if request_pack.summary.overdue %}bg-danger{% elif request_pack.summary.open %}bg-warning text-dark{% else %}bg-success{% endif %}">
+              {{ request_pack.summary.completion_score }}%
+            </span>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-4">
+              <div class="metric">
+                <div class="small text-muted">Open</div>
+                <div class="h5 mb-0">{{ request_pack.summary.open }}</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="metric">
+                <div class="small text-muted">Overdue</div>
+                <div class="h5 mb-0 text-danger">{{ request_pack.summary.overdue }}</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="metric">
+                <div class="small text-muted">Review</div>
+                <div class="h5 mb-0 text-success">{{ request_pack.summary.uploaded }}</div>
+              </div>
+            </div>
+          </div>
+          {% for req in request_pack.open_requests %}
+            <div class="pack-item">
+              <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                <div>
+                  <div class="fw-semibold {% if req.pk == doc_request.pk %}text-primary{% endif %}">{{ req.title }}</div>
+                  <div class="pack-meta">
+                    {{ req.get_document_type_display }}
+                    {% if req.due_date %} | Due {{ req.due_date|date:"d M" }}{% endif %}
+                  </div>
+                </div>
+                {% if req.pk == doc_request.pk %}
+                  <span class="badge bg-primary-subtle text-primary">Current</span>
+                {% else %}
+                  <a href="{% url 'portal:document_request_upload' req.token %}" class="btn btn-outline-primary btn-sm">
+                    Open
+                  </a>
+                {% endif %}
+              </div>
+            </div>
+          {% empty %}
+            <div class="text-center text-muted py-3">
+              <i class="bi bi-check2-circle d-block h3 mb-2 text-success"></i>
+              No open uploads.
+            </div>
+          {% endfor %}
+        </div>
+        {% if request_pack.uploaded_requests %}
+          <div class="pack-panel p-3">
+            <div class="text-muted small fw-semibold text-uppercase mb-2">Already Uploaded</div>
+            {% for req in request_pack.uploaded_requests %}
+              <div class="pack-item">
+                <div class="fw-semibold">{{ req.title }}</div>
+                <div class="pack-meta">Uploaded {{ req.uploaded_at|date:"d M H:i"|default:"recently" }}</div>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</body>
+</html>

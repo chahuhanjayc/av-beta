@@ -1,0 +1,464 @@
+{% extends "base.html" %}
+{% load migration_extras %}
+
+{% block title %}Import Preview – Akshaya Vistara{% endblock %}
+{% block page_title %}Import Preview{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h5 class="mb-0">Import Preview</h5>
+        <small class="text-muted">Review detected data before final import</small>
+    </div>
+    <div class="d-flex gap-2">
+        <span class="badge bg-info bg-opacity-10 text-info border-0">Opening Balances: {{ session.opening_balances_count }}</span>
+        <span class="badge bg-primary bg-opacity-10 text-primary border-0">Vouchers: {{ session.vouchers_count }}</span>
+        <span class="badge bg-secondary bg-opacity-10 text-secondary border-0">Total Rows: {{ session.total_rows }}</span>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        {% if session.validation_report.sync_risk %}
+        <div class="border rounded p-3 mb-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                <div>
+                    <h6 class="mb-1 fw-bold"><i class="bi bi-shield-exclamation me-1"></i>Tally Sync Risk Review</h6>
+                    <div class="small text-muted">
+                        {{ session.get_source_system_display }} / {{ session.get_sync_mode_display }}
+                        {% if session.source_company_guid %} / GUID {{ session.source_company_guid }}{% endif %}
+                    </div>
+                    {% if session.source_period_start or session.source_period_end %}
+                    <div class="small text-muted">
+                        Period: {{ session.source_period_start|date:"d M Y"|default:"-" }} to {{ session.source_period_end|date:"d M Y"|default:"-" }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="text-end">
+                    <div class="h3 mb-0 {% if session.validation_report.sync_risk.score < 50 %}text-danger{% elif session.validation_report.sync_risk.score < 75 %}text-warning{% else %}text-success{% endif %}">
+                        {{ session.validation_report.sync_risk.score }}
+                    </div>
+                    <span class="badge {% if session.validation_report.sync_risk.band == 'Blocked' %}bg-danger{% elif session.validation_report.sync_risk.band == 'High Risk' %}bg-warning text-dark{% elif session.validation_report.sync_risk.band == 'Review' %}bg-info{% else %}bg-success{% endif %}">
+                        {{ session.validation_report.sync_risk.band }}
+                    </span>
+                </div>
+            </div>
+            <div class="row g-2 mb-3">
+                <div class="col-6 col-md-3">
+                    <div class="p-2 rounded bg-light">
+                        <div class="text-muted small text-uppercase fw-semibold">Risk Items</div>
+                        <div class="h5 mb-0">{{ session.validation_report.sync_risk.issue_count|default:0 }}</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-2 rounded bg-light">
+                        <div class="text-muted small text-uppercase fw-semibold">Critical</div>
+                        <div class="h5 mb-0 text-danger">{{ session.validation_report.sync_risk.critical_count|default:0 }}</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-2 rounded bg-light">
+                        <div class="text-muted small text-uppercase fw-semibold">High</div>
+                        <div class="h5 mb-0 text-warning">{{ session.validation_report.sync_risk.high_count|default:0 }}</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-2 rounded bg-light">
+                        <div class="text-muted small text-uppercase fw-semibold">Existing Tally Vouchers</div>
+                        <div class="h5 mb-0">{{ session.validation_report.sync_risk.existing_tally_vouchers|default:0 }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="row g-2 mb-3">
+                <div class="col-md-6">
+                    <div class="p-3 rounded bg-light h-100">
+                        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                            <div>
+                                <div class="fw-semibold">Tally Mapping Drift</div>
+                                <div class="small text-muted">
+                                    {% if session.validation_report.mapping_drift.prior_session_id %}
+                                    Compared with session #{{ session.validation_report.mapping_drift.prior_session_id }}
+                                    {% else %}
+                                    No prior mapping baseline found
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <span class="badge {% if session.validation_report.mapping_drift.changed_count %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                                {{ session.validation_report.mapping_drift.changed_count|default:0 }} changed
+                            </span>
+                        </div>
+                        <div class="row g-2 small">
+                            <div class="col-4">
+                                <div class="text-muted">New</div>
+                                <div class="fw-bold">{{ session.validation_report.mapping_drift.new_count|default:0 }}</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-muted">Missing</div>
+                                <div class="fw-bold">{{ session.validation_report.mapping_drift.missing_count|default:0 }}</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-muted">Stable</div>
+                                <div class="fw-bold">{{ session.validation_report.mapping_drift.stable_count|default:0 }}</div>
+                            </div>
+                        </div>
+                        {% if session.validation_report.mapping_drift.changed %}
+                        <div class="small text-muted mt-2">
+                            {{ session.validation_report.mapping_drift.changed.0.ledger }}:
+                            {{ session.validation_report.mapping_drift.changed.0.previous_target }} to
+                            {{ session.validation_report.mapping_drift.changed.0.current_target }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="p-3 rounded bg-light h-100">
+                        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                            <div>
+                                <div class="fw-semibold">Voucher Delta Review</div>
+                                <div class="small text-muted">
+                                    {% if session.validation_report.voucher_delta.available %}
+                                    Current file vs existing Tally vouchers
+                                    {% else %}
+                                    {{ session.validation_report.voucher_delta.reason|default:"Delta analysis unavailable" }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <span class="badge {% if session.validation_report.voucher_delta.changed_count %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                                {{ session.validation_report.voucher_delta.changed_count|default:0 }} changed
+                            </span>
+                        </div>
+                        <div class="row g-2 small">
+                            <div class="col-3">
+                                <div class="text-muted">New</div>
+                                <div class="fw-bold">{{ session.validation_report.voucher_delta.new_count|default:0 }}</div>
+                            </div>
+                            <div class="col-3">
+                                <div class="text-muted">Same</div>
+                                <div class="fw-bold">{{ session.validation_report.voucher_delta.duplicate_count|default:0 }}</div>
+                            </div>
+                            <div class="col-3">
+                                <div class="text-muted">Changed</div>
+                                <div class="fw-bold">{{ session.validation_report.voucher_delta.changed_count|default:0 }}</div>
+                            </div>
+                            <div class="col-3">
+                                <div class="text-muted">Missing</div>
+                                <div class="fw-bold">{{ session.validation_report.voucher_delta.missing_existing_count|default:0 }}</div>
+                            </div>
+                        </div>
+                        {% if session.validation_report.voucher_delta.changed %}
+                        <div class="small text-muted mt-2">
+                            {{ session.validation_report.voucher_delta.changed.0.voucher_no }}:
+                            existing {{ session.validation_report.voucher_delta.changed.0.existing_debit }} /
+                            current {{ session.validation_report.voucher_delta.changed.0.current_debit }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% if session.validation_report.sync_risk.issues %}
+            <div class="table-responsive border rounded mb-3">
+                <table class="table table-sm align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Risk</th>
+                            <th>Severity</th>
+                            <th class="text-end">Count</th>
+                        </tr>
+                    </thead>
+                    <tbody class="small">
+                        {% for issue in session.validation_report.sync_risk.issues %}
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">{{ issue.title }}</div>
+                                <div class="text-muted">{{ issue.message }}</div>
+                            </td>
+                            <td>
+                                <span class="badge {% if issue.severity == 'critical' %}bg-danger{% elif issue.severity == 'high' %}bg-warning text-dark{% elif issue.severity == 'medium' %}bg-info{% else %}bg-secondary{% endif %}">
+                                    {{ issue.severity|title }}
+                                </span>
+                            </td>
+                            <td class="text-end fw-semibold">{{ issue.count }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div class="small text-muted">File SHA: {{ session.source_file_hash|slice:":16"|default:"-" }}</div>
+                <a href="{% url 'migration:sync_risk_export' session.pk %}" class="btn btn-outline-success btn-sm">
+                    <i class="bi bi-download me-1"></i> Export Sync Risk
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if session.validation_report.approval_gate %}
+        <div class="border rounded p-3 mb-4 {% if session.validation_report.approval_gate.required and not session.validation_report.approval_gate.can_confirm %}border-danger{% elif session.validation_report.approval_gate.approved %}border-success{% endif %}">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                <div>
+                    <h6 class="mb-1 fw-bold"><i class="bi bi-person-check me-1"></i>CA Approval Gate</h6>
+                    <div class="small text-muted">
+                        {{ session.validation_report.approval_gate.status_label }}
+                        {% if session.validation_report.approval_gate.required %}
+                        / {{ session.validation_report.approval_gate.checked_count }} of {{ session.validation_report.approval_gate.total_checks }} checks complete
+                        {% endif %}
+                    </div>
+                </div>
+                <span class="badge {% if session.validation_report.approval_gate.can_confirm %}bg-success{% elif session.validation_report.approval_gate.stale %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                    {% if session.validation_report.approval_gate.can_confirm %}Ready{% elif session.validation_report.approval_gate.stale %}Stale Approval{% else %}Blocked{% endif %}
+                </span>
+            </div>
+
+            {% if session.validation_report.approval_gate.required %}
+                {% if session.validation_report.approval_gate.blockers %}
+                <div class="table-responsive border rounded mb-3">
+                    <table class="table table-sm mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Approval Blocker</th>
+                                <th>Severity</th>
+                                <th class="text-end">Count</th>
+                            </tr>
+                        </thead>
+                        <tbody class="small">
+                            {% for blocker in session.validation_report.approval_gate.blockers %}
+                            <tr>
+                                <td class="fw-semibold">{{ blocker.title }}</td>
+                                <td>
+                                    <span class="badge {% if blocker.severity == 'critical' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                                        {{ blocker.severity|title }}
+                                    </span>
+                                </td>
+                                <td class="text-end">{{ blocker.count }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+
+                {% if session.validation_report.approval_gate.approved and not session.validation_report.approval_gate.stale %}
+                <div class="alert alert-success py-2 small mb-3">
+                    Approved by {{ session.validation_report.approval_gate.approved_by|default:"-" }}.
+                    Evidence hash: <span class="font-monospace">{{ session.validation_report.approval_gate.approval_evidence_hash|slice:":16" }}</span>
+                </div>
+                <form action="{% url 'migration:revoke_import_approval' session.pk %}" method="post" class="d-flex flex-wrap gap-2 align-items-center">
+                    {% csrf_token %}
+                    <input type="text" name="revoke_note" class="form-control form-control-sm" style="max-width: 420px;" placeholder="Reason for revoking approval">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-x-circle me-1"></i> Revoke Approval
+                    </button>
+                </form>
+                {% else %}
+                {% if session.validation_report.approval_gate.stale %}
+                <div class="alert alert-warning py-2 small">Approval is stale because the current risk snapshot changed after approval.</div>
+                {% endif %}
+                <form action="{% url 'migration:approve_import' session.pk %}" method="post">
+                    {% csrf_token %}
+                    <div class="row g-2 mb-3">
+                        {% for check in session.validation_report.approval_gate.checklist %}
+                        <div class="col-md-6">
+                            <label class="border rounded p-2 d-flex gap-2 align-items-start h-100 small">
+                                <input type="checkbox" name="{{ check.key }}" class="form-check-input mt-0" {% if check.checked %}checked{% endif %}>
+                                <span>{{ check.label }}</span>
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <label class="form-label small fw-semibold">CA approval note</label>
+                    <textarea name="approval_note" class="form-control form-control-sm mb-3" rows="2" placeholder="Record the review basis, backup reference, and import decision.">{{ session.approval_note }}</textarea>
+                    <button type="submit" class="btn btn-success btn-sm">
+                        <i class="bi bi-person-check me-1"></i> Approve Import
+                    </button>
+                </form>
+                {% endif %}
+            {% else %}
+            <div class="small text-muted">No high-risk blockers detected for this import.</div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if session.validation_report %}
+        <div class="row g-3 align-items-stretch mb-4">
+            <div class="col-md-3">
+                <div class="p-3 rounded bg-light h-100">
+                    <div class="text-muted small text-uppercase fw-semibold">Import Health</div>
+                    <div class="d-flex align-items-end gap-2">
+                        <div class="h2 mb-0 fw-bold {% if session.validation_report.cleanup_score < 50 %}text-danger{% elif session.validation_report.cleanup_score < 75 %}text-warning{% else %}text-success{% endif %}">
+                            {{ session.validation_report.cleanup_score|default:100 }}
+                        </div>
+                        <div class="small text-muted mb-2">/ 100</div>
+                    </div>
+                    <span class="badge {% if session.validation_report.cleanup_score < 50 %}bg-danger{% elif session.validation_report.cleanup_score < 75 %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                        {{ session.validation_report.cleanup_band|default:"Good" }}
+                    </span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="p-3 rounded bg-light h-100">
+                    <div class="text-muted small text-uppercase fw-semibold">Cleanup Issues</div>
+                    <div class="h3 mb-0 fw-bold">{{ session.validation_report.cleanup_issue_count|default:0 }}</div>
+                    <div class="small text-muted">{{ session.validation_report.blocking_issue_count|default:0 }} blocking</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="p-3 rounded bg-light h-100">
+                    <div class="text-muted small text-uppercase fw-semibold">Ledger Mapping</div>
+                    <div class="h5 mb-1 fw-bold">{{ session.validation_report.ledger_mapping_summary.total|default:0 }} ledgers</div>
+                    <div class="small text-muted">
+                        {{ session.validation_report.ledger_mapping_summary.mapped|default:0 }} mapped,
+                        {{ session.validation_report.ledger_mapping_summary.new|default:0 }} new,
+                        {{ session.validation_report.ledger_mapping_summary.ignored|default:0 }} ignored
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="p-3 rounded bg-light h-100 d-flex flex-column justify-content-center gap-2">
+                    <a href="{% url 'migration:cleanup_export' session.pk %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-filetype-csv me-1"></i> Export Issues
+                    </a>
+                    <form action="{% url 'migration:cleanup_tasks' session.pk %}" method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="preview">
+                        <button type="submit" class="btn btn-outline-primary btn-sm w-100" {% if not session.validation_report.cleanup_issue_count %}disabled{% endif %}>
+                            <i class="bi bi-check2-square me-1"></i> Create Tasks
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        {% if session.validation_report.issues %}
+        <div class="table-responsive border rounded mb-4">
+            <table class="table table-sm align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Issue</th>
+                        <th>Severity</th>
+                        <th class="text-end">Count</th>
+                        <th>Sample</th>
+                    </tr>
+                </thead>
+                <tbody class="small">
+                    {% for issue in session.validation_report.issues %}
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">{{ issue.title }}</div>
+                            <div class="text-muted">{{ issue.message }}</div>
+                        </td>
+                        <td>
+                            <span class="badge {% if issue.severity == 'critical' %}bg-danger{% elif issue.severity == 'high' %}bg-warning text-dark{% elif issue.severity == 'medium' %}bg-info{% else %}bg-secondary{% endif %}">
+                                {{ issue.severity|title }}
+                            </span>
+                        </td>
+                        <td class="text-end fw-semibold">{{ issue.count }}</td>
+                        <td class="text-muted">{{ issue.samples.0|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="p-3 rounded bg-light">
+                    <div class="text-muted small text-uppercase fw-semibold">Duplicate Voucher Nos</div>
+                    <div class="h5 mb-0 {% if session.duplicate_voucher_count %}text-warning{% else %}text-success{% endif %}">{{ session.duplicate_voucher_count }}</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 rounded bg-light">
+                    <div class="text-muted small text-uppercase fw-semibold">Unbalanced Vouchers</div>
+                    <div class="h5 mb-0 {% if session.unbalanced_voucher_count %}text-danger{% else %}text-success{% endif %}">{{ session.unbalanced_voucher_count }}</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 rounded bg-light">
+                    <div class="text-muted small text-uppercase fw-semibold">Unknown Voucher Types</div>
+                    <div class="h5 mb-0">{{ session.validation_report.unknown_voucher_types|length }}</div>
+                </div>
+            </div>
+        </div>
+        {% if session.validation_report.duplicate_vouchers or session.validation_report.unbalanced_vouchers %}
+        <div class="alert alert-warning py-2 small">
+            Review duplicates and unbalanced vouchers before importing. Unbalanced vouchers will be skipped and shown in the summary fixer.
+        </div>
+        {% endif %}
+        {% endif %}
+
+        {% if opening_balances %}
+        <div class="alert bg-info bg-opacity-10 text-info border-0 py-2 mb-4">
+            <h6 class="mb-1 small fw-bold"><i class="bi bi-info-circle me-1"></i> Opening Balances Detected ({{ session.opening_balances_count }})</h6>
+            <div class="small mb-2">Opening balances will be converted into a system-generated <strong>Opening Voucher</strong> balanced against "Opening Balance Adjustment".</div>
+            <div class="d-flex flex-wrap gap-2 mt-2">
+                {% for ob in opening_balances %}
+                <span class="badge bg-white text-dark border fw-normal">
+                    {{ ob.ledger }}: 
+                    <span class="fw-bold">{% if ob.debit %}₹{{ ob.debit }} (Dr){% else %}₹{{ ob.credit }} (Cr){% endif %}</span>
+                </span>
+                {% endfor %}
+                {% if session.opening_balances_count > 20 %}
+                <span class="badge bg-secondary bg-opacity-10 text-secondary border-0">... and {{ session.opening_balances_count|add:"-20" }} more</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <h6 class="fw-bold mb-3 small uppercase text-muted">Detected Mappings</h6>
+        <div class="row g-2 mb-4">
+            {% for key, col in mapping.items %}
+            <div class="col-6 col-md-2">
+                <div class="p-2 border-0 rounded bg-light text-center">
+                    <small class="text-muted d-block small uppercase fw-semibold" style="font-size: 0.65rem;">{{ key }}</small>
+                    <span class="fw-bold small">{{ col }}</span>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12 text-danger small">No columns detected! Please ensure your file has headers like 'Ledger', 'Date', 'Debit', 'Credit'.</div>
+            {% endfor %}
+        </div>
+
+        <h6 class="fw-bold mb-3 small uppercase text-muted">Data Sample (First 20 rows)</h6>
+        <div class="table-responsive border rounded">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        {% for col in mapping.values %}
+                        <th class="small uppercase fw-bold">{{ col }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody class="small">
+                    {% for row in preview_data %}
+                    <tr>
+                        {% for col in mapping.values %}
+                        <td>{{ row|get_item:col }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-4 border-top pt-4">
+            <form action="{% url 'migration:confirm' session.pk %}" method="post" class="d-flex align-items-center gap-3">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success px-4" {% if not mapping or not session.validation_report.approval_gate.can_confirm %}disabled{% endif %}>
+                    <i class="bi bi-check-circle me-1"></i> Confirm & Import Data
+                </button>
+                <a href="{% url 'migration:upload' %}" class="btn btn-outline-secondary">Back / Re-upload</a>
+                <span class="text-muted small ms-auto italic">
+                    <i class="bi bi-info-circle"></i>
+                    {% if session.validation_report.approval_gate.required and not session.validation_report.approval_gate.can_confirm %}
+                    CA approval is required before confirmation.
+                    {% else %}
+                    New ledgers will be created under "Suspense Accounts".
+                    {% endif %}
+                </span>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

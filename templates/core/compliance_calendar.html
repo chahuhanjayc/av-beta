@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+
+{% block title %}Compliance Calendar - Akshaya Vistara{% endblock %}
+{% block page_title %}Compliance Calendar{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h5 class="mb-0">Compliance Calendar</h5>
+    <small class="text-muted">Generate GST, TDS, ITR, MCA, and audit work across clients</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="?{{ export_query }}" class="btn btn-sm btn-outline-success">
+      <i class="bi bi-download"></i> CSV
+    </a>
+    <a href="{% url 'core:compliance_filings' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-calendar-check"></i> Filings
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg">
+    <div class="card"><div class="card-body py-3">
+      <div class="text-muted small text-uppercase fw-semibold">Open</div>
+      <div class="h5 mb-0">{{ summary.open }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg">
+    <div class="card"><div class="card-body py-3">
+      <div class="text-muted small text-uppercase fw-semibold">Overdue</div>
+      <div class="h5 mb-0 text-danger">{{ summary.overdue }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg">
+    <div class="card"><div class="card-body py-3">
+      <div class="text-muted small text-uppercase fw-semibold">Next 30 Days</div>
+      <div class="h5 mb-0 text-primary">{{ summary.next_30 }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg">
+    <div class="card"><div class="card-body py-3">
+      <div class="text-muted small text-uppercase fw-semibold">Unassigned</div>
+      <div class="h5 mb-0 text-warning">{{ summary.unassigned }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg">
+    <div class="card"><div class="card-body py-3">
+      <div class="text-muted small text-uppercase fw-semibold">Managed Clients</div>
+      <div class="h5 mb-0">{{ summary.manageable_clients }}</div>
+    </div></div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-5">
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-magic me-2"></i>Auto Generate Work</h6>
+        <span class="small text-muted">Idempotent</span>
+      </div>
+      <div class="card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>
+          {% endif %}
+
+          <div class="mb-3">
+            <label class="form-label small text-muted">{{ form.companies.label }}</label>
+            <div class="multi-client-picker">
+              {{ form.companies }}
+            </div>
+            {% for error in form.companies.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small text-muted">{{ form.from_date.label }}</label>
+              {{ form.from_date }}
+              {% for error in form.from_date.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small text-muted">{{ form.months.label }}</label>
+              {{ form.months }}
+              {% for error in form.months.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small text-muted">{{ form.assigned_to.label }}</label>
+              {{ form.assigned_to }}
+              {% for error in form.assigned_to.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small text-muted">{{ form.reviewer.label }}</label>
+              {{ form.reviewer }}
+              {% for error in form.reviewer.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+          </div>
+
+          <div class="border rounded p-3 mb-3">
+            <div class="small text-muted fw-semibold mb-2">Monthly / Quarterly Templates</div>
+            <div class="row g-2">
+              <div class="col-6">
+                <label class="form-check">
+                  {{ form.include_ims }} <span class="form-check-label">{{ form.include_ims.label }}</span>
+                </label>
+              </div>
+              <div class="col-6">
+                <label class="form-check">
+                  {{ form.include_gstr1 }} <span class="form-check-label">{{ form.include_gstr1.label }}</span>
+                </label>
+              </div>
+              <div class="col-6">
+                <label class="form-check">
+                  {{ form.include_gstr3b }} <span class="form-check-label">{{ form.include_gstr3b.label }}</span>
+                </label>
+              </div>
+              <div class="col-6">
+                <label class="form-check">
+                  {{ form.include_tds_payment }} <span class="form-check-label">{{ form.include_tds_payment.label }}</span>
+                </label>
+              </div>
+              <div class="col-12">
+                <label class="form-check">
+                  {{ form.include_tds_returns }} <span class="form-check-label">{{ form.include_tds_returns.label }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-6 col-md-3">
+              <label class="form-label small text-muted">{{ form.ims_review_day.label }}</label>
+              {{ form.ims_review_day }}
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label small text-muted">{{ form.gstr1_day.label }}</label>
+              {{ form.gstr1_day }}
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label small text-muted">{{ form.gstr3b_day.label }}</label>
+              {{ form.gstr3b_day }}
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label small text-muted">{{ form.tds_payment_day.label }}</label>
+              {{ form.tds_payment_day }}
+            </div>
+          </div>
+
+          <div class="border rounded p-3 mb-3">
+            <div class="small text-muted fw-semibold mb-2">Annual Due Dates</div>
+            <div class="row g-2">
+              <div class="col-md-6">
+                <label class="form-label small text-muted">{{ form.gstr9_due.label }}</label>
+                {{ form.gstr9_due }}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small text-muted">{{ form.gstr9c_due.label }}</label>
+                {{ form.gstr9c_due }}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small text-muted">{{ form.itr_due.label }}</label>
+                {{ form.itr_due }}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small text-muted">{{ form.tax_audit_due.label }}</label>
+                {{ form.tax_audit_due }}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small text-muted">{{ form.mca_aoc4_due.label }}</label>
+                {{ form.mca_aoc4_due }}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small text-muted">{{ form.mca_mgt7_due.label }}</label>
+                {{ form.mca_mgt7_due }}
+              </div>
+            </div>
+            <div class="small text-muted mt-2">Annual dates are intentionally manual because statutory extensions change.</div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" name="action" value="preview" class="btn btn-outline-primary">
+              <i class="bi bi-eye"></i> Preview
+            </button>
+            <button type="submit" name="action" value="generate" class="btn btn-primary">
+              <i class="bi bi-calendar-plus"></i> Generate
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-7">
+    {% if result %}
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="mb-0">
+            {% if result.dry_run %}Preview{% else %}Generation Result{% endif %}
+          </h6>
+          <span class="small text-muted">{{ result.created }} new, {{ result.existing }} existing</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3">Work</th>
+                <th>Client</th>
+                <th>Period</th>
+                <th>Due</th>
+                <th class="text-end pe-3">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in result.items %}
+              <tr>
+                <td class="ps-3">
+                  {% if item.filing_id %}
+                    <a class="fw-semibold text-decoration-none" href="{% url 'core:compliance_filing_update' item.filing_id %}">{{ item.title }}</a>
+                  {% else %}
+                    <span class="fw-semibold">{{ item.title }}</span>
+                  {% endif %}
+                  <div class="small text-muted">{{ item.label }}</div>
+                </td>
+                <td>{{ item.company }}</td>
+                <td class="small">{{ item.period_start|date:"d M Y" }} - {{ item.period_end|date:"d M Y" }}</td>
+                <td>{{ item.due_date|date:"d M Y" }}</td>
+                <td class="text-end pe-3">
+                  {% if item.created %}
+                    <span class="badge bg-success-subtle text-success">{% if result.dry_run %}Will create{% else %}Created{% endif %}</span>
+                  {% else %}
+                    <span class="badge bg-secondary-subtle text-secondary">Exists</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="5" class="text-center text-muted py-4">No work matched this calendar setup.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="card mb-3">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Overdue Filings</h6>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for filing in overdue_filings %}
+          <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" href="{% url 'core:compliance_filing_update' filing.pk %}">
+            <span>
+              <span class="fw-semibold">{{ filing.title }}</span>
+              <span class="small text-muted d-block">{{ filing.company.name }} | {{ filing.assigned_to.email|default:"Unassigned" }}</span>
+            </span>
+            <span class="badge bg-danger-subtle text-danger">{{ filing.due_date|date:"d M" }}</span>
+          </a>
+        {% empty %}
+          <div class="list-group-item text-muted">No overdue filing work.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-calendar2-week me-2"></i>Upcoming Filings</h6>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for filing in upcoming_filings %}
+          <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" href="{% url 'core:compliance_filing_update' filing.pk %}">
+            <span>
+              <span class="fw-semibold">{{ filing.title }}</span>
+              <span class="small text-muted d-block">{{ filing.company.name }} | {{ filing.get_status_display }}</span>
+            </span>
+            <span class="badge bg-primary-subtle text-primary">{{ filing.due_date|date:"d M" }}</span>
+          </a>
+        {% empty %}
+          <div class="list-group-item text-muted">No upcoming filing work.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

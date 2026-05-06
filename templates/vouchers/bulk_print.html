@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vouchers — Bulk Print | Akshaya Vistara</title>
+<style>
+  /* ── Reset / base ── */
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 11pt;
+    color: #212529;
+    background: #f0f2f5;
+    margin: 0;
+    padding: 1.5rem;
+  }
+
+  /* ── Screen-only controls ── */
+  .screen-bar {
+    background: #0d6efd;
+    color: #fff;
+    padding: 0.6rem 1.25rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .screen-bar h6 { margin: 0; font-size: 0.95rem; }
+  .btn-print {
+    margin-left: auto;
+    background: #fff;
+    color: #0d6efd;
+    border: none;
+    padding: 0.35rem 1rem;
+    border-radius: 0.35rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-back {
+    color: rgba(255,255,255,0.85);
+    font-size: 0.85rem;
+    text-decoration: none;
+  }
+  .btn-back:hover { color: #fff; }
+
+  /* ── Voucher card ── */
+  .voucher-card {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* ── Voucher header ── */
+  .v-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 2px solid #0d6efd;
+  }
+  .v-number {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #0d6efd;
+    letter-spacing: 0.03em;
+  }
+  .v-type-badge {
+    display: inline-block;
+    background: #e9ecef;
+    color: #495057;
+    border-radius: 0.25rem;
+    padding: 0.15rem 0.55rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .v-meta {
+    font-size: 0.82rem;
+    color: #6c757d;
+    margin-top: 0.2rem;
+  }
+  .v-company {
+    text-align: right;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #343a40;
+  }
+  .v-company small { display: block; color: #6c757d; font-weight: 400; font-size: 0.78rem; }
+
+  /* ── Narration ── */
+  .v-narration {
+    background: #f8f9fa;
+    border-left: 3px solid #0d6efd;
+    padding: 0.4rem 0.75rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.85rem;
+    color: #495057;
+    border-radius: 0 0.25rem 0.25rem 0;
+  }
+
+  /* ── Items table ── */
+  .v-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.86rem;
+  }
+  .v-table thead tr {
+    background: #f8f9fa;
+  }
+  .v-table th {
+    padding: 0.38rem 0.65rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6c757d;
+    border-bottom: 1px solid #dee2e6;
+  }
+  .v-table th.num { text-align: right; }
+  .v-table td {
+    padding: 0.35rem 0.65rem;
+    border-bottom: 1px solid #f0f2f5;
+    color: #343a40;
+  }
+  .v-table td.num { text-align: right; font-family: "Courier New", monospace; }
+  .v-table td.muted { color: #6c757d; font-size: 0.82rem; }
+  .v-table tfoot tr {
+    background: #e9f0ff;
+    font-weight: 700;
+  }
+  .v-table tfoot td {
+    padding: 0.4rem 0.65rem;
+    border-top: 2px solid #0d6efd;
+    border-bottom: none;
+  }
+
+  /* ── Footer strip ── */
+  .v-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.75rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed #dee2e6;
+    font-size: 0.78rem;
+    color: #6c757d;
+  }
+  .badge-balanced   { color: #0a3622; background: #d1e7dd; border-radius: 0.25rem; padding: 0.15rem 0.5rem; }
+  .badge-unbalanced { color: #58151c; background: #f8d7da; border-radius: 0.25rem; padding: 0.15rem 0.5rem; }
+
+  /* ── Print overrides ── */
+  @media print {
+    body {
+      background: white;
+      padding: 0;
+      font-size: 10pt;
+    }
+    .screen-bar { display: none !important; }
+    .voucher-card {
+      border: 1px solid #adb5bd;
+      border-radius: 0;
+      margin-bottom: 0;
+      page-break-after: always;
+      break-after: page;
+      padding: 1rem 1.25rem;
+    }
+    .voucher-card:last-child {
+      page-break-after: avoid;
+      break-after: avoid;
+    }
+    .v-header { border-bottom-color: #000; }
+    .v-table tfoot tr { background: #f0f0f0; }
+    .v-table tfoot td { border-top-color: #000; }
+    a { text-decoration: none; color: inherit; }
+  }
+</style>
+</head>
+<body>
+
+{# ── Screen-only top bar ── #}
+<div class="screen-bar">
+  <h6>
+    <strong>{{ exported_count }}</strong> voucher{{ exported_count|pluralize }} ready to print
+  </h6>
+  <a href="{% url 'vouchers:list' %}" class="btn-back">
+    ← Back to list
+  </a>
+  <button class="btn-print" onclick="window.print()">🖨 Print / Save as PDF</button>
+</div>
+
+{# ── Voucher cards ── #}
+{% for v in vouchers %}
+<div class="voucher-card">
+
+  <div class="v-header">
+    <div>
+      <div class="v-number">{{ v.number }}</div>
+      <span class="v-type-badge">{{ v.voucher_type }}</span>
+      <div class="v-meta">{{ v.date|date:"d M Y" }}</div>
+    </div>
+    <div class="v-company">
+      {{ v.company.name }}
+      <small>{{ v.date|date:"d M Y" }}</small>
+    </div>
+  </div>
+
+  {% if v.narration %}
+  <div class="v-narration">{{ v.narration }}</div>
+  {% endif %}
+
+  <table class="v-table">
+    <thead>
+      <tr>
+        <th style="width:40%">Ledger Account</th>
+        <th style="width:10%; text-align: center;">Type</th>
+        <th class="num" style="width:20%">Amount (₹)</th>
+        <th>Particulars</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in v.items.all %}
+      <tr>
+        <td>{{ item.ledger.name }}</td>
+        <td style="text-align: center;">{{ item.entry_type }}</td>
+        <td class="num">
+          {{ item.amount|floatformat:2 }}
+        </td>
+        <td class="muted">{{ item.narration }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td>Total</td>
+        <td class="num" colspan="2">
+          Dr {{ v.total_debit|floatformat:2 }} | Cr {{ v.total_credit|floatformat:2 }}
+        </td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <div class="v-footer">
+    <span>
+      {% if v.is_balanced %}
+        <span class="badge-balanced">✓ Balanced</span>
+      {% else %}
+        <span class="badge-unbalanced">! Unbalanced</span>
+      {% endif %}
+    </span>
+    <span>Created: {{ v.created_at|date:"d M Y, H:i" }}</span>
+  </div>
+
+</div>
+{% endfor %}
+
+<script>
+  // Auto-print when the page loads (user can cancel)
+  window.addEventListener("load", function () {
+    window.print();
+  });
+</script>
+</body>
+</html>

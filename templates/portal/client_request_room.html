@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block title %}Client Requests - Akshaya Vistara{% endblock %}
+{% block page_title %}Client Requests{% endblock %}
+
+{% block extra_head %}
+<style>
+  .request-filter {
+    background: var(--surface-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 0.85rem 1rem;
+  }
+  .request-filter label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+  }
+  .request-title {
+    max-width: 32rem;
+  }
+  .request-ref {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 0.72rem;
+  }
+  .client-request-actions {
+    flex-wrap: wrap;
+  }
+  @media (max-width: 767.98px) {
+    .client-request-actions .btn,
+    .request-bulk-actions .btn {
+      flex: 1 1 calc(50% - 0.25rem);
+    }
+    .request-title {
+      max-width: 18rem;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h5 class="mb-0">Client Requests</h5>
+    <small class="text-muted">Track client document chase, uploads, review, and closure.</small>
+  </div>
+  <div class="d-flex gap-2 client-request-actions">
+    <a href="?{{ export_query }}" class="btn btn-outline-success btn-sm">
+      <i class="bi bi-download"></i> CSV
+    </a>
+    <a href="{% url 'portal:client_request_create' %}{% if selected_company_id %}?company={{ selected_company_id }}{% endif %}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-lg"></i> New Request
+    </a>
+    <a href="{% url 'portal:client_request_campaign' %}{% if selected_company_id %}?company={{ selected_company_id }}{% endif %}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-send"></i> Campaign
+    </a>
+    <a href="{% url 'portal:client_request_reminders' %}{% if selected_company_id %}?company={{ selected_company_id }}{% endif %}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-bell"></i> Reminders
+    </a>
+    <a href="{% url 'portal:ca_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-people"></i> Portal Dashboard
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Active</div>
+        <div class="h3 mb-0">{{ summary.active }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Open</div>
+        <div class="h3 mb-0 text-warning">{{ summary.open }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Uploaded</div>
+        <div class="h3 mb-0 text-success">{{ summary.uploaded }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Overdue</div>
+        <div class="h3 mb-0 text-danger">{{ summary.overdue }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<form method="get" class="request-filter mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-4 col-xl-3">
+      <label for="company">Company</label>
+      <select id="company" name="company" class="form-select form-select-sm">
+        <option value="">All companies</option>
+        {% for company in companies %}
+        <option value="{{ company.pk }}" {% if selected_company_id|stringformat:"s" == company.pk|stringformat:"s" %}selected{% endif %}>{{ company.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3 col-xl-2">
+      <label for="status">Status</label>
+      <select id="status" name="status" class="form-select form-select-sm">
+        <option value="active" {% if status_filter == "active" %}selected{% endif %}>Open + Uploaded</option>
+        <option value="overdue" {% if status_filter == "overdue" %}selected{% endif %}>Overdue</option>
+        <option value="">All statuses</option>
+        {% for value, label in status_choices %}
+        <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3 col-xl-2">
+      <label for="type">Type</label>
+      <select id="type" name="type" class="form-select form-select-sm">
+        <option value="">All types</option>
+        {% for value, label in document_types %}
+        <option value="{{ value }}" {% if type_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2 col-xl-2">
+      <label for="due">Due</label>
+      <select id="due" name="due" class="form-select form-select-sm">
+        <option value="">Any due date</option>
+        <option value="today" {% if due_filter == "today" %}selected{% endif %}>Today</option>
+        <option value="next_7" {% if due_filter == "next_7" %}selected{% endif %}>Next 7 days</option>
+        <option value="no_due" {% if due_filter == "no_due" %}selected{% endif %}>No due date</option>
+      </select>
+    </div>
+    <div class="col-md-8 col-xl-2">
+      <label for="q">Search</label>
+      <input type="text" id="q" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Client, title, source">
+    </div>
+    <div class="col-md-4 col-xl-1 d-flex gap-1">
+      <button type="submit" class="btn btn-primary btn-sm w-100" title="Apply filters">
+        <i class="bi bi-funnel"></i>
+      </button>
+      <a href="{% url 'portal:client_requests' %}" class="btn btn-outline-secondary btn-sm w-100" title="Reset">
+        <i class="bi bi-x-lg"></i>
+      </a>
+    </div>
+  </div>
+</form>
+
+<form method="post">
+  {% csrf_token %}
+  <div class="card">
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <h6 class="mb-0"><i class="bi bi-inbox me-2"></i>Request Queue</h6>
+      <div class="d-flex gap-2 request-bulk-actions">
+        <button type="submit" name="action" value="create_tasks" class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-list-check"></i> Create Tasks
+        </button>
+        <button type="submit" name="action" value="close" class="btn btn-sm btn-outline-success">
+          <i class="bi bi-check2-circle"></i> Close
+        </button>
+        <button type="submit" name="action" value="reopen" class="btn btn-sm btn-outline-warning">
+          <i class="bi bi-arrow-counterclockwise"></i> Reopen
+        </button>
+        <button type="submit" name="action" value="cancel" class="btn btn-sm btn-outline-danger"
+                onclick="return confirm('Cancel selected client requests?')">
+          <i class="bi bi-x-circle"></i> Cancel
+        </button>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3" style="width:36px;">
+              <input type="checkbox" class="form-check-input" onclick="document.querySelectorAll('.request-check').forEach(cb => cb.checked = this.checked)">
+            </th>
+            <th>Request</th>
+            <th>Company / Client</th>
+            <th>Due</th>
+            <th>Status</th>
+            <th>Evidence</th>
+            <th class="text-end pe-3">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for req in requests %}
+          <tr>
+            <td class="ps-3">
+              <input type="checkbox" class="form-check-input request-check" name="request_ids" value="{{ req.pk }}">
+            </td>
+            <td>
+              <div class="fw-semibold request-title">{{ req.title }}</div>
+              <div class="small text-muted">{{ req.get_document_type_display }}</div>
+              {% if req.source_reference %}
+              <div class="text-muted request-ref">{{ req.source_reference }}</div>
+              {% endif %}
+            </td>
+            <td>
+              <div class="fw-semibold">{{ req.company.name }}</div>
+              {% if req.portal_user %}
+              <div class="small text-muted">{{ req.portal_user.name }} | {{ req.portal_user.email }}</div>
+              {% else %}
+              <div class="small text-muted">No portal user linked</div>
+              {% endif %}
+            </td>
+            <td class="{% if req.is_overdue %}text-danger fw-semibold{% endif %}">
+              {{ req.due_date|date:"d M Y"|default:"-" }}
+            </td>
+            <td>
+              <span class="badge {% if req.status == 'uploaded' %}bg-success-subtle text-success{% elif req.status == 'closed' %}bg-secondary{% elif req.status == 'cancelled' %}bg-danger{% elif req.is_overdue %}bg-danger-subtle text-danger{% else %}bg-warning-subtle text-warning{% endif %}">
+                {{ req.get_status_display }}
+              </span>
+              {% if req.related_task %}
+              <div class="small text-muted mt-1">Task: {{ req.related_task.get_status_display }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {% if req.uploaded_submission %}
+              <a href="{% url 'ocr:verify' req.uploaded_submission.pk %}">OCR #{{ req.uploaded_submission.pk }}</a>
+              <div class="small text-muted">{{ req.uploaded_at|date:"d M Y, H:i" }}</div>
+              {% elif req.response_note %}
+              <span class="small text-muted">{{ req.response_note|truncatechars:50 }}</span>
+              {% else %}
+              <span class="text-muted small">Not uploaded</span>
+              {% endif %}
+            </td>
+            <td class="text-end pe-3">
+              <div class="btn-group btn-group-sm">
+                <a href="{% url 'portal:document_request_upload' req.token %}" target="_blank" class="btn btn-outline-primary">
+                  Link
+                </a>
+                {% if req.related_task %}
+                <a href="{% url 'core:practice_task_update' req.related_task.pk %}" class="btn btn-outline-secondary">
+                  Task
+                </a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center text-muted py-5">No client requests match this filter.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</form>
+{% endblock %}

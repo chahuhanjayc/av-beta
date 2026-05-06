@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Reports – Akshaya Vistara{% endblock %}
+{% block page_title %}Reports{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4 text-center">
+        <div class="rounded-3 p-3 d-inline-block mb-3" style="background:#dcfce7;">
+          <i class="bi bi-bar-chart-line fs-1" style="color:#16a34a;"></i>
+        </div>
+        <h5>Profit &amp; Loss</h5>
+        <p class="text-muted small">
+          View income vs expenses for any date range.
+          Shows net profit or loss for the selected period.
+        </p>
+        <a href="{% url 'reports:profit_loss' %}" class="btn btn-success btn-sm">
+          View Report →
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4 text-center">
+        <div class="rounded-3 p-3 d-inline-block mb-3" style="background:#dbeafe;">
+          <i class="bi bi-journal-bookmark fs-1" style="color:#2563eb;"></i>
+        </div>
+        <h5>Balance Sheet</h5>
+        <p class="text-muted small">
+          Snapshot of Assets vs Liabilities as of any date.
+          Includes retained earnings and opening balances.
+        </p>
+        <a href="{% url 'reports:balance_sheet' %}" class="btn btn-primary btn-sm">
+          View Report →
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4 text-center">
+        <div class="rounded-3 p-3 d-inline-block mb-3" style="background:#fef3c7;">
+          <i class="bi bi-hourglass-split fs-1" style="color:#d97706;"></i>
+        </div>
+        <h5>Receivables Aging</h5>
+        <p class="text-muted small">
+          Track outstanding Sales amounts by age bucket:
+          Current, 31–60, 61–90, and 90+ days overdue.
+        </p>
+        <a href="{% url 'reports:receivables_aging' %}" class="btn btn-warning btn-sm">
+          View Report →
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-4 text-center">
+        <div class="rounded-3 p-3 d-inline-block mb-3" style="background:#fee2e2;">
+          <i class="bi bi-shield-exclamation fs-1" style="color:#dc2626;"></i>
+        </div>
+        <h5>MSME Overdue</h5>
+        <p class="text-muted small">
+          Monitor payments to MSME vendors exceeding
+          the statutory limit of 45 days.
+        </p>
+        <a href="{% url 'reports:msme_overdue' %}" class="btn btn-danger btn-sm">
+          Check Compliance →
+        </a>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+

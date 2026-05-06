@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}Cash Flow Statement – Akshaya Vistara{% endblock %}
+{% block page_title %}Cash Flow Statement{% endblock %}
+
+{% block extra_head %}
+<style>
+  .cf-section-header { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; }
+  @media print {
+    #sidebar, #topbar, .no-print { display: none !important; }
+    #main-content { margin-left: 0 !important; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{# ── Date filter ── #}
+<div class="card border-0 shadow-sm mb-4 no-print">
+  <div class="card-body py-3">
+    <form class="row g-2 align-items-end" method="get">
+      <div class="col-auto">
+        <label class="form-label small mb-1">From</label>
+        <input type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" class="form-control form-control-sm">
+      </div>
+      <div class="col-auto">
+        <label class="form-label small mb-1">To</label>
+        <input type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="form-control form-control-sm">
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-sm">Generate</button>
+      </div>
+      <div class="col-auto ms-auto">
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+          <i class="bi bi-printer me-1"></i>Print
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-8 mx-auto">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3 text-center">
+        <div class="fw-bold fs-5">Cash Flow Statement</div>
+        <div class="text-muted small">{{ start_date|date:"d M Y" }} to {{ end_date|date:"d M Y" }}</div>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+
+          {# ── A. Operating Activities ── #}
+          <thead class="table-light">
+            <tr>
+              <th colspan="2" class="cf-section-header text-primary">A. Operating Activities</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in operating_rows %}
+            <tr>
+              <td class="ps-3">{{ row.name }} <small class="text-muted">({{ row.group }})</small></td>
+              <td class="text-end {% if row.net > 0 %}text-success{% elif row.net < 0 %}text-danger{% endif %}">
+                {{ row.net|floatformat:2 }}
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="2" class="text-muted ps-3 small">No operating activity entries.</td></tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr class="table-light fw-semibold">
+              <td class="ps-3">Net Cash from Operating Activities (A)</td>
+              <td class="text-end {% if operating_total >= 0 %}text-success{% else %}text-danger{% endif %}">
+                {{ operating_total|floatformat:2 }}
+              </td>
+            </tr>
+          </tfoot>
+
+          {# ── B. Investing Activities ── #}
+          <thead class="table-light">
+            <tr>
+              <th colspan="2" class="cf-section-header text-warning">B. Investing Activities</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in investing_rows %}
+            <tr>
+              <td class="ps-3">{{ row.name }} <small class="text-muted">({{ row.group }})</small></td>
+              <td class="text-end {% if row.net > 0 %}text-success{% elif row.net < 0 %}text-danger{% endif %}">
+                {{ row.net|floatformat:2 }}
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="2" class="text-muted ps-3 small">No investing activity entries.</td></tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr class="table-light fw-semibold">
+              <td class="ps-3">Net Cash from Investing Activities (B)</td>
+              <td class="text-end {% if investing_total >= 0 %}text-success{% else %}text-danger{% endif %}">
+                {{ investing_total|floatformat:2 }}
+              </td>
+            </tr>
+          </tfoot>
+
+          {# ── C. Financing Activities ── #}
+          <thead class="table-light">
+            <tr>
+              <th colspan="2" class="cf-section-header text-info">C. Financing Activities</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in financing_rows %}
+            <tr>
+              <td class="ps-3">{{ row.name }} <small class="text-muted">({{ row.group }})</small></td>
+              <td class="text-end {% if row.net > 0 %}text-success{% elif row.net < 0 %}text-danger{% endif %}">
+                {{ row.net|floatformat:2 }}
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="2" class="text-muted ps-3 small">No financing activity entries.</td></tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr class="table-light fw-semibold">
+              <td class="ps-3">Net Cash from Financing Activities (C)</td>
+              <td class="text-end {% if financing_total >= 0 %}text-success{% else %}text-danger{% endif %}">
+                {{ financing_total|floatformat:2 }}
+              </td>
+            </tr>
+          </tfoot>
+
+          {# ── Net Change ── #}
+          <tfoot>
+            <tr class="table-primary fw-bold">
+              <td class="ps-3">Net Change in Cash & Bank (A + B + C)</td>
+              <td class="text-end {% if net_cash_change >= 0 %}text-success{% else %}text-danger{% endif %} fs-6">
+                {{ net_cash_change|floatformat:2 }}
+              </td>
+            </tr>
+          </tfoot>
+
+        </table>
+      </div>
+      <div class="card-footer bg-white text-muted small">
+        <i class="bi bi-info-circle me-1"></i>
+        This is an indirect-method approximation derived from ledger movements.
+        Positive values = inflows. Negative values = outflows / increases in assets.
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Asset Register – Akshaya Vistara{% endblock %}
+{% block page_title %}Fixed Asset Register — FY {{ fy }}{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3">
+    <form class="row g-2 align-items-end" method="get">
+      <div class="col-auto">
+        <label class="form-label small mb-1">FY</label>
+        <input type="text" name="fy" value="{{ fy }}" placeholder="2024-25" class="form-control form-control-sm" style="width:90px">
+      </div>
+      <div class="col-auto">
+        <label class="form-label small mb-1">Status</label>
+        <select name="status" class="form-select form-select-sm">
+          <option value="">All</option>
+          <option value="Active" {% if status == "Active" %}selected{% endif %}>Active</option>
+          <option value="Disposed" {% if status == "Disposed" %}selected{% endif %}>Disposed</option>
+        </select>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-sm">Generate</button>
+      </div>
+      <div class="col-auto ms-auto">
+        <a href="{% url 'fixedassets:asset_create' %}" class="btn btn-primary btn-sm">
+          <i class="bi bi-plus-lg me-1"></i>Add Asset
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# Summary #}
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="text-muted small">Total Cost (₹)</div>
+      <div class="fw-bold fs-5">{{ total_purchase|floatformat:2 }}</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="text-muted small">Accumulated Depr. (₹)</div>
+      <div class="fw-bold fs-5 text-danger">{{ total_accum|floatformat:2 }}</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="text-muted small">Net Book Value (₹)</div>
+      <div class="fw-bold fs-5 text-primary">{{ total_book|floatformat:2 }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    {% if rows %}
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Asset</th>
+            <th>Group</th>
+            <th>Method</th>
+            <th class="text-end">Cost (₹)</th>
+            <th class="text-end">Acc. Depr (₹)</th>
+            <th class="text-end">Book Value (₹)</th>
+            <th class="text-end">Depr FY {{ fy }} (₹)</th>
+            <th>Posted</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td>
+              <a href="{% url 'fixedassets:asset_detail' pk=row.asset.pk %}" class="fw-semibold text-decoration-none">
+                {{ row.asset.name }}
+              </a>
+              {% if row.asset.asset_code %}<div class="text-muted small">{{ row.asset.asset_code }}</div>{% endif %}
+            </td>
+            <td>{{ row.asset.asset_group.name }}</td>
+            <td><span class="badge bg-secondary">{{ row.asset.depreciation_method }}</span></td>
+            <td class="text-end">{{ row.asset.purchase_value|floatformat:2 }}</td>
+            <td class="text-end text-muted">{{ row.asset.accumulated_depreciation|floatformat:2 }}</td>
+            <td class="text-end fw-semibold text-primary">{{ row.book_value|floatformat:2 }}</td>
+            <td class="text-end text-danger">
+              {% if row.depr_this_fy %}{{ row.depr_this_fy.depreciation_amount|floatformat:2 }}
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td>
+              {% if row.already_posted %}
+                <span class="badge bg-success-subtle text-success"><i class="bi bi-check"></i> Yes</span>
+              {% else %}
+                <span class="badge bg-warning-subtle text-warning">No</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if not row.already_posted and row.asset.status == "Active" %}
+              <a href="{% url 'fixedassets:depreciation_post' pk=row.asset.pk %}?fy={{ fy }}"
+                 class="btn btn-sm btn-outline-success" title="Post Depreciation">
+                <i class="bi bi-arrow-down-circle"></i>
+              </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot class="table-light fw-semibold">
+          <tr>
+            <td colspan="3">Total</td>
+            <td class="text-end">{{ total_purchase|floatformat:2 }}</td>
+            <td class="text-end text-muted">{{ total_accum|floatformat:2 }}</td>
+            <td class="text-end text-primary">{{ total_book|floatformat:2 }}</td>
+            <td colspan="3"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">No assets found.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

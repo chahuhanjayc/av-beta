@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}{{ run }} – Akshaya Vistara{% endblock %}
+{% block page_title %}Payroll: {{ run.get_month_display }} {{ run.year }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .earnings-col { color: #198754; }
+  .deduct-col   { color: #dc3545; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+
+  {# ── Summary cards ── #}
+  <div class="col-12">
+    <div class="row g-3">
+      <div class="col-md-3">
+        <div class="card border-0 shadow-sm text-center py-3">
+          <div class="text-muted small">Status</div>
+          {% if run.status == "Draft" %}<div class="fw-bold fs-5"><span class="badge bg-secondary">Draft</span></div>
+          {% elif run.status == "Processed" %}<div class="fw-bold fs-5"><span class="badge bg-primary">Processed</span></div>
+          {% elif run.status == "Finalized" %}<div class="fw-bold fs-5"><span class="badge bg-success">Finalized</span></div>
+          {% endif %}
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card border-0 shadow-sm text-center py-3">
+          <div class="text-muted small">Employees</div>
+          <div class="fw-bold fs-4">{{ payslips|length }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card border-0 shadow-sm text-center py-3">
+          <div class="text-muted small">Total Gross (₹)</div>
+          <div class="fw-bold fs-5 text-success">
+            {% with total=0 %}
+            {% for ps in payslips %}{% with total=total|add:ps.gross_salary %}{% endwith %}{% endfor %}
+            —
+            {% endwith %}
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card border-0 shadow-sm text-center py-3">
+          <div class="text-muted small">Total Net Pay (₹)</div>
+          <div class="fw-bold fs-5 text-primary">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Actions ── #}
+  <div class="col-12">
+    <div class="d-flex gap-2">
+      {% if run.status != "Finalized" %}
+      <form method="post" action="{% url 'payroll:payroll_run_process' pk=run.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary"
+          onclick="return confirm('Process payroll for all active employees? Existing payslips will be recomputed.')">
+          <i class="bi bi-play-circle me-2"></i>
+          {% if run.status == "Draft" %}Generate Payslips{% else %}Reprocess{% endif %}
+        </button>
+      </form>
+      {% endif %}
+
+      {% if run.status == "Processed" %}
+      <form method="post" action="{% url 'payroll:payroll_run_finalize' pk=run.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success"
+          onclick="return confirm('Finalize this payroll run? Payslips cannot be edited after finalization.')">
+          <i class="bi bi-lock me-2"></i>Finalize Run
+        </button>
+      </form>
+      {% endif %}
+
+      <a href="{% url 'payroll:payroll_run_list' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Back
+      </a>
+    </div>
+  </div>
+
+  {# ── Payslips table ── #}
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold py-3">Payslips</div>
+      <div class="card-body p-0">
+        {% if payslips %}
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Employee</th>
+                <th class="text-end earnings-col">Basic (₹)</th>
+                <th class="text-end earnings-col">HRA (₹)</th>
+                <th class="text-end earnings-col">DA (₹)</th>
+                <th class="text-end earnings-col">Gross (₹)</th>
+                <th class="text-end deduct-col">PF (₹)</th>
+                <th class="text-end deduct-col">ESI (₹)</th>
+                <th class="text-end deduct-col">PT (₹)</th>
+                <th class="text-end deduct-col">TDS (₹)</th>
+                <th class="text-end fw-bold">Net Pay (₹)</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for ps in payslips %}
+              <tr>
+                <td>
+                  <a href="{% url 'payroll:payslip_detail' pk=ps.pk %}" class="text-decoration-none fw-semibold">
+                    {{ ps.employee.name }}
+                  </a>
+                  {% if ps.employee.employee_code %}<div class="text-muted small">{{ ps.employee.employee_code }}</div>{% endif %}
+                </td>
+                <td class="text-end">{{ ps.basic|floatformat:2 }}</td>
+                <td class="text-end">{{ ps.hra|floatformat:2 }}</td>
+                <td class="text-end">{{ ps.da|floatformat:2 }}</td>
+                <td class="text-end fw-semibold">{{ ps.gross_salary|floatformat:2 }}</td>
+                <td class="text-end text-danger">{{ ps.pf_employee|floatformat:2 }}</td>
+                <td class="text-end text-danger">{{ ps.esi_employee|floatformat:2 }}</td>
+                <td class="text-end text-danger">{{ ps.professional_tax|floatformat:2 }}</td>
+                <td class="text-end text-danger">{{ ps.tds|floatformat:2 }}</td>
+                <td class="text-end fw-bold text-primary">{{ ps.net_pay|floatformat:2 }}</td>
+                <td>
+                  {% if ps.is_paid %}
+                    <span class="badge bg-success">Paid</span>
+                  {% else %}
+                    <span class="badge bg-warning text-dark">Pending</span>
+                  {% endif %}
+                </td>
+                <td class="text-end">
+                  <a href="{% url 'payroll:payslip_detail' pk=ps.pk %}" class="btn btn-sm btn-outline-secondary me-1" title="View Payslip">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                  {% if run.status != "Finalized" %}
+                  <a href="{% url 'payroll:payslip_edit' pk=ps.pk %}" class="btn btn-sm btn-outline-primary" title="Edit">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+          <i class="bi bi-people fs-1 d-block mb-2"></i>
+          No payslips yet. Click "Generate Payslips" above to process payroll.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

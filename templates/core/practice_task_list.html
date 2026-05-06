@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Practice Work Queue - Akshaya Vistara{% endblock %}
+{% block page_title %}Practice Work Queue{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h5 class="mb-0">Practice Work Queue</h5>
+    <small class="text-muted">Cross-client compliance, notice, document, and review tasks</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="?{{ export_query }}" class="btn btn-sm btn-outline-success">
+      <i class="bi bi-download"></i> CSV
+    </a>
+    <a href="{% url 'core:practice_task_create' %}" class="btn btn-sm btn-primary">
+      <i class="bi bi-plus-lg"></i> New Task
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card"><div class="card-body py-3">
+      <div class="text-muted small text-uppercase fw-semibold">Open</div>
+      <div class="h5 mb-0">{{ summary.open }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card"><div class="card-body py-3">
+      <div class="text-muted small text-uppercase fw-semibold">Overdue</div>
+      <div class="h5 mb-0 text-danger">{{ summary.overdue }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card"><div class="card-body py-3">
+      <div class="text-muted small text-uppercase fw-semibold">Blocked</div>
+      <div class="h5 mb-0 text-warning">{{ summary.blocked }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card"><div class="card-body py-3">
+      <div class="text-muted small text-uppercase fw-semibold">Critical</div>
+      <div class="h5 mb-0 text-danger">{{ summary.critical }}</div>
+    </div></div>
+  </div>
+</div>
+
+<form method="get" class="row g-2 align-items-end mb-3">
+  <div class="col-md-3">
+    <label class="form-label small text-muted">Search</label>
+    <input type="search" class="form-control form-control-sm" name="q" value="{{ q }}" placeholder="Client, task, reference">
+  </div>
+  <div class="col-md-2">
+    <label class="form-label small text-muted">Status</label>
+    <select name="status" class="form-select form-select-sm">
+      <option value="open" {% if status_filter == "open" %}selected{% endif %}>Open Work</option>
+      {% for value, label in status_choices %}
+        <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+      <option value="" {% if status_filter == "" %}selected{% endif %}>All</option>
+    </select>
+  </div>
+  <div class="col-md-2">
+    <label class="form-label small text-muted">Type</label>
+    <select name="type" class="form-select form-select-sm">
+      <option value="">All Types</option>
+      {% for value, label in task_types %}
+        <option value="{{ value }}" {% if type_filter == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-2">
+    <label class="form-label small text-muted">Owner</label>
+    <select name="assigned" class="form-select form-select-sm">
+      <option value="">All</option>
+      <option value="me" {% if assigned_filter == "me" %}selected{% endif %}>Assigned to me</option>
+      <option value="unassigned" {% if assigned_filter == "unassigned" %}selected{% endif %}>Unassigned</option>
+    </select>
+  </div>
+  <div class="col-md-3">
+    <button type="submit" class="btn btn-sm btn-outline-primary">Apply</button>
+    <a href="{% url 'core:practice_tasks' %}" class="btn btn-sm btn-outline-secondary">Reset</a>
+  </div>
+</form>
+
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3">Task</th>
+            <th>Client</th>
+            <th>Type</th>
+            <th>Owner</th>
+            <th>Due</th>
+            <th>Status</th>
+            <th class="text-end pe-3">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for task in tasks %}
+          <tr>
+            <td class="ps-3">
+              <a href="{% url 'core:practice_task_update' task.pk %}" class="fw-semibold text-decoration-none">{{ task.title }}</a>
+              {% if task.reference %}<div class="small text-muted">{{ task.reference }}</div>{% endif %}
+            </td>
+            <td>{{ task.company.name }}</td>
+            <td><span class="badge bg-secondary-subtle text-secondary">{{ task.get_task_type_display }}</span></td>
+            <td>{{ task.assigned_to.email|default:"Unassigned" }}</td>
+            <td class="{% if task.due_date and task.due_date < today and task.is_open %}text-danger fw-semibold{% endif %}">
+              {{ task.due_date|date:"d M Y"|default:"-" }}
+            </td>
+            <td>
+              <span class="badge {% if task.status == 'done' %}bg-success{% elif task.status == 'blocked' %}bg-warning text-dark{% elif task.priority == 'critical' %}bg-danger{% else %}bg-primary-subtle text-primary{% endif %}">
+                {{ task.get_status_display }}
+              </span>
+            </td>
+            <td class="text-end pe-3">
+              {% if task.is_open %}
+              <form method="post" action="{% url 'core:practice_task_set_status' task.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" name="status" value="done" class="btn btn-xs btn-outline-success">Done</button>
+              </form>
+              {% else %}
+              <form method="post" action="{% url 'core:practice_task_set_status' task.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" name="status" value="open" class="btn btn-xs btn-outline-secondary">Reopen</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="text-center text-muted py-4">No tasks match this view.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

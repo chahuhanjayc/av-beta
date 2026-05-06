@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block title %}Client Request Reminders - Akshaya Vistara{% endblock %}
+{% block page_title %}Client Request Reminders{% endblock %}
+
+{% block extra_head %}
+<style>
+  .reminder-filter {
+    background: var(--surface-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 0.85rem 1rem;
+  }
+  .reminder-filter label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+  }
+  .reminder-message {
+    min-height: 6.8rem;
+    font-size: 0.8rem;
+    resize: vertical;
+  }
+  .reminder-meta {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 0.72rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h5 class="mb-0">Client Request Reminders</h5>
+    <small class="text-muted">Chase overdue and due-soon client documents, then review uploaded evidence.</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="?{{ export_query }}" class="btn btn-outline-success btn-sm">
+      <i class="bi bi-download"></i> CSV
+    </a>
+    <a href="{% url 'portal:client_request_create' %}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-lg"></i> New Request
+    </a>
+    <a href="{% url 'portal:client_requests' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-inbox"></i> Client Requests
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Queue</div>
+        <div class="h3 mb-0">{{ summary.total }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Overdue</div>
+        <div class="h3 mb-0 text-danger">{{ summary.overdue }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Due Soon</div>
+        <div class="h3 mb-0 text-warning">{{ summary.due_soon }}</div>
+        <div class="small text-muted">through {{ due_soon|date:"d M" }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Uploaded</div>
+        <div class="h3 mb-0 text-success">{{ summary.uploaded }}</div>
+        <div class="small text-muted">awaiting review</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<form method="get" class="reminder-filter mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-5 col-lg-4">
+      <label for="company">Company</label>
+      <select id="company" name="company" class="form-select form-select-sm">
+        <option value="">All companies</option>
+        {% for company in companies %}
+        <option value="{{ company.pk }}" {% if selected_company_id|stringformat:"s" == company.pk|stringformat:"s" %}selected{% endif %}>{{ company.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-4 col-lg-3">
+      <label for="kind">Queue</label>
+      <select id="kind" name="kind" class="form-select form-select-sm">
+        <option value="all" {% if kind == "all" %}selected{% endif %}>All reminders</option>
+        <option value="overdue" {% if kind == "overdue" %}selected{% endif %}>Overdue</option>
+        <option value="due_soon" {% if kind == "due_soon" %}selected{% endif %}>Due soon</option>
+        <option value="uploaded" {% if kind == "uploaded" %}selected{% endif %}>Uploaded - review pending</option>
+      </select>
+    </div>
+    <div class="col-md-3 col-lg-2 d-flex gap-1">
+      <button type="submit" class="btn btn-primary btn-sm w-100">
+        <i class="bi bi-funnel"></i> Apply
+      </button>
+      <a href="{% url 'portal:client_request_reminders' %}" class="btn btn-outline-secondary btn-sm w-100" title="Reset">
+        <i class="bi bi-x-lg"></i>
+      </a>
+    </div>
+  </div>
+</form>
+
+<form method="post">
+  {% csrf_token %}
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h6 class="mb-0"><i class="bi bi-bell me-2"></i>Reminder Queue</h6>
+      <div class="d-flex gap-2">
+        <button type="submit" name="action" value="mark_reminded" class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-send"></i> Mark Reminder Sent
+        </button>
+        <button type="submit" name="action" value="send_email" class="btn btn-sm btn-outline-success">
+          <i class="bi bi-envelope"></i> Send Email
+        </button>
+        <button type="submit" name="action" value="create_tasks" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-list-check"></i> Create Tasks
+        </button>
+        <button type="submit" name="action" value="close_uploaded" class="btn btn-sm btn-outline-success">
+          <i class="bi bi-check2-circle"></i> Close Uploaded
+        </button>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3" style="width:36px;">
+              <input type="checkbox" class="form-check-input" onclick="document.querySelectorAll('.reminder-check').forEach(cb => cb.checked = this.checked)">
+            </th>
+            <th>Request</th>
+            <th>Due / Reminder</th>
+            <th style="width:38%;">Draft Message</th>
+            <th class="text-end pe-3">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          {% with req=row.request %}
+          <tr>
+            <td class="ps-3">
+              <input type="checkbox" class="form-check-input reminder-check" name="request_ids" value="{{ req.pk }}">
+            </td>
+            <td>
+              <div class="fw-semibold">{{ req.title }}</div>
+              <div class="small text-muted">{{ req.company.name }}</div>
+              <div>
+                <span class="badge {% if row.kind == 'Overdue' %}bg-danger{% elif row.kind == 'Due soon' %}bg-warning text-dark{% elif row.kind == 'Uploaded - review pending' %}bg-success{% else %}bg-secondary{% endif %}">
+                  {{ row.kind }}
+                </span>
+                <span class="small text-muted ms-1">{{ req.get_document_type_display }}</span>
+              </div>
+              {% if req.portal_user %}
+              <div class="small text-muted">{{ req.portal_user.name }} | {{ req.portal_user.email }}</div>
+              {% endif %}
+              {% if row.email_to %}
+              <div class="small text-muted"><i class="bi bi-envelope"></i> {{ row.email_to }}</div>
+              {% else %}
+              <div class="small text-warning"><i class="bi bi-envelope-slash"></i> No reminder email</div>
+              {% endif %}
+              {% if req.recipient_whatsapp_number %}
+              <div class="small text-muted"><i class="bi bi-whatsapp"></i> {{ req.recipient_whatsapp_number }}</div>
+              {% endif %}
+            </td>
+            <td>
+              <div class="{% if req.is_overdue %}text-danger fw-semibold{% endif %}">
+                {{ req.due_date|date:"d M Y"|default:"No due date" }}
+              </div>
+              <div class="small text-muted">
+                Reminders: {{ req.reminder_count }}
+              </div>
+              {% if req.last_reminded_at %}
+              <div class="small text-muted">Last: {{ req.last_reminded_at|date:"d M Y, H:i" }}</div>
+              {% endif %}
+              {% if req.source_reference %}
+              <div class="reminder-meta text-muted">{{ req.source_reference }}</div>
+              {% endif %}
+            </td>
+            <td>
+              <textarea class="form-control reminder-message" readonly id="reminderMsg{{ req.pk }}">{{ row.message }}</textarea>
+            </td>
+            <td class="text-end pe-3">
+              <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-primary" onclick="navigator.clipboard && navigator.clipboard.writeText(document.getElementById('reminderMsg{{ req.pk }}').value)">
+                  Copy
+                </button>
+                <a href="{% url 'portal:document_request_upload' req.token %}" target="_blank" class="btn btn-outline-secondary">
+                  Link
+                </a>
+                {% if row.email_to and req.status == 'open' %}
+                <button type="submit" name="action" value="send_email" class="btn btn-outline-success" onclick="document.querySelectorAll('.reminder-check').forEach(cb => cb.checked = false); this.closest('tr').querySelector('.reminder-check').checked = true;">
+                  Email
+                </button>
+                {% endif %}
+                {% if req.status == 'open' %}
+                <a href="{{ row.whatsapp_url }}" target="_blank" rel="noopener" class="btn btn-outline-success">
+                  WhatsApp
+                </a>
+                {% endif %}
+                {% if req.uploaded_submission %}
+                <a href="{% url 'ocr:verify' req.uploaded_submission.pk %}" class="btn btn-outline-success">
+                  Review
+                </a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endwith %}
+          {% empty %}
+          <tr>
+            <td colspan="5" class="text-center text-muted py-5">No reminders match this queue.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</form>
+{% endblock %}

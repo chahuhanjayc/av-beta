@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block title %}Pilot Adoption Evidence - Akshaya Vistara{% endblock %}
+{% block page_title %}Pilot Adoption Evidence{% endblock %}
+
+{% block extra_head %}
+<style>
+.adoption-score {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.adoption-filter {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+.adoption-gate {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.adoption-table td {
+  vertical-align: middle;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end flex-wrap gap-2 mb-3">
+  <form method="post" class="d-inline">
+    {% csrf_token %}
+    <input type="hidden" name="q" value="{{ q }}">
+    <input type="hidden" name="band" value="{{ band_filter }}">
+    <button type="submit" class="btn btn-outline-danger btn-sm">
+      <i class="bi bi-list-check me-1"></i>Create Adoption Tasks
+    </button>
+  </form>
+  <a href="{% url 'core:pilot_adoption_evidence' %}?export=csv{% if export_query %}&{{ export_query }}{% endif %}" class="btn btn-outline-primary btn-sm">
+    <i class="bi bi-download me-1"></i>Export CSV
+  </a>
+  <a href="{% url 'core:client_pilot_launch' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-rocket-takeoff me-1"></i>Pilot Launch
+  </a>
+  <a href="{% url 'core:client_success_cockpit' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-heart-pulse me-1"></i>Client Success
+  </a>
+  <a href="{% url 'core:pilot_feedback_register' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-chat-square-text me-1"></i>Pilot Feedback
+  </a>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Average Adoption</div>
+        <div class="adoption-score {% if totals.avg_score >= 92 %}text-success{% elif totals.avg_score >= 78 %}text-primary{% elif totals.avg_score >= 60 %}text-warning{% else %}text-danger{% endif %}">
+          {{ totals.avg_score }}%
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Healthy / Scale Ready</div>
+        <div class="adoption-score text-success">{{ totals.pilot_healthy|add:totals.scale_ready }}</div>
+        <div class="small text-muted">{{ totals.clients }} visible clients</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Blocked Evidence</div>
+        <div class="adoption-score text-danger">{{ totals.blocked }}</div>
+        <div class="small text-muted">{{ totals.critical_gates }} critical gate{{ totals.critical_gates|pluralize }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Evidence Signals</div>
+        <div class="adoption-score text-primary">{{ totals.recent_activity }}</div>
+        <div class="small text-muted">{{ totals.responded_requests }} responses, {{ totals.feedback_signals }} feedback, {{ totals.closed_loop_tasks }} closed tasks</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<form method="get" class="adoption-filter mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-5">
+      <label class="form-label small text-muted" for="adoption-q">Search</label>
+      <input id="adoption-q" type="search" class="form-control form-control-sm" name="q" value="{{ q }}" placeholder="Client name or GSTIN">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small text-muted" for="adoption-band">Adoption Band</label>
+      <select id="adoption-band" class="form-select form-select-sm" name="band">
+        {% for value,label in band_options %}
+          <option value="{{ value }}" {% if band_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-4 d-flex gap-2">
+      <button type="submit" class="btn btn-primary btn-sm">
+        <i class="bi bi-funnel me-1"></i>Apply
+      </button>
+      <a href="{% url 'core:pilot_adoption_evidence' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+    </div>
+  </div>
+</form>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h6 class="mb-0"><i class="bi bi-clipboard2-pulse me-2"></i>Pilot Evidence Queue</h6>
+    <span class="small text-muted">Real usage, issue closure, response, and conversion proof</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover adoption-table mb-0">
+      <thead class="table-light">
+        <tr>
+          <th class="ps-3">Client</th>
+          <th class="text-end">Adoption</th>
+          <th>Evidence Gaps</th>
+          <th class="text-end">Usage</th>
+          <th class="text-end">Client Response</th>
+          <th class="text-end">Issue Loop</th>
+          <th class="pe-3"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td class="ps-3">
+              <a href="{% url 'core:client_360' row.company.pk %}" class="fw-semibold text-decoration-none">{{ row.company.name }}</a>
+              <div class="small text-muted">{{ row.company.gstin|default:"No GSTIN" }}</div>
+              {% if row.engagement %}
+                <div class="small text-muted">{{ row.engagement.get_status_display }} | {{ row.engagement.get_risk_rating_display }}</div>
+              {% else %}
+                <span class="badge bg-danger-subtle text-danger mt-1">No engagement</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <span class="badge {{ row.badge_class }}">{{ row.score }}% {{ row.band }}</span>
+              <div class="small text-muted">{{ row.passed_count }}/{{ row.total_gates }} gates</div>
+              <div class="small text-muted">Launch {{ row.launch.score }}% | Success {{ row.success.score }}%</div>
+            </td>
+            <td style="min-width: 300px;">
+              {% for gate in row.top_gates %}
+                <a href="{{ gate.action_url }}" class="adoption-gate text-decoration-none me-1 mb-1 {% if gate.severity == 'critical' %}bg-danger-subtle text-danger{% elif gate.severity == 'warning' %}bg-warning-subtle text-warning{% else %}bg-info-subtle text-info{% endif %}">
+                  {{ gate.title }}
+                </a>
+              {% empty %}
+                <span class="badge bg-success-subtle text-success">Evidence complete</span>
+              {% endfor %}
+              {% if row.evidence_gap_count %}
+                <div class="small text-muted mt-1">{{ row.critical_count }} critical, {{ row.warning_count }} warning</div>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <div>{{ row.voucher_count_30 }} voucher{{ row.voucher_count_30|pluralize }} / 30d</div>
+              <div class="small text-muted">{{ row.recent_audit_count }} audit events / 30d</div>
+              <div class="small text-muted">{{ row.recent_active_users }} active user{{ row.recent_active_users|pluralize }}</div>
+            </td>
+            <td class="text-end">
+              <div>{{ row.portal_user_count }} portal user{{ row.portal_user_count|pluralize }}</div>
+              <div class="small text-muted">{{ row.responded_request_count }}/{{ row.total_request_count }} responses</div>
+              <div class="small text-muted">{{ row.response_rate }}% response</div>
+            </td>
+            <td class="text-end">
+              <div>{{ row.open_task_count }} open task{{ row.open_task_count|pluralize }}</div>
+              <div class="small text-muted">{{ row.overdue_task_count }} overdue, {{ row.critical_task_count }} critical</div>
+              <div class="small text-muted">{{ row.closed_recent_task_count }} closed / 30d</div>
+              <div class="small text-muted">{{ row.feedback_signals.open_blocker_count }} feedback blocker{{ row.feedback_signals.open_blocker_count|pluralize }}, confidence {{ row.feedback_signals.avg_confidence }}/10</div>
+            </td>
+            <td class="text-end pe-3">
+              <a href="{% url 'core:client_360' row.company.pk %}" class="btn btn-sm btn-outline-secondary">360</a>
+              <a href="{% url 'core:client_engagement_update' row.company.pk %}" class="btn btn-sm btn-outline-secondary">Engagement</a>
+              <a href="{% url 'core:pilot_feedback_register' %}?company={{ row.company.pk }}" class="btn btn-sm btn-outline-secondary">Feedback</a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="7" class="text-center text-muted py-5">
+              No client workspaces match the current filter.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} – Akshaya Vistara{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">{{ title }}</h6>
+        <button type="button" class="btn btn-sm btn-outline-primary" id="scan-gst-btn">
+          <i class="bi bi-file-pdf me-1"></i> Scan GST Certificate
+        </button>
+        <input type="file" id="gst-file-input" class="d-none" accept=".pdf">
+      </div>
+      <div class="card-body">
+        <div id="scan-status" class="alert alert-info py-2 small d-none">
+          <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+          Scanning certificate...
+        </div>
+        <form method="post" novalidate id="ledger-form">
+          {% csrf_token %}
+          {% for field in form %}
+          <div class="mb-3">
+            <label class="form-label">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}
+              <div class="text-danger small">{{ field.errors.0 }}</div>
+            {% endif %}
+            {% if field.help_text %}
+              <div class="form-text">{{ field.help_text }}</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check-lg me-1"></i> Save Ledger
+            </button>
+            <a href="{% url 'ledger:list' %}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const scanBtn = document.getElementById('scan-gst-btn');
+    const fileInput = document.getElementById('gst-file-input');
+    const statusEl = document.getElementById('scan-status');
+
+    if (scanBtn) {
+        scanBtn.addEventListener('click', () => fileInput.click());
+    }
+
+    if (fileInput) {
+        fileInput.addEventListener('change', async function() {
+            if (!this.files || !this.files[0]) return;
+
+            const file = this.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Show scanning status
+            statusEl.classList.remove('d-none', 'alert-danger', 'alert-success');
+            statusEl.classList.add('alert-info');
+            statusEl.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Scanning certificate...';
+            
+            try {
+                const response = await fetch("{% url 'ocr:gst_certificate_scan' %}", {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    const data = result.data;
+                    
+                    // Populate fields
+                    if (data.legal_name) document.querySelector('[name="name"]').value = data.legal_name;
+                    if (data.gstin) document.querySelector('[name="gstin"]').value = data.gstin;
+                    if (data.address) document.querySelector('[name="address"]').value = data.address;
+                    
+                    // Auto-select group to Liability if it looks like a vendor/party
+                    const groupEl = document.querySelector('[name="account_group"]');
+                    // This auto-select logic might need more sophistication now with FKs, 
+                    // but we'll disable the direct value assignment if it's not a simple nature match.
+
+                    statusEl.classList.replace('alert-info', 'alert-success');
+                    statusEl.innerHTML = '<i class="bi bi-check-circle me-1"></i> Certificate scanned successfully!';
+                } else {
+                    throw new Error(result.error || 'Scan failed');
+                }
+            } catch (error) {
+                statusEl.classList.replace('alert-info', 'alert-danger');
+                statusEl.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i> Error: ' + error.message;
+            } finally {
+                fileInput.value = '';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

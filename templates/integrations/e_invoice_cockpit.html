@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block title %}E-Invoice Cockpit - Akshaya Vistara{% endblock %}
+{% block page_title %}E-Invoice Cockpit{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h5 class="mb-0">IRP / E-Invoice Cockpit</h5>
+    <small class="text-muted">Review sales invoices, fix readiness gaps, generate IRNs, and capture portal results.</small>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{% url 'integrations:gst_result_import' %}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-cloud-upload"></i> Import IRP Results
+    </a>
+    <a href="{% url 'integrations:dashboard' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-plug"></i> Connectors
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-2">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Pending</div>
+        <div class="h3 mb-0">{{ summary.pending }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Ready</div>
+        <div class="h3 mb-0 text-warning">{{ summary.ready }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Blocked</div>
+        <div class="h3 mb-0 text-danger">{{ summary.blocked }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Failed</div>
+        <div class="h3 mb-0 text-danger">{{ summary.failed }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">IRN Saved</div>
+        <div class="h3 mb-0 text-success">{{ summary.generated }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Total</div>
+        <div class="h3 mb-0">{{ summary.total }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-6">
+    <div class="border rounded p-3 h-100 bg-body">
+      <div class="d-flex justify-content-between align-items-start gap-2">
+        <div>
+          <div class="fw-semibold">Client IRP Connector</div>
+          <div class="small text-muted">
+            {% if irp_connector %}
+              {{ irp_connector.provider_name|default:"Provider not set" }} / {{ irp_connector.get_mode_display }}
+            {% else %}
+              Not configured for this company
+            {% endif %}
+          </div>
+        </div>
+        {% if connector_ready %}
+          <span class="badge bg-success">Ready</span>
+        {% else %}
+          <span class="badge bg-warning text-dark">Needs Setup</span>
+        {% endif %}
+      </div>
+      {% if irp_connector.last_error %}
+        <div class="small text-danger mt-2">{{ irp_connector.last_error|truncatechars:160 }}</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="border rounded p-3 h-100 bg-body">
+      <div class="d-flex justify-content-between align-items-start gap-2">
+        <div>
+          <div class="fw-semibold">Runtime Provider</div>
+          <div class="small text-muted">Provider: {{ provider_ready|yesno:"selected,missing" }} / Feature flag: {{ e_invoice_enabled|yesno:"enabled,disabled" }}</div>
+        </div>
+        {% if provider_ready %}
+          <span class="badge bg-primary">Configured</span>
+        {% else %}
+          <span class="badge bg-secondary">Disabled</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<form method="get" class="border rounded p-3 mb-3 bg-body">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-3">
+      <label class="form-label small text-muted mb-1" for="start_date">From</label>
+      <input type="date" class="form-control form-control-sm" id="start_date" name="start_date" value="{{ start_date|date:'Y-m-d' }}">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small text-muted mb-1" for="end_date">To</label>
+      <input type="date" class="form-control form-control-sm" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small text-muted mb-1" for="status">Status</label>
+      <select class="form-select form-select-sm" id="status" name="status">
+        {% for value, label in status_choices %}
+          <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small text-muted mb-1" for="q">Search</label>
+      <input type="text" class="form-control form-control-sm" id="q" name="q" value="{{ q }}" placeholder="Invoice, customer, GSTIN">
+    </div>
+    <div class="col-md-1 d-flex gap-1">
+      <button class="btn btn-primary btn-sm w-100" type="submit" title="Apply filters">
+        <i class="bi bi-funnel"></i>
+      </button>
+      <a class="btn btn-outline-secondary btn-sm w-100" href="{% url 'integrations:e_invoice_cockpit' %}" title="Reset">
+        <i class="bi bi-x-lg"></i>
+      </a>
+    </div>
+  </div>
+</form>
+
+<div class="card">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <h6 class="mb-0"><i class="bi bi-receipt me-2"></i>Invoice Queue</h6>
+    <span class="text-muted small">Showing {{ rows|length }} of {{ summary.total }} invoices in range</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th class="ps-3">Invoice</th>
+          <th>Customer</th>
+          <th class="text-end">Value</th>
+          <th>Status</th>
+          <th>Latest IRP Log</th>
+          <th class="text-end pe-3">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td class="ps-3">
+              <div class="fw-semibold">
+                <a href="{% url 'vouchers:detail' row.voucher.pk %}" class="text-decoration-none">{{ row.voucher.number }}</a>
+              </div>
+              <div class="small text-muted">{{ row.voucher.date|date:"d M Y" }} / {{ row.voucher.get_status_display }}</div>
+            </td>
+            <td>
+              <div class="fw-semibold">{{ row.buyer_name|default:"-" }}</div>
+              <div class="small text-muted">{{ row.buyer_gstin|default:"GSTIN missing" }}</div>
+              {% if row.errors %}
+                <div class="small text-danger mt-1">{{ row.errors.0 }}</div>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <div class="fw-semibold">{{ row.invoice_value|floatformat:2 }}</div>
+              {% if row.taxable_value %}
+                <div class="small text-muted">Taxable {{ row.taxable_value|floatformat:2 }}</div>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge {{ row.badge_class }}">{{ row.state_label }}</span>
+              {% if row.voucher.e_invoice_irn %}
+                <div class="small text-muted mt-1"><code>{{ row.voucher.e_invoice_irn|truncatechars:28 }}</code></div>
+              {% endif %}
+            </td>
+            <td>
+              {% if row.latest_log %}
+                <div class="small">{{ row.latest_log.get_status_display }} / {{ row.latest_log.provider }}</div>
+                <div class="small text-muted">{{ row.latest_log.created_at|date:"d M H:i" }}</div>
+                {% if row.latest_log.error_message %}
+                  <div class="small text-danger">{{ row.latest_log.error_message|truncatechars:80 }}</div>
+                {% endif %}
+              {% else %}
+                <span class="text-muted small">No IRP call yet</span>
+              {% endif %}
+            </td>
+            <td class="text-end pe-3">
+              <div class="d-flex flex-wrap gap-1 justify-content-end">
+                <a href="{% url 'integrations:e_invoice_payload_download' row.voucher.pk %}"
+                   class="btn btn-sm btn-outline-secondary {% if not row.ready %}disabled{% endif %}">
+                  <i class="bi bi-filetype-json"></i>
+                </a>
+                {% if not row.generated %}
+                  <form method="post" action="{% url 'integrations:e_invoice_cockpit_generate' row.voucher.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ current_path }}">
+                    <button class="btn btn-sm btn-outline-primary" type="submit" {% if not row.ready %}disabled{% endif %}>
+                      <i class="bi bi-cloud-arrow-up"></i> IRN
+                    </button>
+                  </form>
+                {% endif %}
+                <details class="text-start">
+                  <summary class="btn btn-sm btn-outline-dark">Capture</summary>
+                  <form method="post" action="{% url 'integrations:mark_e_invoice_status' row.voucher.pk %}" class="border rounded p-2 mt-1 bg-body" style="min-width: 260px;">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ current_path }}">
+                    <label class="form-label small mb-1">IRN</label>
+                    <input class="form-control form-control-sm mb-1" name="irn" value="{{ row.voucher.e_invoice_irn }}" required>
+                    <div class="row g-1">
+                      <div class="col-6">
+                        <label class="form-label small mb-1">Ack No</label>
+                        <input class="form-control form-control-sm" name="ack_no" value="{{ row.voucher.e_invoice_ack_no }}">
+                      </div>
+                      <div class="col-6">
+                        <label class="form-label small mb-1">Status</label>
+                        <input class="form-control form-control-sm" name="status" value="{{ row.voucher.e_invoice_status|default:'ACT' }}">
+                      </div>
+                    </div>
+                    <label class="form-label small mb-1 mt-1">Ack Date</label>
+                    <input class="form-control form-control-sm mb-2" name="ack_date" placeholder="2026-05-01 12:30">
+                    <button class="btn btn-sm btn-primary w-100" type="submit">Save IRN</button>
+                  </form>
+                </details>
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" class="text-center text-muted py-5">No sales invoices match this filter.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

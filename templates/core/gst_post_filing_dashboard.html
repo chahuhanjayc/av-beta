@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}GST Post-Filing Dashboard - Akshaya Vistara{% endblock %}
+{% block page_title %}GST Post-Filing Dashboard{% endblock %}
+
+{% block extra_head %}
+<style>
+  .post-filter {
+    background: var(--surface-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 0.85rem 1rem;
+  }
+  .post-filter label {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+  .post-score {
+    font-size: 1.8rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h5 class="mb-0">GST Post-Filing Dashboard</h5>
+    <small class="text-muted">{{ period_start|date:"M Y" }} partner view across clients</small>
+  </div>
+  <a href="{% url 'core:gst_workbench' %}?period={{ period_value }}{% if selected_company_id %}&company={{ selected_company_id }}{% endif %}" class="btn btn-outline-primary btn-sm">
+    <i class="bi bi-shield-check"></i> GST Workbench
+  </a>
+</div>
+
+<form method="get" class="post-filter mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-5 col-lg-4">
+      <label for="company">Client</label>
+      <select id="company" name="company" class="form-select form-select-sm">
+        <option value="">All Clients</option>
+        {% for company in company_filter_options %}
+          <option value="{{ company.pk }}" {% if selected_company_id == company.pk|stringformat:"s" %}selected{% endif %}>{{ company.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3 col-lg-2">
+      <label for="period">Period</label>
+      <input type="month" id="period" name="period" value="{{ period_value }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-primary btn-sm w-100">
+        <i class="bi bi-funnel"></i> Apply
+      </button>
+    </div>
+  </div>
+</form>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small text-uppercase fw-semibold">Clients</div>
+      <div class="h4 mb-0">{{ totals.companies }}</div>
+      <div class="small text-success">{{ totals.closed }} closed</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small text-uppercase fw-semibold">Critical</div>
+      <div class="h4 mb-0 {% if totals.critical %}text-danger{% else %}text-success{% endif %}">{{ totals.critical }}</div>
+      <div class="small text-muted">{{ totals.warnings }} warnings</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small text-uppercase fw-semibold">ITC at Risk</div>
+      <div class="h4 mb-0">Rs.{{ totals.itc_at_risk|floatformat:2 }}</div>
+      <div class="small text-muted">{{ totals.missing_evidence }} clients missing evidence</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small text-uppercase fw-semibold">Notices</div>
+      <div class="h4 mb-0 {% if totals.open_notices %}text-danger{% else %}text-success{% endif %}">{{ totals.open_notices }}</div>
+      <div class="small text-danger">{{ totals.overdue_notices }} overdue</div>
+    </div></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h6 class="mb-0"><i class="bi bi-archive me-2"></i>Client Closure Queue</h6>
+    <span class="small text-muted">{{ totals.evidence_count }} evidence documents</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th class="ps-3">Client</th>
+          <th class="text-end">Score</th>
+          <th>Return Status</th>
+          <th>Payment / Evidence</th>
+          <th class="text-end">Risk</th>
+          <th class="text-end pe-3">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="ps-3">
+            <a class="fw-semibold text-decoration-none" href="{% url 'core:gst_post_filing' %}?period={{ period_value }}&company={{ row.company.pk }}">{{ row.company.name }}</a>
+            <div class="small text-muted">{{ row.company.gstin|default:"No GSTIN" }}</div>
+          </td>
+          <td class="text-end">
+            <span class="badge {% if row.summary.score >= 80 %}bg-success{% elif row.summary.score >= 50 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+              {{ row.summary.score }}
+            </span>
+            <div class="small text-muted">{{ row.critical_count }} critical</div>
+          </td>
+          <td>
+            <div class="small">Pack: {{ row.summary.pack_status }}</div>
+            <div class="small">ARN: {{ row.summary.arn|default:"Missing" }}</div>
+          </td>
+          <td>
+            <div class="small">Evidence: {{ row.evidence_count }}</div>
+            {% if row.summary.missing_evidence %}
+              <div class="small text-warning">Evidence missing</div>
+            {% else %}
+              <div class="small text-success">Evidence attached</div>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <div>ITC Rs.{{ row.summary.itc_at_risk|floatformat:2 }}</div>
+            <div class="small {% if row.summary.open_notices %}text-danger{% else %}text-muted{% endif %}">
+              {{ row.summary.open_notices }} notices
+            </div>
+            {% if row.gstr2b.pending_actions %}
+              <div class="small text-warning">{{ row.gstr2b.pending_actions }} IMS / 2B actions</div>
+            {% endif %}
+          </td>
+          <td class="text-end pe-3">
+            <a class="btn btn-xs btn-outline-primary" href="{% url 'core:gst_post_filing' %}?period={{ period_value }}&company={{ row.company.pk }}">Open</a>
+            <a class="btn btn-xs btn-outline-secondary" href="{% url 'core:gst_filing_pack' %}?period={{ period_value }}&company={{ row.company.pk }}">Pack</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" class="text-center text-muted py-4">No client workspaces are assigned to this user.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

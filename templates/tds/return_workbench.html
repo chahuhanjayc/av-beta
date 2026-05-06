@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+{% block title %}TDS Return Workbench - Akshaya Vistara{% endblock %}
+{% block page_title %}TDS Return Workbench{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3">
+    <form class="row g-2 align-items-end" method="get">
+      <div class="col-sm-3 col-lg-2">
+        <label class="form-label small mb-1">Financial Year</label>
+        <select name="fy" class="form-select form-select-sm">
+          {% for option in fy_options %}
+            <option value="{{ option.value }}" {% if filters.fy_start == option.value %}selected{% endif %}>{{ option.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-3 col-lg-2">
+        <label class="form-label small mb-1">Quarter</label>
+        <select name="quarter" class="form-select form-select-sm">
+          {% for value, label in quarter_options %}
+            <option value="{{ value }}" {% if filters.quarter == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-4 col-lg-3">
+        <label class="form-label small mb-1">Return</label>
+        <select name="form_type" class="form-select form-select-sm">
+          {% for value, label in form_type_options %}
+            <option value="{{ value }}" {% if filters.form_type == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-sm">
+          <i class="bi bi-funnel me-1"></i>Load
+        </button>
+      </div>
+      <div class="col-auto ms-auto">
+        <a href="?{{ export_query }}" class="btn btn-outline-success btn-sm">
+          <i class="bi bi-download me-1"></i>CSV
+        </a>
+        <a href="{% url 'tds:filing_pack' %}?fy={{ filters.fy_start }}&quarter={{ filters.quarter }}&form_type={{ filters.form_type }}" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-archive me-1"></i>Filing Pack
+        </a>
+        <a href="{% url 'tds:entry_create' %}" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-plus-lg me-1"></i>New TDS Entry
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="small text-muted">Readiness Score</div>
+        <div class="display-6 fw-bold {% if summary.critical_issue_count %}text-danger{% elif summary.warning_issue_count %}text-warning{% else %}text-success{% endif %}">
+          {{ summary.readiness_score }}%
+        </div>
+        <div class="small text-muted">{{ summary.critical_issue_count }} critical, {{ summary.warning_issue_count }} warnings</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="small text-muted">Return Period</div>
+        <div class="fw-bold fs-5">{{ summary.form_type }} {{ summary.quarter }}</div>
+        <div class="small text-muted">FY {{ summary.fy_label }} | Due {{ summary.due_date|date:"d M Y" }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="small text-muted">Total TDS</div>
+        <div class="fw-bold fs-5">Rs. {{ summary.total_tds|floatformat:2 }}</div>
+        <div class="small text-muted">{{ summary.entry_count }} entries, {{ summary.challan_count }} challans</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="small text-muted">Pending Deposit</div>
+        <div class="fw-bold fs-5 {% if summary.pending_tds > 0 %}text-danger{% else %}text-success{% endif %}">
+          Rs. {{ summary.pending_tds|floatformat:2 }}
+        </div>
+        <div class="small text-muted">TAN {{ summary.company_tan|default:"not configured" }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-8">
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <div>
+          <h6 class="mb-0 fw-bold">Return Blockers</h6>
+          <div class="small text-muted">PAN, challan, deposit, FVU and TRACES controls for the selected period.</div>
+        </div>
+        {% if summary.can_mark_ready %}
+          <span class="badge bg-success-subtle text-success">Ready gate clear</span>
+        {% else %}
+          <span class="badge bg-danger-subtle text-danger">Critical blockers open</span>
+        {% endif %}
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm table-hover mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Status</th>
+              <th>Check</th>
+              <th class="text-end">Count</th>
+              <th>Result</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in validations %}
+            <tr>
+              <td>
+                {% if item.severity == "critical" %}
+                  <span class="badge bg-danger-subtle text-danger">Critical</span>
+                {% elif item.severity == "warning" %}
+                  <span class="badge bg-warning-subtle text-warning">Warning</span>
+                {% else %}
+                  <span class="badge bg-success-subtle text-success">OK</span>
+                {% endif %}
+              </td>
+              <td class="fw-semibold">{{ item.title }}</td>
+              <td class="text-end">{{ item.count }}</td>
+              <td class="small text-muted">{{ item.description }}</td>
+              <td class="text-end">
+                {% if item.action_url %}
+                  <a href="{{ item.action_url }}" class="btn btn-sm btn-outline-secondary">Open</a>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-header bg-white py-3">
+            <h6 class="mb-0 fw-bold">Section Summary</h6>
+          </div>
+          <div class="card-body p-0">
+            {% if sections %}
+            <table class="table table-sm mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Section</th>
+                  <th class="text-end">Entries</th>
+                  <th class="text-end">Base</th>
+                  <th class="text-end">TDS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in sections %}
+                <tr>
+                  <td>
+                    <span class="fw-semibold">{{ row.section }}</span>
+                    <div class="small text-muted">{{ row.description|truncatechars:36 }}</div>
+                  </td>
+                  <td class="text-end">{{ row.entry_count }}</td>
+                  <td class="text-end">{{ row.base_amount|floatformat:2 }}</td>
+                  <td class="text-end fw-semibold">{{ row.tds_amount|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% else %}
+            <div class="text-center py-4 text-muted small">No section rows for this return.</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-header bg-white py-3">
+            <h6 class="mb-0 fw-bold">Challan Summary</h6>
+          </div>
+          <div class="card-body p-0">
+            {% if challans %}
+            <table class="table table-sm mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>BSR / Challan</th>
+                  <th>Date</th>
+                  <th class="text-end">Entries</th>
+                  <th class="text-end">TDS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in challans %}
+                <tr>
+                  <td>
+                    <code>{{ row.bsr_code }}</code>
+                    <div class="small {% if row.has_issue %}text-danger{% else %}text-muted{% endif %}">{{ row.challan_number }}</div>
+                  </td>
+                  <td>{{ row.deposit_date|date:"d M Y"|default:"-" }}</td>
+                  <td class="text-end">{{ row.entry_count }}</td>
+                  <td class="text-end fw-semibold">{{ row.tds_amount|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% else %}
+            <div class="text-center py-4 text-muted small">No deposited challans for this return.</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3">
+        <h6 class="mb-0 fw-bold">Deductee Rows</h6>
+      </div>
+      <div class="card-body p-0">
+        {% if rows %}
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0 align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Date</th>
+                <th>Section</th>
+                <th>Party</th>
+                <th>PAN</th>
+                <th class="text-end">Base</th>
+                <th class="text-end">TDS</th>
+                <th>Challan</th>
+                <th>Issues</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in rows %}
+              <tr>
+                <td>{{ row.date|date:"d M Y" }}</td>
+                <td><span class="badge bg-info-subtle text-info">{{ row.section }}</span></td>
+                <td>{{ row.party }}</td>
+                <td><code>{{ row.pan|default:"-" }}</code></td>
+                <td class="text-end">{{ row.base_amount|floatformat:2 }}</td>
+                <td class="text-end fw-semibold">{{ row.tds_amount|floatformat:2 }}</td>
+                <td class="small">
+                  {% if row.is_deposited %}
+                    {{ row.challan_number|default:"-" }}<br>
+                    <span class="text-muted">{{ row.bsr_code|default:"-" }} | {{ row.deposit_date|date:"d M Y"|default:"-" }}</span>
+                  {% else %}
+                    <span class="badge bg-warning-subtle text-warning">Pending</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if row.issues %}
+                    <span class="badge bg-danger-subtle text-danger">{{ row.issues|join:", " }}</span>
+                  {% else %}
+                    <span class="badge bg-success-subtle text-success">OK</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+          <i class="bi bi-file-earmark-spreadsheet fs-1 d-block mb-2"></i>
+          No deductee rows for this selected return.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3">
+        <h6 class="mb-0 fw-bold">Workpaper Control</h6>
+      </div>
+      <div class="card-body">
+        {% if not can_write %}
+          <div class="alert alert-light border small mb-0">You have read-only access to this workpaper.</div>
+        {% else %}
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="fy" value="{{ filters.fy_start }}">
+          <input type="hidden" name="quarter" value="{{ filters.quarter }}">
+          <input type="hidden" name="form_type" value="{{ filters.form_type }}">
+
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger small">{{ form.non_field_errors|join:", " }}</div>
+          {% endif %}
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold" for="{{ form.status.id_for_label }}">Status</label>
+            {{ form.status }}
+            {% if form.status.errors %}<div class="text-danger small mt-1">{{ form.status.errors|join:", " }}</div>{% endif %}
+          </div>
+          <div class="row g-2">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold" for="{{ form.fvu_status.id_for_label }}">FVU</label>
+              {{ form.fvu_status }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold" for="{{ form.challan_status.id_for_label }}">Challan</label>
+              {{ form.challan_status }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold" for="{{ form.traces_statement_status.id_for_label }}">TRACES</label>
+              {{ form.traces_statement_status }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold" for="{{ form.form16_status.id_for_label }}">Form 16/16A</label>
+              {{ form.form16_status }}
+            </div>
+          </div>
+          <div class="mt-3">
+            <label class="form-label small fw-semibold" for="{{ form.traces_token.id_for_label }}">TRACES Token</label>
+            {{ form.traces_token }}
+          </div>
+          <div class="mt-3">
+            <label class="form-label small fw-semibold" for="{{ form.ack_number.id_for_label }}">Acknowledgement Number</label>
+            {{ form.ack_number }}
+          </div>
+          <div class="mt-3">
+            <label class="form-label small fw-semibold" for="{{ form.notes.id_for_label }}">Notes</label>
+            {{ form.notes }}
+          </div>
+
+          <div class="d-grid gap-2 mt-4">
+            <button type="submit" name="action" value="save" class="btn btn-outline-primary">
+              <i class="bi bi-floppy me-1"></i>Save Workpaper
+            </button>
+            <button type="submit" name="action" value="mark_ready" class="btn btn-primary" {% if not summary.can_mark_ready %}disabled{% endif %}>
+              <i class="bi bi-check2-circle me-1"></i>Mark Ready for Review
+            </button>
+            <button type="submit" name="action" value="mark_filed" class="btn btn-success">
+              <i class="bi bi-cloud-check me-1"></i>Mark Filed
+            </button>
+            <button type="submit" name="action" value="reopen" class="btn btn-outline-secondary">
+              <i class="bi bi-arrow-counterclockwise me-1"></i>Reopen
+            </button>
+          </div>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

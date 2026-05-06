@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+
+{% block title %}Import Summary – Akshaya Vistara{% endblock %}
+{% block page_title %}Import Summary{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h5 class="mb-0">Import Completed</h5>
+        <small class="text-muted">Review imported vouchers and opening balances</small>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3 text-center">
+            <div class="col-6 col-md-3">
+                <div class="p-3 border-0 rounded bg-light">
+                    <small class="text-muted small uppercase fw-semibold d-block mb-1">Vouchers Created</small>
+                    <h3 class="mb-0 fw-bold" id="stat-vouchers">{{ session.vouchers_count }}</h3>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="p-3 border-0 rounded bg-light">
+                    <small class="text-muted small uppercase fw-semibold d-block mb-1">Opening Balances</small>
+                    <h3 class="mb-0 fw-bold">{{ session.opening_balances_count }}</h3>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="p-3 border-0 rounded bg-light">
+                    <small class="text-muted small uppercase fw-semibold d-block mb-1">Total Debit</small>
+                    <h3 class="mb-0 fw-bold text-success" id="stat-debit">₹{{ session.total_debit|floatformat:2 }}</h3>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="p-3 border-0 rounded bg-light">
+                    <small class="text-muted small uppercase fw-semibold d-block mb-1">Total Credit</small>
+                    <h3 class="mb-0 fw-bold text-primary" id="stat-credit">₹{{ session.total_credit|floatformat:2 }}</h3>
+                </div>
+            </div>
+        </div>
+
+        {% if session.skipped_rows %}
+        <div class="mt-4 pt-4 border-top">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="text-danger mb-0 fw-bold">
+                    <i class="bi bi-exclamation-octagon me-1"></i> Unbalanced Vouchers / Errors ({{ session.skipped_rows|length }})
+                </h6>
+                <span class="text-muted small">You can fix these rows inline and re-import them.</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered" id="skippedTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 15%">Vch No / Date</th>
+                            <th style="width: 35%">Ledger Account</th>
+                            <th style="width: 15%" class="text-end">Debit</th>
+                            <th style="width: 15%" class="text-end">Credit</th>
+                            <th style="width: 20%" class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in session.skipped_rows %}
+                        <tr class="skipped-vch-row" data-id="{{ row.id }}" data-date="{{ row.date }}" data-vch-no="{{ row.vch_no }}">
+                            <td class="align-middle">
+                                <strong>{{ row.vch_no }}</strong><br>
+                                <small class="text-muted">{{ row.date }}</small>
+                            </td>
+                            <td colspan="3" class="p-0">
+                                <table class="table table-borderless mb-0 bg-transparent">
+                                    {% for item in row.items %}
+                                    <tr class="item-entry">
+                                        <td style="width: 53.8%">
+                                            <select class="form-select form-select-sm ledger-picker">
+                                                {% for ledger in existing_ledgers %}
+                                                <option value="{{ ledger.id }}" {% if ledger.name == item.ledger %}selected{% endif %}>{{ ledger.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td style="width: 23.1%">
+                                            <input type="number" step="0.01" class="form-control form-control-sm text-end debit-input" value="{{ item.debit|default:'' }}">
+                                        </td>
+                                        <td>
+                                            <input type="number" step="0.01" class="form-control form-control-sm text-end credit-input" value="{{ item.credit|default:'' }}">
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </table>
+                            </td>
+                            <td class="align-middle text-center">
+                                <button class="btn btn-sm btn-outline-success reprocess-btn" onclick="reprocessRow(this)">
+                                    <i class="bi bi-play-fill"></i> Reprocess
+                                </button>
+                                <div class="error-msg text-danger small mt-1 d-none"></div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if session.validation_report %}
+        <div class="mt-4 pt-4 border-top">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0">Import Quality Report</h6>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'migration:sync_risk_export' session.pk %}" class="btn btn-outline-success btn-sm">
+                        <i class="bi bi-shield-exclamation me-1"></i> Export Sync Risk
+                    </a>
+                    <a href="{% url 'migration:cleanup_export' session.pk %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-filetype-csv me-1"></i> Export Issues
+                    </a>
+                    <form action="{% url 'migration:cleanup_tasks' session.pk %}" method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="summary">
+                        <button type="submit" class="btn btn-outline-primary btn-sm" {% if not session.validation_report.cleanup_issue_count %}disabled{% endif %}>
+                            <i class="bi bi-check2-square me-1"></i> Create Tasks
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% if session.validation_report.approval_gate %}
+            <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                    <div class="p-3 rounded bg-light">
+                        <div class="text-muted small text-uppercase fw-semibold">CA Approval</div>
+                        <div class="h5 mb-0 {% if session.validation_report.approval_gate.approved %}text-success{% elif session.validation_report.approval_gate.required %}text-danger{% else %}text-muted{% endif %}">
+                            {{ session.validation_report.approval_gate.status_label }}
+                        </div>
+                        <div class="small text-muted">
+                            {% if session.validation_report.approval_gate.approved_by %}
+                            {{ session.validation_report.approval_gate.approved_by }}
+                            {% else %}
+                            {{ session.validation_report.approval_gate.checked_count }} of {{ session.validation_report.approval_gate.total_checks }} checks
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 rounded bg-light">
+                        <div class="text-muted small text-uppercase fw-semibold">Approval Evidence</div>
+                        <div class="h6 mb-0 font-monospace">{{ session.validation_report.approval_gate.approval_evidence_hash|slice:":16"|default:"-" }}</div>
+                        <div class="small text-muted">Stored with risk snapshot</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 rounded bg-light">
+                        <div class="text-muted small text-uppercase fw-semibold">Approval Note</div>
+                        <div class="small text-muted">{{ session.validation_report.approval_gate.approval_note|default:"-"|truncatechars:90 }}</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% if session.validation_report.sync_risk %}
+            <div class="row g-3 mb-3">
+                <div class="col-md-3">
+                    <div class="p-3 rounded bg-light">
+                        <div class="text-muted small text-uppercase fw-semibold">Sync Risk</div>
+                        <div class="h5 mb-0 {% if session.validation_report.sync_risk.score < 50 %}text-danger{% elif session.validation_report.sync_risk.score < 75 %}text-warning{% else %}text-success{% endif %}">
+                            {{ session.validation_report.sync_risk.score }} / 100
+                        </div>
+                        <div class="small text-muted">{{ session.validation_report.sync_risk.band }}</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="p-3 rounded bg-light">
+                        <div class="text-muted small text-uppercase fw-semibold">Risk Items</div>
+                        <div class="h5 mb-0">{{ session.validation_report.sync_risk.issue_count|default:0 }}</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="p-3 rounded bg-light">
+                        <div class="text-muted small text-uppercase fw-semibold">Critical</div>
+                        <div class="h5 mb-0 text-danger">{{ session.validation_report.sync_risk.critical_count|default:0 }}</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="p-3 rounded bg-light">
+                        <div class="text-muted small text-uppercase fw-semibold">Period Vouchers</div>
+                        <div class="h5 mb-0">{{ session.validation_report.sync_risk.existing_tally_vouchers|default:0 }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <div class="p-3 rounded bg-light h-100">
+                        <div class="text-muted small text-uppercase fw-semibold">Tally Mapping Drift</div>
+                        <div class="h5 mb-1">{{ session.validation_report.mapping_drift.changed_count|default:0 }} changed</div>
+                        <div class="small text-muted">
+                            {{ session.validation_report.mapping_drift.new_count|default:0 }} new,
+                            {{ session.validation_report.mapping_drift.missing_count|default:0 }} missing,
+                            {{ session.validation_report.mapping_drift.stable_count|default:0 }} stable
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="p-3 rounded bg-light h-100">
+                        <div class="text-muted small text-uppercase fw-semibold">Voucher Delta Review</div>
+                        <div class="h5 mb-1">{{ session.validation_report.voucher_delta.changed_count|default:0 }} changed</div>
+                        <div class="small text-muted">
+                            {{ session.validation_report.voucher_delta.new_count|default:0 }} new,
+                            {{ session.validation_report.voucher_delta.duplicate_count|default:0 }} same,
+                            {{ session.validation_report.voucher_delta.missing_existing_count|default:0 }} missing
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="p-3 rounded bg-light">
+                        <div class="text-muted small text-uppercase fw-semibold">Duplicate Voucher Nos</div>
+                        <div class="h5 mb-0">{{ session.duplicate_voucher_count }}</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 rounded bg-light">
+                        <div class="text-muted small text-uppercase fw-semibold">Unbalanced Detected</div>
+                        <div class="h5 mb-0">{{ session.unbalanced_voucher_count }}</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 rounded bg-light">
+                        <div class="text-muted small text-uppercase fw-semibold">Opening Balance Rows</div>
+                        <div class="h5 mb-0">{{ session.validation_report.opening_balance_count }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="row g-3 mt-0">
+                <div class="col-md-4">
+                    <div class="p-3 rounded bg-light">
+                        <div class="text-muted small text-uppercase fw-semibold">Import Health</div>
+                        <div class="h5 mb-0">{{ session.validation_report.cleanup_score|default:100 }} / 100</div>
+                        <div class="small text-muted">{{ session.validation_report.cleanup_band|default:"Good" }}</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 rounded bg-light">
+                        <div class="text-muted small text-uppercase fw-semibold">Cleanup Issues</div>
+                        <div class="h5 mb-0">{{ session.validation_report.cleanup_issue_count|default:0 }}</div>
+                        <div class="small text-muted">{{ session.validation_report.blocking_issue_count|default:0 }} blocking</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 rounded bg-light">
+                        <div class="text-muted small text-uppercase fw-semibold">Ledger Mapping</div>
+                        <div class="h5 mb-0">{{ session.validation_report.ledger_mapping_summary.total|default:0 }}</div>
+                        <div class="small text-muted">
+                            {{ session.validation_report.ledger_mapping_summary.mapped|default:0 }} mapped,
+                            {{ session.validation_report.ledger_mapping_summary.new|default:0 }} new,
+                            {{ session.validation_report.ledger_mapping_summary.ignored|default:0 }} ignored
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% if session.validation_report.issues %}
+            <div class="table-responsive border rounded mt-3">
+                <table class="table table-sm mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Issue</th>
+                            <th>Severity</th>
+                            <th class="text-end">Count</th>
+                        </tr>
+                    </thead>
+                    <tbody class="small">
+                        {% for issue in session.validation_report.issues %}
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">{{ issue.title }}</div>
+                                <div class="text-muted">{{ issue.message }}</div>
+                            </td>
+                            <td>
+                                <span class="badge {% if issue.severity == 'critical' %}bg-danger{% elif issue.severity == 'high' %}bg-warning text-dark{% elif issue.severity == 'medium' %}bg-info{% else %}bg-secondary{% endif %}">
+                                    {{ issue.severity|title }}
+                                </span>
+                            </td>
+                            <td class="text-end fw-semibold">{{ issue.count }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="mt-4 border-top pt-4 text-center">
+            <a href="{% url 'vouchers:list' %}" class="btn btn-primary px-4">
+                <i class="bi bi-list-ul me-1"></i> View Imported Vouchers
+            </a>
+            <a href="{% url 'core:dashboard' %}" class="btn btn-outline-secondary ms-2 px-4">
+                Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+async function reprocessRow(btn) {
+    const row = btn.closest('.skipped-vch-row');
+    const rowId = row.dataset.id;
+    const vchNo = row.dataset.vchNo;
+    const date = row.dataset.date;
+    const errorEl = row.querySelector('.error-msg');
+    
+    const items = [];
+    row.querySelectorAll('.item-entry').forEach(entry => {
+        items.push({
+            ledger_id: entry.querySelector('.ledger-picker').value,
+            debit: entry.querySelector('.debit-input').value || 0,
+            credit: entry.querySelector('.credit-input').value || 0
+        });
+    });
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+    errorEl.classList.add('d-none');
+
+    try {
+        const resp = await fetch("{% url 'migration:reprocess_row' session.pk %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                row_id: rowId,
+                vch_no: vchNo,
+                date: date,
+                items: items
+            })
+        });
+        
+        const res = await resp.json();
+        if (res.success) {
+            row.classList.add('table-success');
+            setTimeout(() => row.remove(), 1000);
+            // Optionally update stats on page (simple refresh is easier but AJAX is cooler)
+            // For now, removing the row is enough validation for the user.
+        } else {
+            errorEl.textContent = res.error;
+            errorEl.classList.remove('d-none');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-play-fill"></i> Reprocess';
+        }
+    } catch (err) {
+        errorEl.textContent = "Network error";
+        errorEl.classList.remove('d-none');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-play-fill"></i> Reprocess';
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,1462 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ title }} – Akshaya Vistara{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  :root {
+    --tally-blue: #0d6efd;
+    --grid-border: #dee2e6;
+    --active-cell-bg: #fff;
+    --active-row-bg: #f0f7ff;
+    --voucher-grid-head-bg: var(--surface-bg);
+    --voucher-grid-head-text: var(--text-muted);
+    --voucher-grid-head-border: var(--border-color);
+  }
+
+  [data-bs-theme="dark"] {
+    --grid-border: var(--border-color);
+    --active-cell-bg: var(--surface-subtle);
+    --active-row-bg: rgba(121, 174, 200, 0.12);
+    --voucher-grid-head-bg: var(--surface-bg);
+    --voucher-grid-head-text: var(--text-muted);
+    --voucher-grid-head-border: var(--border-color);
+  }
+
+  /* Grid Reset */
+  #voucherForm .table { border-collapse: collapse; }
+  #voucherForm .table th, #voucherForm .table td { 
+    padding: 0 !important; 
+    height: 38px;
+    vertical-align: middle;
+  }
+
+  .voucher-section-header {
+    background: var(--surface-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-main);
+  }
+
+  .voucher-section-title {
+    color: var(--text-muted) !important;
+    letter-spacing: 0.04em;
+  }
+
+  .voucher-grid-shell {
+    background: var(--surface-bg);
+  }
+
+  .voucher-grid-head th {
+    background: var(--voucher-grid-head-bg) !important;
+    color: var(--voucher-grid-head-text) !important;
+    border-color: var(--voucher-grid-head-border) !important;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.45rem 0.55rem !important;
+  }
+  
+  /* Input/Select Styling */
+  .grid-input {
+    width: 100%;
+    height: 100%;
+    border: 1px solid transparent !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    padding: 4px 8px !important;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 0.85rem;
+    outline: none !important;
+    box-shadow: none !important;
+    color: var(--text-main) !important;
+  }
+
+  .grid-input::placeholder {
+    color: var(--input-placeholder);
+    opacity: 1;
+  }
+
+  /* Compact Date & Header UI */
+  .date-field, 
+  input[type="date"], 
+  input[name="date"], 
+  input[name="due_date"],
+  select[name="voucher_type"],
+  select[name="place_of_supply"],
+  textarea[name="narration"] {
+    width: 100% !important;
+    font-size: 0.85rem !important;
+    padding: 0.2rem 0.4rem !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    display: inline-block !important;
+  }
+  
+  /* Specific width for date fields to keep them small as before */
+  input[type="date"], .date-field {
+    width: 140px !important;
+    max-width: 140px !important;
+  }
+
+  textarea[name="narration"] {
+    resize: none;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  
+  /* Hide default date icons in some browsers for ultimate compactness */
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    font-size: 0.8rem;
+  }
+
+  /* Focus & Highlighting */
+  .grid-input:focus {
+    background: var(--active-cell-bg) !important;
+    border: 1px solid var(--tally-blue) !important;
+    z-index: 10;
+    position: relative;
+  }
+
+  .item-row:focus-within, .stock-row:focus-within {
+    background-color: var(--active-row-bg) !important;
+  }
+
+  #stockLineFeedback {
+    min-height: 1rem;
+  }
+
+  /* Column Specifics */
+  .col-type { width: 60px; text-align: center; background: var(--surface-subtle); color: var(--text-main); font-weight: bold; }
+  .col-ledger { width: 30%; position: relative; }
+  .col-amount { width: 12%; }
+  .col-narration { width: 15%; }
+  .col-cc { width: 10%; }
+  .col-ref { width: 15%; }
+  .col-del { width: 40px; text-align: center; }
+
+  /* Quick-Add Buttons */
+  .ledger-wrap { position: relative; height: 100%; }
+  .ledger-wrap select { padding-right: 25px !important; }
+
+  .ledger-picker {
+    position: relative;
+    min-height: 38px;
+    background: var(--input-bg);
+  }
+
+  .ledger-picker .ledger-filter {
+    min-height: 38px !important;
+    background-color: var(--input-bg) !important;
+    border-color: transparent !important;
+  }
+
+  .entry-type-select {
+    font-weight: 600;
+  }
+
+  .entry-type-select.entry-type-placeholder {
+    color: var(--input-placeholder) !important;
+  }
+
+  .entry-type-select option {
+    background: var(--input-bg);
+    color: var(--text-main);
+  }
+
+  .ledger-picker .ledger-select {
+    display: none !important;
+  }
+
+  .ledger-results {
+    position: fixed;
+    z-index: 3000;
+    max-height: 220px;
+    overflow-y: auto;
+    background: var(--surface-bg);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+  }
+
+  .ledger-results.ledger-results-above {
+    box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.22);
+  }
+
+  .ledger-result {
+    padding: 0.42rem 0.6rem;
+    cursor: pointer;
+    color: var(--text-main);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.82rem;
+    line-height: 1.25;
+  }
+
+  .ledger-result:last-child {
+    border-bottom: 0;
+  }
+
+  .ledger-result:hover,
+  .ledger-result.active {
+    background: var(--sidebar-hover);
+    color: var(--text-main);
+  }
+
+  .ledger-result-muted {
+    color: var(--text-muted);
+  }
+  
+  /* Totals Bar */
+  .sticky-totals {
+    background: var(--surface-subtle);
+    border-top: 2px solid var(--border-color);
+    color: var(--text-main);
+    font-weight: bold;
+  }
+
+  #stockTable tfoot tr {
+    background: var(--surface-subtle) !important;
+    color: var(--text-main);
+  }
+
+  .balanced-ok { color: #157347; }
+  .balanced-fail { color: #bb2d3b; }
+
+  /* Tally Prompt Style */
+  #tallyAcceptBox {
+    position: fixed;
+    bottom: 50%;
+    right: 50%;
+    transform: translate(50%, 50%);
+    width: 240px;
+    background: var(--surface-bg);
+    color: var(--text-main);
+    border: 2px solid var(--tally-blue);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    z-index: 9999;
+    padding: 20px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm">
+  <div class="card-header voucher-section-header py-2 d-flex justify-content-between align-items-center">
+    <h6 class="mb-0 fw-bold text-primary">{{ title }}</h6>
+    <div class="small text-muted d-none d-md-block">
+        <kbd>Arrows</kbd> Move | <kbd>Enter</kbd> Next | <kbd>Alt+C</kbd> Add Ledger | <kbd>F2</kbd> Save
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <!-- Global Errors -->
+    {% if form.errors or formset.errors or stock_formset.errors %}
+    <div class="alert alert-danger m-3 mb-0 py-2 small shadow-sm">
+        <h6 class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-2"></i>Please fix the following:</h6>
+        <ul class="mb-0">
+            {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+            {% for error in formset.non_form_errors %}<li>{{ error }}</li>{% endfor %}
+            {% for error in stock_formset.non_form_errors %}<li>{{ error }}</li>{% endfor %}
+            
+            {% for field in form %}
+                {% if field.errors %}<li>{{ field.label }}: {{ field.errors|join:", " }}</li>{% endif %}
+            {% endfor %}
+
+            {# Show individual form errors if they exist but aren't showing inline #}
+            {% for f in formset %}
+                {% if f.errors %}
+                    <li>Accounting Row {{ forloop.counter }}: {{ f.errors.as_text }}</li>
+                {% endif %}
+            {% endfor %}
+            {% for f in stock_formset %}
+                {% if f.errors %}
+                    <li>Stock Row {{ forloop.counter }}: {{ f.errors.as_text }}</li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <form method="post" id="voucherForm" autocomplete="off" novalidate>
+      {% csrf_token %}
+      {{ formset.management_form }}
+      {{ stock_formset.management_form }}
+
+      <!-- Header Settings (Tab-able) -->
+      <div class="p-3 voucher-section-header border-bottom">
+        <div class="row g-3">
+          <div class="col-md-2">
+            <label class="small fw-bold text-muted">Date (F2)</label>
+            {{ form.date }}
+          </div>
+          <div class="col-md-2">
+            <label class="small fw-bold text-muted">Due Date</label>
+            {{ form.due_date }}
+          </div>
+          <div class="col-md-2">
+            <label class="small fw-bold text-muted d-flex justify-content-between">
+              Vch Type
+              <a href="#"
+                 class="text-primary text-decoration-none"
+                 tabindex="-1"
+                 aria-label="Scan supporting document"
+                 onclick="document.getElementById('{{ form.document.id_for_label }}').click(); return false;">
+                <i class="bi bi-camera"></i> Scan
+              </a>
+            </label>
+            {{ form.voucher_type }}
+            <div class="d-none">{{ form.document }}</div>
+          </div>
+          <div class="col-md-2">
+            <label class="small fw-bold text-muted">Place of Supply</label>
+            {{ form.place_of_supply }}
+          </div>
+          <div class="col-md-4">
+            <label class="small fw-bold text-muted">Narration (Final)</label>
+            {{ form.narration }}
+          </div>
+          <div class="col-12 mt-2">
+            <div class="form-check form-check-inline">
+              {{ form.reverse_charge }}
+              <label class="form-check-label small fw-bold text-muted" for="{{ form.reverse_charge.id_for_label }}">
+                Reverse Charge (RCM)
+              </label>
+            </div>
+          </div>
+          <div class="col-12 mt-2">
+            <button class="btn btn-outline-secondary btn-sm"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#ewayTransportFields"
+                    aria-expanded="false"
+                    aria-controls="ewayTransportFields">
+              <i class="bi bi-truck"></i> E-invoice / E-way Bill Details
+            </button>
+          </div>
+          <div class="col-12 collapse" id="ewayTransportFields">
+            <div class="border rounded p-2 mt-1">
+              <div class="row g-2">
+                <div class="col-md-2">
+                  <label class="small fw-bold text-muted">{{ form.dispatch_pincode.label }}</label>
+                  {{ form.dispatch_pincode }}
+                </div>
+                <div class="col-md-2">
+                  <label class="small fw-bold text-muted">{{ form.ship_to_pincode.label }}</label>
+                  {{ form.ship_to_pincode }}
+                </div>
+                <div class="col-md-2">
+                  <label class="small fw-bold text-muted">{{ form.transport_mode.label }}</label>
+                  {{ form.transport_mode }}
+                </div>
+                <div class="col-md-2">
+                  <label class="small fw-bold text-muted">{{ form.transport_distance_km.label }}</label>
+                  {{ form.transport_distance_km }}
+                </div>
+                <div class="col-md-2">
+                  <label class="small fw-bold text-muted">{{ form.vehicle_number.label }}</label>
+                  {{ form.vehicle_number }}
+                </div>
+                <div class="col-md-2">
+                  <label class="small fw-bold text-muted">{{ form.vehicle_type.label }}</label>
+                  {{ form.vehicle_type }}
+                </div>
+                <div class="col-md-3">
+                  <label class="small fw-bold text-muted">{{ form.transporter_id.label }}</label>
+                  {{ form.transporter_id }}
+                </div>
+                <div class="col-md-3">
+                  <label class="small fw-bold text-muted">{{ form.transporter_name.label }}</label>
+                  {{ form.transporter_name }}
+                </div>
+                <div class="col-md-3">
+                  <label class="small fw-bold text-muted">{{ form.transport_doc_no.label }}</label>
+                  {{ form.transport_doc_no }}
+                </div>
+                <div class="col-md-3">
+                  <label class="small fw-bold text-muted">{{ form.transport_doc_date.label }}</label>
+                  {{ form.transport_doc_date }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inventory Grid (Optional) -->
+      <div class="p-3 voucher-section-header border-bottom">
+          <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 fw-bold small text-uppercase voucher-section-title">Stock Items (optional — for inventory tracking)</h6>
+            <button type="button" class="btn btn-outline-success btn-sm py-0" style="font-size:11px;" id="addStockRowBtn">
+              <i class="bi bi-plus-circle me-1"></i> Add Row
+            </button>
+          </div>
+          <div id="stockLineFeedback" class="small text-warning mt-2 d-none"></div>
+      </div>
+      <div class="table-responsive border-bottom voucher-grid-shell">
+        <table class="table table-sm table-bordered mb-0" id="stockTable">
+          <thead class="voucher-grid-head small">
+            <tr>
+              <th style="width: 30%;">Stock Item</th>
+              <th style="width: 15%;">Godown</th>
+              <th style="width: 15%;">Batch</th>
+              <th class="text-end" style="width: 10%;">Qty</th>
+              <th class="text-end" style="width: 10%;">Rate</th>
+              <th class="text-end" style="width: 15%;">Amount (₹)</th>
+              <th style="width: 40px;"></th>
+            </tr>
+          </thead>
+          <tbody id="stockBody">
+            {% for sform in stock_formset %}
+            <tr class="stock-row">
+              <td>
+                {{ sform.id }}
+                <div class="d-none">{{ sform.DELETE }}</div>
+                <div class="ledger-wrap">
+                  {{ sform.stock_item }}
+                </div>
+                {% if sform.stock_item.errors %}<div class="text-danger x-small">{{ sform.stock_item.errors|join:", " }}</div>{% endif %}
+              </td>
+              <td>{{ sform.godown }}</td>
+              <td>{{ sform.batch }}</td>
+              <td><input type="number" step="0.001" name="{{ sform.quantity.html_name }}" id="{{ sform.quantity.id_for_label }}" value="{{ sform.quantity.value|default:'' }}" class="grid-input text-end qty-field"></td>
+              <td><input type="number" step="0.01" name="{{ sform.rate.html_name }}" id="{{ sform.rate.id_for_label }}" value="{{ sform.rate.value|default:'' }}" class="grid-input text-end rate-field"></td>
+              <td class="text-end fw-bold text-success">
+                <span class="stock-amt">0.00</span>
+              </td>
+              <td class="text-center">
+                 <button type="button" class="btn btn-link text-danger p-0" onclick="removeStockRow(this)"><i class="bi bi-x"></i></button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr class="bg-light">
+              <td colspan="5" class="text-end px-3 fw-bold small">Stock Items Total:</td>
+              <td class="text-end px-2 fw-bold text-success" id="stockTotal">0.00</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <!-- Smart Entry -->
+      <div class="p-3 voucher-section-header border-bottom" id="smartEntryContainer">
+        <label class="small fw-bold text-primary mb-1">
+          <i class="bi bi-magic me-1"></i> Smart Voucher Entry
+        </label>
+        <div class="input-group input-group-sm">
+          <input type="text" id="smartEntry" class="form-control" 
+                 placeholder="Type here (e.g. 'electricity 2500' or 'rent') and press Enter to auto-fill...">
+          <button class="btn btn-primary" type="button" id="smartEntryBtn">Apply</button>
+        </div>
+        <div id="smartSuggestions" class="mt-2 d-none">
+          <div id="suggestionChips" class="d-flex flex-wrap"></div>
+        </div>
+      </div>
+
+      <!-- Transaction Grid -->
+      <div class="table-responsive">
+        <div class="voucher-section-header p-2 border-bottom d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 fw-bold small text-uppercase voucher-section-title">Accounting Lines</h6>
+            <button type="button" class="btn btn-outline-primary btn-sm py-0" style="font-size:11px;" id="addRowBtn">
+              <i class="bi bi-plus-circle me-1"></i> Add Line
+            </button>
+        </div>
+        <table class="table table-bordered mb-0" id="itemsTable">
+          <thead class="voucher-grid-head small">
+            <tr>
+              <th class="col-type">Cr/Dr</th>
+              <th class="col-ledger">Particulars / Ledger Account</th>
+              <th class="col-amount text-end">Debit (₹)</th>
+              <th class="col-amount text-end">Credit (₹)</th>
+              <th class="col-narration">Note</th>
+              <th class="col-cc">Cost Center</th>
+              <th class="col-ref">Against Invoice</th>
+              <th class="col-del"></th>
+            </tr>
+          </thead>
+          <tbody id="itemsBody">
+            {% for item_form in formset %}
+            <tr class="item-row" data-index="{{ forloop.counter0 }}">
+              <td class="col-type">
+                {{ item_form.entry_type }}
+              </td>
+              <td class="col-ledger">
+                {{ item_form.id }}
+                <div class="d-none">{{ item_form.DELETE }}</div>
+                <div class="ledger-picker">
+                  <input type="text" class="grid-input ledger-filter" placeholder="Search party / company / ledger" autocomplete="off">
+                  {{ item_form.ledger }}
+                  <div class="ledger-results d-none"></div>
+                </div>
+                {% if item_form.ledger.errors %}<div class="text-danger x-small">{{ item_form.ledger.errors|join:", " }}</div>{% endif %}
+              </td>
+              <td class="col-amount">
+                <input type="number" step="0.01" class="grid-input text-end dr-field" 
+                       placeholder="0.00" value="{% if item_form.entry_type.value == 'DR' %}{{ item_form.amount.value|default:'' }}{% endif %}">
+                {% if item_form.amount.errors %}<div class="text-danger x-small">{{ item_form.amount.errors|join:", " }}</div>{% endif %}
+              </td>
+              <td class="col-amount">
+                <input type="number" step="0.01" class="grid-input text-end cr-field" 
+                       placeholder="0.00" value="{% if item_form.entry_type.value == 'CR' %}{{ item_form.amount.value|default:'' }}{% endif %}">
+                <!-- Real amount (hidden) -->
+                <div class="d-none">{{ item_form.amount }}</div>
+              </td>
+              <td class="col-narration">
+                {{ item_form.narration }}
+              </td>
+              <td class="col-cc">
+                <div class="ledger-wrap">
+                  {{ item_form.cost_center }}
+                </div>
+              </td>
+              <td class="col-ref">
+                <div class="ledger-wrap">
+                  {{ item_form.reference_voucher }}
+                </div>
+              </td>
+              <td class="col-del">
+                 <button type="button" class="btn btn-link text-danger p-0" onclick="removeRow(this)"><i class="bi bi-x"></i></button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot class="sticky-totals">
+            <tr>
+              <td colspan="2" class="text-end px-3">TOTALS:</td>
+              <td class="text-end px-2" id="totalDr">0.00</td>
+              <td class="text-end px-2" id="totalCr">0.00</td>
+              <td colspan="4" id="gridStatus" class="px-3"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div class="p-3 text-end voucher-section-header border-top">
+        <button type="submit" class="btn btn-primary btn-lg px-5" id="submitBtn">
+            SAVE VOUCHER <span class="opacity-50 ms-2">(Ctrl+S)</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Tally Accept Prompt -->
+<div id="tallyAcceptBox" class="d-none">
+  <h5 class="text-center mb-3">Accept?</h5>
+  <div class="d-flex justify-content-center gap-3">
+    <button class="btn btn-primary px-4" id="btnYes">YES (Y)</button>
+    <button class="btn btn-outline-secondary px-4" id="btnNo">NO (N)</button>
+  </div>
+</div>
+
+{% include "vouchers/partials/quick_add_modals.html" %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/voucher_suggestions.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('voucherForm');
+    const itemsBody = document.getElementById('itemsBody');
+    const stockBody = document.getElementById('stockBody');
+    
+    const totalForms = document.querySelector('input[name="items-TOTAL_FORMS"]');
+    const totalStockForms = document.querySelector('input[name="voucher_stock_items-TOTAL_FORMS"]');
+    const firstLedgerSelect = itemsBody.querySelector('.ledger-select');
+    const ledgerOptionsRaw = firstLedgerSelect ? Array.from(firstLedgerSelect.options).map(opt => ({
+        value: opt.value,
+        text: opt.text,
+        disabled: opt.disabled,
+    })) : [];
+
+    function normalizeLedgerText(text) {
+        return (text || '')
+            .replace(/\s+\([^()]*\/[^()]*\)\s*$/, '')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .toLowerCase();
+    }
+
+    // Filter duplicates by id and visible ledger name. Real data can contain
+    // repeated ledger rows with different ids but identical labels.
+    const seenLedgerIds = new Set();
+    const seenLedgerNames = new Set();
+    const ledgerOptions = ledgerOptionsRaw.filter(opt => {
+        if (!opt.value) {
+            if (seenLedgerIds.has('__blank__')) return false;
+            seenLedgerIds.add('__blank__');
+            return true;
+        }
+        const valueKey = String(opt.value);
+        const textKey = normalizeLedgerText(opt.text);
+        if (seenLedgerIds.has(valueKey) || seenLedgerNames.has(textKey)) return false;
+        seenLedgerIds.add(valueKey);
+        seenLedgerNames.add(textKey);
+        return true;
+    });
+
+    // Inject "Add New" into ledger options
+    if (ledgerOptions.length > 0 && !ledgerOptions.some(o => o.value === 'ADD_NEW_LEDGER')) {
+        ledgerOptions.unshift({ value: 'ADD_NEW_LEDGER', text: '+ Add New Ledger' });
+    }
+
+    function normalizeSelectText(text) {
+        return (text || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    }
+
+    function dedupeSelectOptions(select) {
+        const currentValue = select.value;
+        const seenValues = new Set();
+        const seenLabels = new Set();
+        let blankSeen = false;
+
+        Array.from(select.options).forEach(opt => {
+            const value = String(opt.value || '');
+            if (value.startsWith('ADD_NEW_')) return;
+            if (!value) {
+                if (blankSeen) opt.remove();
+                blankSeen = true;
+                return;
+            }
+
+            const label = normalizeSelectText(opt.text);
+            if (seenValues.has(value) || seenLabels.has(label)) {
+                opt.remove();
+                return;
+            }
+
+            seenValues.add(value);
+            seenLabels.add(label);
+        });
+
+        if (currentValue && Array.from(select.options).some(opt => opt.value === currentValue)) {
+            select.value = currentValue;
+        }
+    }
+
+    function prepareEntryTypeSelect(select) {
+        if (!select) return;
+        const blankOption = Array.from(select.options).find(opt => opt.value === '');
+        if (blankOption) {
+            blankOption.textContent = 'Cr / Dr';
+            blankOption.hidden = true;
+        }
+        select.classList.toggle('entry-type-placeholder', !select.value);
+    }
+
+    function referenceVoucherCreateUrl() {
+        const currentType = document.querySelector('[name="voucher_type"]')?.value || '';
+        const invoiceType = currentType === 'Payment' ? 'Purchase' : 'Sales';
+        return `{% url 'vouchers:create' %}?voucher_type=${encodeURIComponent(invoiceType)}`;
+    }
+
+    function openReferenceVoucherCreate(select) {
+        const url = referenceVoucherCreateUrl();
+        const opened = window.open(url, '_blank');
+        if (opened) {
+            opened.opener = null;
+            opened.focus();
+            return;
+        }
+        select.blur();
+        window.alert('The browser blocked the new invoice tab. The invoice form will open in this tab.');
+        window.location.href = url;
+    }
+
+    function injectAddNewOptions(row) {
+        // Stock Item
+        const stockSelect = row.querySelector('.stock-item-select');
+        if (stockSelect) dedupeSelectOptions(stockSelect);
+        if (stockSelect && !Array.from(stockSelect.options).some(o => o.value === 'ADD_NEW_STOCK')) {
+            const opt = new Option('+ Add New Item', 'ADD_NEW_STOCK');
+            opt.classList.add('fw-bold', 'text-success');
+            stockSelect.add(opt, 0);
+        }
+        // Godown
+        const godownSelect = row.querySelector('.godown-select');
+        if (godownSelect) dedupeSelectOptions(godownSelect);
+        if (godownSelect && !Array.from(godownSelect.options).some(o => o.value === 'ADD_NEW_GODOWN')) {
+            const opt = new Option('+ Add New Godown', 'ADD_NEW_GODOWN');
+            opt.classList.add('fw-bold', 'text-warning');
+            godownSelect.add(opt, 0);
+        }
+        // Batch
+        const batchSelect = row.querySelector('.batch-select');
+        if (batchSelect) dedupeSelectOptions(batchSelect);
+        if (batchSelect && !Array.from(batchSelect.options).some(o => o.value === 'ADD_NEW_BATCH')) {
+            const opt = new Option('+ Add New Batch', 'ADD_NEW_BATCH');
+            opt.classList.add('fw-bold', 'text-secondary');
+            batchSelect.add(opt, 0);
+        }
+        // Ledger (handled by prepareLedgerSearch but good to have fallback)
+        const ledgerSelect = row.querySelector('.ledger-select');
+        if (ledgerSelect && !Array.from(ledgerSelect.options).some(o => o.value === 'ADD_NEW_LEDGER')) {
+            const opt = new Option('+ Add New Ledger', 'ADD_NEW_LEDGER');
+            opt.classList.add('fw-bold', 'text-primary');
+            ledgerSelect.add(opt, 0);
+        }
+        // Cost Center
+        const ccSelect = row.querySelector('.cost-center-select');
+        if (ccSelect && !Array.from(ccSelect.options).some(o => o.value === 'ADD_NEW_CC')) {
+            const opt = new Option('+ Add New Cost Center', 'ADD_NEW_CC');
+            opt.classList.add('fw-bold', 'text-info');
+            ccSelect.add(opt, 0);
+        }
+        // Reference Voucher
+        const refSelect = row.querySelector('.ref-voucher-select');
+        if (refSelect && !Array.from(refSelect.options).some(o => o.value === 'ADD_NEW_REF')) {
+            const opt = new Option('+ Create New Invoice', 'ADD_NEW_REF');
+            opt.classList.add('fw-bold', 'text-secondary');
+            refSelect.add(opt, 0);
+        }
+    }
+
+    function handleAddNewSelection(e) {
+        const val = e.target.value;
+        const select = e.target;
+        if (val === 'ADD_NEW_LEDGER') {
+            select.value = '';
+            openQuickAdd(select);
+            return true;
+        } else if (val === 'ADD_NEW_STOCK') {
+            select.value = '';
+            openStockQuickAdd(select);
+            return true;
+        } else if (val === 'ADD_NEW_GODOWN') {
+            select.value = '';
+            openGodownQuickAdd(select);
+            return true;
+        } else if (val === 'ADD_NEW_BATCH') {
+            select.value = '';
+            openBatchQuickAdd(select);
+            return true;
+        } else if (val === 'ADD_NEW_CC') {
+            select.value = '';
+            openCCQuickAdd(select);
+            return true;
+        } else if (val === 'ADD_NEW_REF') {
+            select.value = '';
+            openReferenceVoucherCreate(select);
+            return true;
+        }
+        return false;
+    }
+
+    form.addEventListener('change', (e) => {
+        if (e.target.tagName === 'SELECT') {
+            handleAddNewSelection(e);
+            if (e.target.classList.contains('entry-type-select')) {
+                prepareEntryTypeSelect(e.target);
+            }
+        }
+    });
+
+    function applyGridClasses() {
+        form.querySelectorAll('input, select, textarea').forEach(el => {
+            if (el.type === 'hidden' || (el.name || '').endsWith('-DELETE')) return;
+            if (!el.classList.contains('grid-input') && !el.classList.contains('d-none')) {
+                el.classList.add('grid-input');
+            }
+        });
+    }
+    applyGridClasses();
+
+    function prepareLedgerSearch(row) {
+        const filter = row.querySelector('.ledger-filter');
+        const select = row.querySelector('.ledger-select');
+        let results = row.querySelector('.ledger-results');
+        if (!filter || !select || filter.dataset.ready === '1') return;
+
+        if (!results) {
+            results = document.createElement('div');
+            results.className = 'ledger-results d-none';
+        }
+        document.body.appendChild(results);
+
+        filter.dataset.ready = '1';
+
+        function getLedgerMatches(searchText) {
+            const term = (searchText || '').toLowerCase();
+            const addNew = ledgerOptions.find(opt => opt.value === 'ADD_NEW_LEDGER');
+            const blank = ledgerOptions.find(opt => !opt.value);
+            const matches = ledgerOptions.filter(opt => {
+                if (!opt.value || opt.value === 'ADD_NEW_LEDGER') return false;
+                return !term || opt.text.toLowerCase().includes(term);
+            }).slice(0, 25);
+
+            const visible = [];
+            if (addNew) visible.push(addNew);
+            if (!term && blank) visible.push(blank);
+            visible.push(...matches);
+            return visible;
+        }
+
+        function hideResults() {
+            results.classList.add('d-none');
+            results.innerHTML = '';
+            results.classList.remove('ledger-results-above');
+        }
+
+        function positionResults() {
+            if (results.classList.contains('d-none')) return;
+
+            const rect = filter.getBoundingClientRect();
+            const tableWrap = filter.closest('.table-responsive');
+            const tableRect = tableWrap ? tableWrap.getBoundingClientRect() : null;
+            const viewportGap = 10;
+            const panelGap = 4;
+            const desiredHeight = Math.min(220, results.scrollHeight || 220);
+            const viewportBelow = window.innerHeight - rect.bottom - viewportGap;
+            const tableBelow = tableRect ? tableRect.bottom - rect.bottom - panelGap : viewportBelow;
+            const spaceBelow = Math.min(viewportBelow, tableBelow);
+            const spaceAbove = rect.top - viewportGap;
+            const openAbove = spaceBelow < desiredHeight && spaceAbove > spaceBelow;
+            const available = Math.max(72, (openAbove ? spaceAbove : viewportBelow) - panelGap);
+            const panelHeight = Math.min(220, desiredHeight, available);
+            const maxLeft = window.innerWidth - rect.width - viewportGap;
+            const left = Math.max(viewportGap, Math.min(rect.left, maxLeft));
+            const top = openAbove
+                ? Math.max(viewportGap, rect.top - panelHeight - panelGap)
+                : Math.min(rect.bottom + panelGap, window.innerHeight - panelHeight - viewportGap);
+
+            results.style.left = `${left}px`;
+            results.style.top = `${top}px`;
+            results.style.width = `${rect.width}px`;
+            results.style.maxHeight = `${panelHeight}px`;
+            results.classList.toggle('ledger-results-above', openAbove);
+        }
+
+        function renderResults(searchText) {
+            document.querySelectorAll('.ledger-results').forEach(panel => {
+                if (panel !== results) {
+                    panel.classList.add('d-none');
+                    panel.innerHTML = '';
+                    panel.classList.remove('ledger-results-above');
+                }
+            });
+
+            const matches = getLedgerMatches(searchText);
+            results.innerHTML = '';
+
+            if (matches.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'ledger-result ledger-result-muted';
+                empty.textContent = 'No matching ledgers';
+                results.appendChild(empty);
+                results.classList.remove('d-none');
+                positionResults();
+                return;
+            }
+
+            matches.forEach(opt => {
+                const item = document.createElement('div');
+                item.className = 'ledger-result';
+                if (!opt.value) item.classList.add('ledger-result-muted');
+                if (opt.value === 'ADD_NEW_LEDGER') item.classList.add('fw-bold', 'text-primary');
+                item.dataset.value = opt.value;
+                item.textContent = opt.text;
+                results.appendChild(item);
+            });
+
+            results.classList.remove('d-none');
+            positionResults();
+        }
+
+        function pickLedger(value) {
+            if (value === 'ADD_NEW_LEDGER') {
+                select.value = '';
+                filter.value = '';
+                hideResults();
+                openQuickAdd(select);
+                return;
+            }
+
+            select.value = value;
+            const selected = ledgerOptions.find(opt => opt.value === value);
+            filter.value = selected && selected.value ? selected.text : '';
+            hideResults();
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            filter.focus();
+        }
+
+        function syncFilterFromSelect() {
+            let selected = ledgerOptions.find(opt => opt.value === select.value);
+            if (!selected && select.value) {
+                const selectedOption = select.options[select.selectedIndex];
+                if (selectedOption) {
+                    selected = { value: selectedOption.value, text: selectedOption.text };
+                    const valueKey = String(selected.value);
+                    const textKey = normalizeLedgerText(selected.text);
+                    if (!seenLedgerIds.has(valueKey) && !seenLedgerNames.has(textKey)) {
+                        seenLedgerIds.add(valueKey);
+                        seenLedgerNames.add(textKey);
+                        ledgerOptions.push(selected);
+                    }
+                }
+            }
+            filter.value = selected && selected.value ? selected.text : '';
+        }
+
+        filter.addEventListener('focus', () => renderResults(filter.value));
+        filter.addEventListener('input', () => renderResults(filter.value));
+
+        filter.addEventListener('keydown', (e) => {
+            if (results.classList.contains('d-none')) return;
+
+            const items = Array.from(results.querySelectorAll('.ledger-result[data-value]'));
+            if (items.length === 0) return;
+
+            const currentIndex = items.findIndex(item => item.classList.contains('active'));
+
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                e.stopPropagation();
+                const nextIndex = e.key === 'ArrowDown'
+                    ? (currentIndex + 1) % items.length
+                    : (currentIndex <= 0 ? items.length - 1 : currentIndex - 1);
+                items.forEach(item => item.classList.remove('active'));
+                items[nextIndex].classList.add('active');
+                items[nextIndex].scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'Enter') {
+                if (currentIndex < 0 && !filter.value.trim()) {
+                    hideResults();
+                    return;
+                }
+                e.preventDefault();
+                e.stopPropagation();
+                const item = currentIndex >= 0
+                    ? items[currentIndex]
+                    : (items.find(item => item.dataset.value !== 'ADD_NEW_LEDGER') || items[0]);
+                pickLedger(item.dataset.value);
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                hideResults();
+            }
+        });
+
+        results.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            const item = e.target.closest('.ledger-result[data-value]');
+            if (item) pickLedger(item.dataset.value);
+        });
+
+        select.addEventListener('change', () => {
+            syncFilterFromSelect();
+        });
+
+        filter.addEventListener('blur', () => {
+            setTimeout(hideResults, 120);
+        });
+
+        window.addEventListener('scroll', positionResults, true);
+        window.addEventListener('resize', positionResults);
+
+        syncFilterFromSelect();
+    }
+
+    itemsBody.querySelectorAll('.item-row').forEach(row => {
+        prepareLedgerSearch(row);
+        injectAddNewOptions(row);
+        prepareEntryTypeSelect(row.querySelector('.entry-type-select'));
+    });
+    stockBody.querySelectorAll('.stock-row').forEach(injectAddNewOptions);
+
+    form.addEventListener('keydown', (e) => {
+        const active = document.activeElement;
+        const activeName = active?.name || '';
+        if (e.key === 'F2' || (e.ctrlKey && e.key === 's')) {
+            e.preventDefault();
+            handleAccept();
+            return;
+        }
+        if (e.altKey && e.key.toLowerCase() === 'c') {
+            if (active.classList.contains('ledger-filter')) {
+                const ledgerSelect = active.closest('.ledger-picker')?.querySelector('.ledger-select');
+                if (ledgerSelect) {
+                    e.preventDefault();
+                    openQuickAdd(ledgerSelect);
+                }
+            } else if (activeName.includes('ledger')) {
+                e.preventDefault();
+                openQuickAdd(active);
+            } else if (activeName.includes('stock_item')) {
+                e.preventDefault();
+                openStockQuickAdd(active);
+            } else if (activeName.includes('godown')) {
+                e.preventDefault();
+                openGodownQuickAdd(active);
+            } else if (activeName.includes('batch')) {
+                e.preventDefault();
+                openBatchQuickAdd(active);
+            } else if (activeName.includes('cost_center')) {
+                e.preventDefault();
+                openCCQuickAdd(active);
+            }
+        }
+        if (e.key === 'Enter') {
+            if (active.tagName === 'TEXTAREA' || active.id === 'smartEntry') return;
+            e.preventDefault();
+            const fields = getVisibleFields();
+            const idx = fields.indexOf(active);
+            if (activeName.includes('ledger') && !active.value) {
+                const row = active.closest('.item-row');
+                if (row === getLastRow()) {
+                    document.querySelector('[name="narration"]').focus();
+                    return;
+                }
+            }
+            if (idx < fields.length - 1) {
+                fields[idx+1].focus();
+                if (fields[idx+1].tagName === 'INPUT') fields[idx+1].select();
+            } else {
+                handleAccept();
+            }
+        }
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+            const row = active.closest('tr');
+            if (!row) return;
+            const fieldsInRow = Array.from(row.querySelectorAll('input, select')).filter(el => el.offsetParent !== null);
+            const colIdx = fieldsInRow.indexOf(active);
+            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                const targetRow = e.key === 'ArrowUp' ? row.previousElementSibling : row.nextElementSibling;
+                if (targetRow && (targetRow.classList.contains('item-row') || targetRow.classList.contains('stock-row'))) {
+                    e.preventDefault();
+                    const targetField = Array.from(targetRow.querySelectorAll('input, select')).filter(el => el.offsetParent !== null)[colIdx];
+                    if (targetField) targetField.focus();
+                }
+            }
+            if (e.key === 'ArrowLeft' && colIdx > 0 && (active.tagName === 'SELECT' || active.selectionStart === 0)) {
+                e.preventDefault();
+                fieldsInRow[colIdx-1].focus();
+            }
+            if (e.key === 'ArrowRight' && colIdx < fieldsInRow.length - 1 && (active.tagName === 'SELECT' || active.selectionEnd === (active.value?.length || 0))) {
+                e.preventDefault();
+                fieldsInRow[colIdx+1].focus();
+            }
+        }
+    });
+
+    itemsBody.addEventListener('input', (e) => {
+        if (e.target.classList.contains('dr-field') || e.target.classList.contains('cr-field')) {
+            const row = e.target.closest('tr');
+            const dr = row.querySelector('.dr-field');
+            const cr = row.querySelector('.cr-field');
+            const type = row.querySelector('select[name$="entry_type"]');
+            const amount = row.querySelector('input[name$="amount"]');
+            if (e.target.classList.contains('dr-field') && e.target.value) {
+                cr.value = ''; type.value = 'DR'; amount.value = e.target.value;
+            } else if (e.target.classList.contains('cr-field') && e.target.value) {
+                dr.value = ''; type.value = 'CR'; amount.value = e.target.value;
+            }
+            prepareEntryTypeSelect(type);
+            calculateTotals();
+        }
+    });
+
+    function visibleStockRows() {
+        return Array.from(stockBody.querySelectorAll('.stock-row')).filter(row => {
+            const deleteInput = row.querySelector('input[name$="-DELETE"]');
+            return !row.classList.contains('d-none') && !deleteInput?.checked;
+        });
+    }
+
+    function stockNumber(input) {
+        return parseFloat(input?.value || 0) || 0;
+    }
+
+    function stockRowKey(row) {
+        const stockItem = row?.querySelector('.stock-item-select')?.value || '';
+        if (!stockItem || stockItem.startsWith('ADD_NEW_')) return '';
+        const godown = row.querySelector('.godown-select')?.value || '';
+        const batch = row.querySelector('.batch-select')?.value || '';
+        return [stockItem, godown, batch].join('|');
+    }
+
+    function isBlankStockRow(row) {
+        return !row.querySelector('.stock-item-select')?.value &&
+               !row.querySelector('.godown-select')?.value &&
+               !row.querySelector('.batch-select')?.value &&
+               !stockNumber(row.querySelector('.qty-field')) &&
+               !stockNumber(row.querySelector('.rate-field'));
+    }
+
+    function showStockMessage(message) {
+        const feedback = document.getElementById('stockLineFeedback');
+        if (!feedback) return;
+        feedback.textContent = message;
+        feedback.classList.remove('d-none');
+        clearTimeout(showStockMessage._timer);
+        showStockMessage._timer = setTimeout(() => {
+            feedback.classList.add('d-none');
+            feedback.textContent = '';
+        }, 3500);
+    }
+
+    function clearStockRow(row) {
+        row.querySelectorAll('select').forEach(select => { select.value = ''; });
+        row.querySelectorAll('.qty-field, .rate-field').forEach(input => { input.value = ''; });
+        const amount = row.querySelector('.stock-amt');
+        if (amount) amount.textContent = '0.00';
+    }
+
+    function discardStockRow(row) {
+        const idInput = row.querySelector('input[name$="-id"]');
+        const deleteInput = row.querySelector('input[name$="-DELETE"]');
+        if (idInput?.value && deleteInput) {
+            deleteInput.checked = true;
+            row.classList.add('d-none');
+            return;
+        }
+        clearStockRow(row);
+    }
+
+    function mergeStockRows(targetRow, sourceRow) {
+        const targetQty = targetRow.querySelector('.qty-field');
+        const sourceQty = sourceRow.querySelector('.qty-field');
+        const targetRate = targetRow.querySelector('.rate-field');
+        const sourceRate = sourceRow.querySelector('.rate-field');
+        const qty = stockNumber(targetQty) + stockNumber(sourceQty);
+
+        if (qty > 0) targetQty.value = qty.toFixed(3).replace(/\.?0+$/, '');
+        if (!stockNumber(targetRate) && stockNumber(sourceRate)) {
+            targetRate.value = sourceRate.value;
+        }
+
+        discardStockRow(sourceRow);
+        calculateStockTotals();
+        showStockMessage('Duplicate stock row merged into the existing line.');
+    }
+
+    function dedupeStockRows(changedRow) {
+        const key = stockRowKey(changedRow);
+        if (!key) return false;
+
+        const rows = visibleStockRows();
+        const changedIndex = rows.indexOf(changedRow);
+        const duplicate = rows.find((row, index) => index !== changedIndex && stockRowKey(row) === key);
+        if (!duplicate) return false;
+
+        const duplicateIndex = rows.indexOf(duplicate);
+        const targetRow = duplicateIndex < changedIndex ? duplicate : changedRow;
+        const sourceRow = targetRow === changedRow ? duplicate : changedRow;
+        mergeStockRows(targetRow, sourceRow);
+        targetRow.querySelector('.stock-item-select')?.focus();
+        return true;
+    }
+
+    window.dedupeStockRows = dedupeStockRows;
+
+    async function applyDefaultStockRate(row) {
+        const stockSelect = row?.querySelector('.stock-item-select');
+        const rateInput = row?.querySelector('.rate-field');
+        if (!stockSelect?.value || stockSelect.value.startsWith('ADD_NEW_') || !rateInput || rateInput.value) return;
+
+        const selectedOption = stockSelect.selectedOptions?.[0];
+        const voucherType = document.querySelector('[name="voucher_type"]')?.value;
+        const optionRate = voucherType === 'Sales'
+            ? selectedOption?.dataset.sellingPrice
+            : selectedOption?.dataset.purchaseRate;
+
+        if (parseFloat(optionRate || 0) > 0) {
+            rateInput.value = optionRate;
+            calculateStockTotals();
+            return;
+        }
+
+        try {
+            const url = "{% url 'inventory:item_price' 0 %}".replace('/0/', `/${stockSelect.value}/`);
+            const resp = await fetch(url);
+            if (!resp.ok) return;
+            const data = await resp.json();
+            const rate = voucherType === 'Sales' ? data.selling_price : data.purchase_price;
+            if (!rateInput.value && parseFloat(rate || 0) > 0) {
+                rateInput.value = rate;
+                calculateStockTotals();
+            }
+        } catch (err) {
+            console.warn('Stock price lookup failed', err);
+        }
+    }
+
+    stockBody.addEventListener('input', (e) => {
+        if (e.target.classList.contains('qty-field') || e.target.classList.contains('rate-field')) {
+            calculateStockTotals();
+        }
+    });
+
+    stockBody.addEventListener('change', (e) => {
+        if (!e.target.matches('.stock-item-select, .godown-select, .batch-select')) return;
+        if (String(e.target.value || '').startsWith('ADD_NEW_')) return;
+
+        const row = e.target.closest('.stock-row');
+        if (e.target.classList.contains('stock-item-select')) {
+            applyDefaultStockRate(row);
+        }
+        dedupeStockRows(row);
+        calculateStockTotals();
+    });
+
+    function parseStockSmartQuery(query) {
+        const numbers = (query.match(/\d+(?:\.\d+)?/g) || []).map(Number);
+        const searchText = query
+            .replace(/\d+(?:\.\d+)?/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        let qty = 1;
+        let rate = 0;
+        if (numbers.length >= 2) {
+            qty = numbers[0] || 1;
+            rate = numbers[1] || 0;
+        } else if (numbers.length === 1) {
+            rate = numbers[0] || 0;
+        }
+
+        return { searchText, qty, rate };
+    }
+
+    function findStockOption(searchText) {
+        const firstSelect = stockBody.querySelector('.stock-item-select');
+        if (!firstSelect) return null;
+        const term = normalizeSelectText(searchText);
+        if (!term) return null;
+
+        const options = Array.from(firstSelect.options).filter(opt => {
+            return opt.value && !String(opt.value).startsWith('ADD_NEW_');
+        });
+
+        return options
+            .map(opt => {
+                const label = normalizeSelectText(opt.text);
+                let score = 0;
+                if (label === term) score = 4;
+                else if (label.startsWith(term)) score = 3;
+                else if (label.includes(term)) score = 2;
+                else if (term.split(' ').every(part => label.includes(part))) score = 1;
+                return { opt, score };
+            })
+            .filter(item => item.score > 0)
+            .sort((a, b) => b.score - a.score || a.opt.text.length - b.opt.text.length)[0]?.opt || null;
+    }
+
+    function firstBlankStockRow() {
+        return visibleStockRows().find(isBlankStockRow);
+    }
+
+    window.tryApplyStockSmartEntry = function(query) {
+        const parsed = parseStockSmartQuery(query);
+        const option = findStockOption(parsed.searchText);
+        if (!option) return false;
+
+        const existingRow = visibleStockRows().find(row => {
+            return row.querySelector('.stock-item-select')?.value === option.value &&
+                   !(row.querySelector('.godown-select')?.value) &&
+                   !(row.querySelector('.batch-select')?.value);
+        });
+        const targetRow = existingRow || firstBlankStockRow() || addNewStockRow();
+        const stockSelect = targetRow.querySelector('.stock-item-select');
+        const qtyInput = targetRow.querySelector('.qty-field');
+        const rateInput = targetRow.querySelector('.rate-field');
+
+        if (!Array.from(stockSelect.options).some(opt => opt.value === option.value)) {
+            stockSelect.add(new Option(option.text, option.value));
+        }
+        stockSelect.value = option.value;
+
+        const currentQty = existingRow ? stockNumber(qtyInput) : 0;
+        qtyInput.value = (currentQty + parsed.qty).toFixed(3).replace(/\.?0+$/, '');
+        if (parsed.rate > 0) {
+            rateInput.value = parsed.rate.toFixed(2);
+        }
+
+        stockSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        qtyInput.dispatchEvent(new Event('input', { bubbles: true }));
+        if (!parsed.rate) applyDefaultStockRate(targetRow);
+        dedupeStockRows(targetRow);
+        calculateStockTotals();
+        showStockMessage(`Added stock item: ${option.text}`);
+        stockSelect.focus();
+        return true;
+    };
+
+    itemsBody.addEventListener('change', (e) => {
+        const targetName = e.target.name || '';
+        if (targetName.includes('ledger')) {
+            const row = e.target.closest('.item-row');
+            if (row === getLastRow() && e.target.value) {
+                addNewRow();
+            }
+        }
+        calculateTotals();
+    });
+
+    document.getElementById('addRowBtn').onclick = () => addNewRow();
+    document.getElementById('addStockRowBtn').onclick = () => addNewStockRow();
+
+    function addNewRow() {
+        const count = parseInt(totalForms.value);
+        const lastRow = getLastRow() || itemsBody.querySelector('.item-row:last-child');
+        const newRow = lastRow.cloneNode(true);
+        newRow.dataset.index = count;
+        newRow.querySelectorAll('input, select, textarea').forEach(el => {
+            const nameRegex = /items-\d+-/g;
+            const idRegex = /id_items-\d+-/g;
+            el.name = el.name.replace(nameRegex, `items-${count}-`);
+            el.id = el.id.replace(idRegex, `id_items-${count}-`);
+            if (el.type === 'checkbox') el.checked = false;
+            else el.value = '';
+            el.classList.remove('grid-input');
+        });
+        newRow.classList.remove('d-none');
+        const ledgerSelect = newRow.querySelector('.ledger-select');
+        if (ledgerSelect && ledgerOptions.length) {
+            ledgerSelect.innerHTML = '';
+            ledgerOptions.forEach(opt => ledgerSelect.add(new Option(opt.text, opt.value)));
+        }
+        const ledgerFilter = newRow.querySelector('.ledger-filter');
+        if (ledgerFilter) {
+            ledgerFilter.value = '';
+            delete ledgerFilter.dataset.ready;
+        }
+        const ledgerResults = newRow.querySelector('.ledger-results');
+        if (ledgerResults) {
+            ledgerResults.innerHTML = '';
+            ledgerResults.classList.add('d-none');
+        }
+        newRow.querySelectorAll('.dr-field, .cr-field').forEach(f => f.value = '');
+        itemsBody.appendChild(newRow);
+        totalForms.value = count + 1;
+        applyGridClasses();
+        prepareLedgerSearch(newRow);
+        injectAddNewOptions(newRow);
+        prepareEntryTypeSelect(newRow.querySelector('.entry-type-select'));
+        const firstField = newRow.querySelector('select, input');
+        if (firstField) firstField.focus();
+    }
+
+    function addNewStockRow() {
+        const count = parseInt(totalStockForms.value);
+        const rows = visibleStockRows();
+        const lastRow = rows[rows.length - 1] || stockBody.querySelector('.stock-row:last-child');
+        const newRow = lastRow.cloneNode(true);
+        
+        newRow.querySelectorAll('input, select, textarea').forEach(el => {
+            const nameRegex = /voucher_stock_items-\d+-/g;
+            const idRegex = /id_voucher_stock_items-\d+-/g;
+            el.name = el.name.replace(nameRegex, `voucher_stock_items-${count}-`);
+            el.id = el.id.replace(idRegex, `id_voucher_stock_items-${count}-`);
+            if (el.type === 'checkbox') el.checked = false;
+            else el.value = '';
+            el.classList.remove('grid-input');
+        });
+        newRow.classList.remove('d-none');
+
+        newRow.querySelector('.stock-amt').textContent = '0.00';
+        stockBody.appendChild(newRow);
+        totalStockForms.value = count + 1;
+        applyGridClasses();
+        injectAddNewOptions(newRow);
+        
+        // Focus first field
+        const firstField = newRow.querySelector('select, input');
+        if (firstField) firstField.focus();
+        return newRow;
+    }
+
+    function calculateTotals() {
+        let drTotal = 0, crTotal = 0;
+        itemsBody.querySelectorAll('.item-row').forEach(row => {
+            const deleteInput = row.querySelector('input[name$="-DELETE"]');
+            if (row.classList.contains('d-none') || deleteInput?.checked) return;
+            const type = row.querySelector('select[name$="entry_type"]')?.value;
+            const amt = parseFloat(row.querySelector('input[name$="amount"]')?.value || 0);
+            if (type === 'DR') drTotal += amt; else if (type === 'CR') crTotal += amt;
+        });
+        document.getElementById('totalDr').textContent = drTotal.toFixed(2);
+        document.getElementById('totalCr').textContent = crTotal.toFixed(2);
+        const status = document.getElementById('gridStatus');
+        const diff = Math.abs(drTotal - crTotal);
+        if (diff < 0.01 && drTotal > 0) status.innerHTML = '<span class="balanced-ok">✓ Balanced</span>';
+        else if (drTotal > 0 || crTotal > 0) status.innerHTML = `<span class="balanced-fail">⚠ Diff: ${diff.toFixed(2)}</span>`;
+        else status.innerHTML = '';
+    }
+
+    function calculateStockTotals() {
+        let total = 0;
+        stockBody.querySelectorAll('.stock-row').forEach(row => {
+            const deleteInput = row.querySelector('input[name$="-DELETE"]');
+            if (row.classList.contains('d-none') || deleteInput?.checked) return;
+            const qty = parseFloat(row.querySelector('.qty-field').value || 0);
+            const rate = parseFloat(row.querySelector('.rate-field').value || 0);
+            const amt = qty * rate;
+            row.querySelector('.stock-amt').textContent = amt.toFixed(2);
+            total += amt;
+        });
+        document.getElementById('stockTotal').textContent = total.toFixed(2);
+    }
+
+    function getVisibleFields() {
+        return Array.from(form.querySelectorAll('input, select, textarea'))
+                    .filter(el => el.offsetParent !== null && !el.disabled && !el.readOnly);
+    }
+    function getLastRow() {
+        return Array.from(itemsBody.querySelectorAll('.item-row')).filter(row => {
+            const deleteInput = row.querySelector('input[name$="-DELETE"]');
+            return !row.classList.contains('d-none') && !deleteInput?.checked;
+        }).pop();
+    }
+    function handleAccept() { document.getElementById('tallyAcceptBox').classList.remove('d-none'); document.getElementById('btnYes').focus(); }
+
+    document.getElementById('btnYes').onclick = () => form.submit();
+    document.getElementById('btnNo').onclick = () => { document.getElementById('tallyAcceptBox').classList.add('d-none'); document.querySelector('[name="narration"]').focus(); };
+    window.addEventListener('keydown', (e) => {
+        if (document.getElementById('tallyAcceptBox').classList.contains('d-none')) return;
+        if (e.key.toLowerCase() === 'y') form.submit();
+        if (e.key.toLowerCase() === 'n' || e.key === 'Escape') document.getElementById('btnNo').click();
+    });
+    document.getElementById('smartEntry').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('smartEntryBtn').click(); } });
+
+    calculateTotals();
+    calculateStockTotals();
+});
+
+function removeRow(btn) {
+    const row = btn.closest('tr');
+    const visibleRows = Array.from(document.querySelectorAll('.item-row')).filter(r => !r.classList.contains('d-none'));
+    if (visibleRows.length <= 1) return;
+    const deleteInput = row.querySelector('input[name$="-DELETE"]');
+    if (deleteInput) {
+        deleteInput.checked = true;
+        row.classList.add('d-none');
+    } else {
+        row.remove();
+    }
+}
+function removeStockRow(btn) {
+    const row = btn.closest('tr');
+    const visibleRows = Array.from(document.querySelectorAll('.stock-row')).filter(r => !r.classList.contains('d-none'));
+    if (visibleRows.length <= 1) return;
+    const deleteInput = row.querySelector('input[name$="-DELETE"]');
+    if (deleteInput) {
+        deleteInput.checked = true;
+        row.classList.add('d-none');
+    } else {
+        row.remove();
+    }
+    const stockTotal = document.getElementById('stockTotal');
+    if (stockTotal) {
+        let total = 0;
+        document.querySelectorAll('.stock-row:not(.d-none)').forEach(r => {
+            total += (parseFloat(r.querySelector('.qty-field')?.value || 0) || 0) *
+                     (parseFloat(r.querySelector('.rate-field')?.value || 0) || 0);
+        });
+        stockTotal.textContent = total.toFixed(2);
+    }
+}
+</script>
+{% endblock %}

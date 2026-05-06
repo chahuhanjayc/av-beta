@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+{% block title %}TDS Post-Filing Center - Akshaya Vistara{% endblock %}
+{% block page_title %}TDS Post-Filing Center{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3">
+    <form class="row g-2 align-items-end" method="get">
+      <div class="col-sm-3 col-lg-2">
+        <label class="form-label small mb-1">Financial Year</label>
+        <select name="fy" class="form-select form-select-sm">
+          {% for option in fy_options %}
+            <option value="{{ option.value }}" {% if filters.fy_start == option.value %}selected{% endif %}>{{ option.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-3 col-lg-2">
+        <label class="form-label small mb-1">Quarter</label>
+        <select name="quarter" class="form-select form-select-sm">
+          {% for value, label in quarter_options %}
+            <option value="{{ value }}" {% if filters.quarter == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-4 col-lg-3">
+        <label class="form-label small mb-1">Return</label>
+        <select name="form_type" class="form-select form-select-sm">
+          {% for value, label in form_type_options %}
+            <option value="{{ value }}" {% if filters.form_type == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-sm">
+          <i class="bi bi-funnel me-1"></i>Load
+        </button>
+      </div>
+      <div class="col-auto ms-auto d-flex gap-2">
+        <a href="{% url 'tds:filing_pack' %}?fy={{ filters.fy_start }}&quarter={{ filters.quarter }}&form_type={{ filters.form_type }}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-archive me-1"></i>Filing Pack
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="small text-muted">Filing Pack</div>
+        <div class="fw-bold fs-5">{% if summary.pack_is_filed %}Filed{% elif summary.pack_exists %}{{ summary.pack_status|title }}{% else %}Missing{% endif %}</div>
+        <div class="small text-muted">{{ filters.form_type }} {{ filters.quarter }} FY {{ filters.fy_label }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="small text-muted">TRACES Status</div>
+        <div class="fw-bold fs-5">{{ tracker.get_statement_status_display|default:"Not Checked" }}</div>
+        <div class="small text-muted">{% if tracker.status_checked_at %}Checked {{ tracker.status_checked_at|date:"d M Y H:i" }}{% else %}Not checked{% endif %}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="small text-muted">Correction</div>
+        <div class="fw-bold fs-5 {% if summary.correction_required %}text-danger{% else %}text-success{% endif %}">
+          {% if summary.correction_required %}Required{% else %}Not Required{% endif %}
+        </div>
+        <div class="small text-muted">{{ tracker.get_correction_status_display|default:"Not Required" }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="small text-muted">{{ summary.certificate_type }} Issuance</div>
+        <div class="fw-bold fs-5">{{ summary.issued_certificate_count }}/{{ summary.certificate_count }}</div>
+        <div class="small text-muted">{{ summary.pending_certificate_count }} pending, {{ summary.expected_certificate_count }} expected</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-8">
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <div>
+          <h6 class="mb-0 fw-bold">Lifecycle Checks</h6>
+          <div class="small text-muted">Filed status, TRACES processing, defaults, conso/JR, and certificate issuance.</div>
+        </div>
+        {% if summary.can_issue_certificates %}
+          <span class="badge bg-success-subtle text-success">Certificates can be issued</span>
+        {% else %}
+          <span class="badge bg-warning-subtle text-warning">Certificate issue gated</span>
+        {% endif %}
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm table-hover mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Status</th>
+              <th>Check</th>
+              <th class="text-end">Count</th>
+              <th>Result</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in validations %}
+            <tr>
+              <td>
+                {% if item.severity == "critical" %}
+                  <span class="badge bg-danger-subtle text-danger">Critical</span>
+                {% elif item.severity == "warning" %}
+                  <span class="badge bg-warning-subtle text-warning">Warning</span>
+                {% else %}
+                  <span class="badge bg-success-subtle text-success">OK</span>
+                {% endif %}
+              </td>
+              <td class="fw-semibold">{{ item.title }}</td>
+              <td class="text-end">{{ item.count }}</td>
+              <td class="small text-muted">{{ item.description }}</td>
+              <td class="text-end">
+                {% if item.action_url %}
+                  <a href="{{ item.action_url }}" class="btn btn-sm btn-outline-secondary">Open</a>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <div>
+          <h6 class="mb-0 fw-bold">Certificate Issuance</h6>
+          <div class="small text-muted">Deductee-wise {{ summary.certificate_type }} request, download, signing and issue status.</div>
+        </div>
+        {% if can_write %}
+        <form method="post" class="m-0">
+          {% csrf_token %}
+          <input type="hidden" name="fy" value="{{ filters.fy_start }}">
+          <input type="hidden" name="quarter" value="{{ filters.quarter }}">
+          <input type="hidden" name="form_type" value="{{ filters.form_type }}">
+          <button type="submit" name="action" value="sync_certificates" class="btn btn-outline-primary btn-sm" {% if not pack %}disabled{% endif %}>
+            <i class="bi bi-arrow-repeat me-1"></i>Sync Rows
+          </button>
+        </form>
+        {% endif %}
+      </div>
+      <div class="card-body p-0">
+        {% if certificates %}
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0 align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>#</th>
+                <th>Deductee</th>
+                <th>PAN</th>
+                <th>Section</th>
+                <th class="text-end">TDS</th>
+                <th>Status</th>
+                <th>Request / Evidence</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for cert in certificates %}
+              <tr>
+                <td>{{ cert.entry_serial }}</td>
+                <td>
+                  <div class="fw-semibold">{{ cert.deductee_name }}</div>
+                  <div class="small text-muted">{{ cert.get_certificate_type_display }}</div>
+                </td>
+                <td><code>{{ cert.deductee_pan|default:"-" }}</code></td>
+                <td>{{ cert.section_code|default:"-" }}</td>
+                <td class="text-end fw-semibold">{{ cert.tds_amount|floatformat:2 }}</td>
+                {% if can_write %}
+                <td colspan="3">
+                  <form method="post" class="row g-2 align-items-center">
+                    {% csrf_token %}
+                    <input type="hidden" name="fy" value="{{ filters.fy_start }}">
+                    <input type="hidden" name="quarter" value="{{ filters.quarter }}">
+                    <input type="hidden" name="form_type" value="{{ filters.form_type }}">
+                    <input type="hidden" name="certificate_id" value="{{ cert.pk }}">
+                    <div class="col-md-3">
+                      <select name="status" class="form-select form-select-sm">
+                        {% for value, label in certificate_status_choices %}
+                          <option value="{{ value }}" {% if cert.status == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="col-md-3">
+                      <input name="request_number" class="form-control form-control-sm" value="{{ cert.request_number }}" placeholder="Request no.">
+                    </div>
+                    <div class="col-md-2">
+                      <select name="issue_channel" class="form-select form-select-sm">
+                        {% for value, label in issue_channel_choices %}
+                          <option value="{{ value }}" {% if cert.issue_channel == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="col-md-3">
+                      <input name="evidence_reference" class="form-control form-control-sm" value="{{ cert.evidence_reference }}" placeholder="Evidence">
+                    </div>
+                    <div class="col-md-1 text-end">
+                      <button type="submit" name="action" value="update_certificate" class="btn btn-sm btn-outline-primary">Save</button>
+                    </div>
+                    <input type="hidden" name="notes" value="{{ cert.notes }}">
+                  </form>
+                </td>
+                {% else %}
+                <td><span class="badge bg-secondary-subtle text-secondary">{{ cert.get_status_display }}</span></td>
+                <td class="small text-muted">{{ cert.request_number|default:"-" }}</td>
+                <td class="text-muted small">{{ cert.evidence_reference|default:"-" }}</td>
+                {% endif %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+          <i class="bi bi-patch-check fs-1 d-block mb-2"></i>
+          No certificate rows synced for this filing pack.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3">
+        <h6 class="mb-0 fw-bold">TRACES Control</h6>
+      </div>
+      <div class="card-body">
+        {% if not can_write %}
+          <div class="alert alert-light border small mb-0">You have read-only access to this tracker.</div>
+        {% else %}
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="fy" value="{{ filters.fy_start }}">
+          <input type="hidden" name="quarter" value="{{ filters.quarter }}">
+          <input type="hidden" name="form_type" value="{{ filters.form_type }}">
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold" for="statement-status">Statement Status</label>
+            <select id="statement-status" name="statement_status" class="form-select form-select-sm">
+              {% for value, label in statement_status_choices %}
+                <option value="{{ value }}" {% if tracker.statement_status == value or not tracker and summary.statement_status == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold" for="traces-request">TRACES Request / Token</label>
+            <input id="traces-request" name="traces_request_number" class="form-control form-control-sm" value="{{ tracker.traces_request_number|default:"" }}" placeholder="Request / token no.">
+          </div>
+
+          <div class="row g-2">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold" for="jr-status">Justification Report</label>
+              <select id="jr-status" name="justification_report_status" class="form-select form-select-sm">
+                {% for value, label in report_status_choices %}
+                  <option value="{{ value }}" {% if tracker.justification_report_status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold" for="jr-request">JR Request</label>
+              <input id="jr-request" name="justification_request_number" class="form-control form-control-sm" value="{{ tracker.justification_request_number|default:"" }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold" for="conso-status">Conso File</label>
+              <select id="conso-status" name="conso_file_status" class="form-select form-select-sm">
+                {% for value, label in report_status_choices %}
+                  <option value="{{ value }}" {% if tracker.conso_file_status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold" for="conso-request">Conso Request</label>
+              <input id="conso-request" name="conso_request_number" class="form-control form-control-sm" value="{{ tracker.conso_request_number|default:"" }}">
+            </div>
+          </div>
+
+          <div class="form-check mt-3">
+            <input id="correction-required" name="correction_required" class="form-check-input" type="checkbox" value="1" {% if tracker.correction_required %}checked{% endif %}>
+            <label class="form-check-label small fw-semibold" for="correction-required">Correction required</label>
+          </div>
+          <div class="mt-2">
+            <label class="form-label small fw-semibold" for="correction-status">Correction Status</label>
+            <select id="correction-status" name="correction_status" class="form-select form-select-sm">
+              {% for value, label in correction_status_choices %}
+                <option value="{{ value }}" {% if tracker.correction_status == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mt-2">
+            <label class="form-label small fw-semibold" for="correction-reason">Correction Reason</label>
+            <input id="correction-reason" name="correction_reason" class="form-control form-control-sm" value="{{ tracker.correction_reason|default:"" }}" placeholder="PAN / challan / short payment / interest">
+          </div>
+          <div class="mt-3">
+            <label class="form-label small fw-semibold" for="tracker-notes">Notes</label>
+            <textarea id="tracker-notes" name="notes" rows="3" class="form-control form-control-sm">{{ tracker.notes|default:"" }}</textarea>
+          </div>
+          <div class="d-grid mt-4">
+            <button type="submit" name="action" value="save_tracker" class="btn btn-primary" {% if not pack %}disabled{% endif %}>
+              <i class="bi bi-floppy me-1"></i>Save TRACES Status
+            </button>
+          </div>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

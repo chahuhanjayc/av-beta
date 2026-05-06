@@ -1,0 +1,268 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign in - Akshaya Vistara</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+    <script>
+        (function() {
+          const theme = localStorage.getItem('theme') || 'light';
+          document.documentElement.setAttribute('data-bs-theme', theme);
+        })();
+    </script>
+</head>
+<body>
+    <div class="bg-decor" style="top: 10%; left: 5%;">GST / IRP / EWB</div>
+    <div class="bg-decor" style="top: 80%; left: 15%;">TRACES imported</div>
+    <div class="bg-decor" style="top: 20%; right: 10%;">Practice queue: live</div>
+    <div class="bg-decor" style="bottom: 10%; right: 5%;">Readiness: 92%</div>
+    <div class="bg-decor" style="top: 50%; left: 2%;">[ITC at risk]</div>
+    <div class="bg-decor" style="bottom: 40%; right: 2%;">Client portal ready</div>
+
+    <div class="login-card">
+        <div class="info-section">
+            <div class="brand-name">Akshaya Vistara</div>
+
+            <div id="content-rotator" class="slide-panel">
+                <div class="slide-meta">
+                    <div>
+                        <div class="category-label" id="msg-category">CA Command</div>
+                        <div class="main-message" id="msg-title">Run the firm from one operating dashboard</div>
+                    </div>
+                    <div class="slide-icon">
+                        <i id="msg-icon" class="bi bi-speedometer2"></i>
+                    </div>
+                </div>
+                <div class="sub-message" id="msg-subtext">
+                    Track setup readiness, practice workload, statutory pipeline, client requests, cash flow, and voucher activity in one live cockpit.
+                </div>
+                <div class="feature-points" id="msg-points"></div>
+                <div class="slide-progress" aria-hidden="true">
+                    <span class="active"></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+
+            <div class="skill-glass-panel" id="skillGlassPanel" aria-hidden="true">
+                <button type="button" class="glass-close" id="skillGlassClose" aria-label="Close detail">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+                <div class="glass-kicker" id="glassCategory">CA Command</div>
+                <div class="glass-title" id="glassTitle">Run the firm from one operating dashboard</div>
+                <div class="glass-copy" id="glassCopy"></div>
+                <div class="glass-list" id="glassList"></div>
+            </div>
+
+            <div class="footer-text">
+                &copy; 2026 Akshaya Vistara
+            </div>
+        </div>
+
+        <div class="form-section">
+            <div class="form-title">Sign in</div>
+            <div class="form-subtitle">Secure | Role-based access</div>
+
+            {% if messages %}
+                {% for msg in messages %}
+                    <div class="alert alert-danger py-2 px-3 small mb-4 border-0" style="background: rgba(220, 38, 38, 0.15); color: #fca5a5; font-size: 0.75rem;">
+                        {{ msg }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <div class="mb-3">
+                    <div class="field-label">Email Address</div>
+                    {{ form.email }}
+                </div>
+
+                <div class="mb-4">
+                    <div class="field-label">Password</div>
+                    {{ form.password }}
+                </div>
+
+                <button type="submit" class="btn btn-signin w-100">
+                    Sign in &rarr;
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const messages = [
+                {
+                    cat: "CA Command",
+                    icon: "bi-speedometer2",
+                    title: "Run the firm from one operating dashboard",
+                    sub: "Track setup readiness, practice workload, statutory pipeline, client requests, cash flow, and voucher activity in one live cockpit.",
+                    points: ["Readiness score", "Priority queue", "Launchpad"],
+                    detail: [
+                        "Readiness score combines setup, statutory, integrations, security, and client portal health into one operating signal.",
+                        "Priority queue brings urgent notices, filing work, overdue client requests, and exception tasks into a CA-first action list.",
+                        "Launchpad gives the partner a clean starting point for demos, onboarding, client follow-up, and daily practice review."
+                    ]
+                },
+                {
+                    cat: "GST / Statutory",
+                    icon: "bi-shield-check",
+                    title: "GST, IRP, e-way bill and TRACES workflows",
+                    sub: "Move from filing preparation to review, evidence, post-filing closure, integration control, and statutory exports without switching tools.",
+                    points: ["Filing review", "E-invoice / e-way", "TRACES import"],
+                    detail: [
+                        "Filing review covers GST readiness, exposure, filing packs, review center, post-filing closure, and evidence tracking.",
+                        "E-invoice and e-way bill cockpits keep provider readiness, request payloads, status marking, and operating control visible.",
+                        "TRACES import lets the practice bring statutory result files into the same evidence and exception workflow."
+                    ]
+                },
+                {
+                    cat: "Client Self-Service",
+                    icon: "bi-inbox",
+                    title: "WhatsApp intake, invoice email and request room",
+                    sub: "Let clients send documents to the right number, receive invoices by email, and respond through guided client request links.",
+                    points: ["WhatsApp setup", "Invoice email", "Upload links"],
+                    detail: [
+                        "WhatsApp setup tells each client which number to use so incoming documents can be identified by the app workflow.",
+                        "Invoice email supports client email capture and one-click invoice dispatch from inside the accounting flow.",
+                        "Upload links let the practice request missing files through a guided client room instead of repeated manual follow-up."
+                    ]
+                },
+                {
+                    cat: "Tally Exit",
+                    icon: "bi-rocket-takeoff",
+                    title: "Pilot controls for Tally and ERP migration",
+                    sub: "Use operating readiness, pilot launch, adoption evidence, feedback, and market proof to move clients into a stronger CA-led platform.",
+                    points: ["Pilot launch", "Adoption proof", "Feedback register"],
+                    detail: [
+                        "Pilot launch structures who is ready, what is blocked, and which client needs the next conversion action.",
+                        "Adoption proof captures evidence that the client is using the new workflows instead of falling back to old habits.",
+                        "Feedback register gives the CA partner proof of what worked, what blocked adoption, and what needs product follow-up."
+                    ]
+                },
+                {
+                    cat: "Production Trust",
+                    icon: "bi-shield-lock",
+                    title: "Built for secure production operations",
+                    sub: "Security control, go-live certificate, observability, backups, audit trail, and role-based access help the firm operate with confidence.",
+                    points: ["Security control", "Go-live pack", "Audit trail"],
+                    detail: [
+                        "Security control brings role access, sensitive settings, and production readiness into a visible governance area.",
+                        "Go-live pack gives the partner a professional evidence bundle for deployment confidence and client assurance.",
+                        "Audit trail keeps critical changes traceable so the firm can operate with accountability."
+                    ]
+                }
+            ];
+
+            let index = 0;
+            let slideTimer;
+            const container = document.getElementById('content-rotator');
+            const catEl = document.getElementById('msg-category');
+            const titleEl = document.getElementById('msg-title');
+            const subEl = document.getElementById('msg-subtext');
+            const iconEl = document.getElementById('msg-icon');
+            const pointsEl = document.getElementById('msg-points');
+            const progressEls = Array.from(document.querySelectorAll('.slide-progress span'));
+            const glassPanel = document.getElementById('skillGlassPanel');
+            const glassClose = document.getElementById('skillGlassClose');
+            const glassCategory = document.getElementById('glassCategory');
+            const glassTitle = document.getElementById('glassTitle');
+            const glassCopy = document.getElementById('glassCopy');
+            const glassList = document.getElementById('glassList');
+
+            function renderMessage(nextIndex) {
+                const message = messages[nextIndex];
+                catEl.innerText = message.cat;
+                titleEl.innerText = message.title;
+                subEl.innerText = message.sub;
+                iconEl.className = `bi ${message.icon}`;
+                pointsEl.innerHTML = '';
+
+                message.points.forEach((point, pointIndex) => {
+                    const item = document.createElement('button');
+                    item.type = 'button';
+                    item.className = 'feature-point-btn';
+                    item.innerText = point;
+                    item.addEventListener('click', () => openGlassPanel(nextIndex, pointIndex));
+                    pointsEl.appendChild(item);
+                });
+
+                progressEls.forEach((el, progressIndex) => {
+                    el.classList.toggle('active', progressIndex === nextIndex);
+                });
+            }
+
+            function openGlassPanel(messageIndex, selectedPointIndex) {
+                const message = messages[messageIndex];
+                clearInterval(slideTimer);
+                glassCategory.innerText = message.cat;
+                glassTitle.innerText = message.points[selectedPointIndex] || message.title;
+                glassCopy.innerText = message.sub;
+                glassList.innerHTML = '';
+
+                message.detail.forEach((detail, detailIndex) => {
+                    const item = document.createElement('div');
+                    item.className = 'glass-list-item';
+                    if (detailIndex === selectedPointIndex) item.classList.add('active');
+                    item.innerHTML = `<span>${message.points[detailIndex]}</span><p>${detail}</p>`;
+                    glassList.appendChild(item);
+                });
+
+                glassPanel.classList.add('show');
+                glassPanel.setAttribute('aria-hidden', 'false');
+                glassClose.focus();
+            }
+
+            function closeGlassPanel() {
+                glassPanel.classList.remove('show');
+                glassPanel.setAttribute('aria-hidden', 'true');
+                startSlideTimer();
+            }
+
+            function advanceSlide() {
+                container.classList.add('fade-out');
+
+                setTimeout(() => {
+                    index = (index + 1) % messages.length;
+                    renderMessage(index);
+
+                    container.classList.remove('fade-out');
+                    container.classList.add('slide-up');
+
+                    setTimeout(() => {
+                        container.classList.remove('slide-up');
+                    }, 500);
+                }, 400);
+            }
+
+            function startSlideTimer() {
+                clearInterval(slideTimer);
+                slideTimer = setInterval(advanceSlide, 5000);
+            }
+
+            renderMessage(index);
+            startSlideTimer();
+
+            glassClose.addEventListener('click', closeGlassPanel);
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && glassPanel.classList.contains('show')) {
+                    closeGlassPanel();
+                }
+            });
+
+            document.querySelectorAll('input').forEach(input => {
+                input.classList.add('form-control');
+                if (input.type === 'email') input.placeholder = 'Enter email';
+                if (input.type === 'password') input.placeholder = 'Password';
+            });
+        });
+    </script>
+</body>
+</html>

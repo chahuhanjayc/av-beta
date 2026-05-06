@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+
+{% block title %}Collections Center - Akshaya Vistara{% endblock %}
+{% block page_title %}Collections Center{% endblock %}
+
+{% block extra_head %}
+<style>
+  .collections-filter {
+    background: var(--surface-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 0.85rem 1rem;
+  }
+  .collections-filter label {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+  }
+  .collection-actions {
+    flex-wrap: wrap;
+  }
+  .client-risk-list {
+    max-height: 26rem;
+    overflow: auto;
+  }
+  .invoice-ref {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 0.75rem;
+  }
+  @media (max-width: 767.98px) {
+    .collection-actions .btn,
+    .collection-actions form,
+    .collection-actions form .btn {
+      width: 100%;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h5 class="mb-1">Collections Center</h5>
+    <small class="text-muted">Prioritize overdue receivables, contact clients, and create follow-up tasks.</small>
+  </div>
+  <div class="d-flex gap-2 collection-actions">
+    <a href="?{{ export_query }}" class="btn btn-outline-success btn-sm">
+      <i class="bi bi-download me-1"></i>CSV
+    </a>
+    <a href="{% url 'vouchers:outstanding' %}?type=Sales&status=outstanding" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-card-list me-1"></i>Outstanding
+    </a>
+    <a href="{% url 'reports:receivables_aging' %}?as_of_date={{ as_of_date|date:'Y-m-d' }}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-bar-chart-steps me-1"></i>Aging
+    </a>
+  </div>
+</div>
+
+<form method="get" class="collections-filter mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-4 col-xl-3">
+      <label for="company">Workspace</label>
+      <select id="company" name="company" class="form-select form-select-sm">
+        <option value="">All assigned workspaces</option>
+        {% for company in companies %}
+          <option value="{{ company.pk }}" {% if selected_company_id|stringformat:"s" == company.pk|stringformat:"s" %}selected{% endif %}>{{ company.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-3 col-xl-2">
+      <label for="as_of">As Of</label>
+      <input id="as_of" type="date" name="as_of" value="{{ as_of_date|date:'Y-m-d' }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-6 col-md-3 col-xl-2">
+      <label for="risk">Focus</label>
+      <select id="risk" name="risk" class="form-select form-select-sm">
+        {% for value, label in risk_filter_choices %}
+          <option value="{{ value }}" {% if risk_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-primary btn-sm w-100">
+        <i class="bi bi-funnel me-1"></i>Apply
+      </button>
+    </div>
+  </div>
+</form>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Collection Score</div>
+        <div class="h4 mb-0 {% if totals.collection_score >= 80 %}text-success{% elif totals.collection_score >= 50 %}text-warning{% else %}text-danger{% endif %}">
+          {{ totals.collection_score }}%
+        </div>
+        <div class="small text-muted">{{ totals.invoice_count }} open invoice(s)</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Outstanding</div>
+        <div class="h4 mb-0 text-primary">Rs. {{ totals.total_outstanding|floatformat:2 }}</div>
+        <div class="small text-muted">{{ totals.party_count }} client(s)</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Overdue</div>
+        <div class="h4 mb-0 {% if totals.overdue_amount %}text-danger{% else %}text-success{% endif %}">
+          Rs. {{ totals.overdue_amount|floatformat:2 }}
+        </div>
+        <div class="small text-muted">{{ totals.overdue_count }} invoice(s)</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Contact Gaps</div>
+        <div class="h4 mb-0 {% if totals.no_contact %}text-danger{% else %}text-success{% endif %}">{{ totals.no_contact }}</div>
+        <div class="small text-muted">{{ totals.email_ready }} email, {{ totals.whatsapp_ready }} WhatsApp ready</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-xl-4">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-people me-2"></i>Client Exposure</h6>
+        <span class="small text-muted">Highest risk first</span>
+      </div>
+      <div class="list-group list-group-flush client-risk-list">
+        {% for party in party_rows|slice:":25" %}
+          <div class="list-group-item">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div>
+                <div class="fw-semibold">{{ party.party_name }}</div>
+                <div class="small text-muted">{{ party.company.name }} | {{ party.invoice_count }} invoice(s)</div>
+              </div>
+              <span class="badge bg-{{ party.status_class }}-subtle text-{{ party.status_class }}">{{ party.status_label }}</span>
+            </div>
+            <div class="d-flex justify-content-between small mt-2">
+              <span>Outstanding</span>
+              <strong>Rs. {{ party.outstanding|floatformat:2 }}</strong>
+            </div>
+            {% if party.overdue_amount %}
+              <div class="d-flex justify-content-between small text-danger mt-1">
+                <span>{{ party.max_overdue }} day(s) max overdue</span>
+                <strong>Rs. {{ party.overdue_amount|floatformat:2 }}</strong>
+              </div>
+            {% endif %}
+            {% if party.credit_exposure %}
+              <div class="small text-danger mt-1">Credit exposure: Rs. {{ party.credit_exposure|floatformat:2 }}</div>
+            {% endif %}
+          </div>
+        {% empty %}
+          <div class="list-group-item text-center text-muted py-4">No open receivable exposure.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-8">
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="as_of" value="{{ as_of_date|date:'Y-m-d' }}">
+      <input type="hidden" name="risk" value="{{ risk_filter }}">
+      {% if selected_company_id %}<input type="hidden" name="company" value="{{ selected_company_id }}">{% endif %}
+      <div class="card">
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+          <h6 class="mb-0"><i class="bi bi-cash-stack me-2"></i>Invoice Action Queue</h6>
+          <div class="d-flex gap-2 collection-actions">
+            <button type="submit" name="action" value="create_tasks" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-list-check me-1"></i>Create Tasks
+            </button>
+            <button type="submit" name="action" value="send_email" class="btn btn-sm btn-outline-success">
+              <i class="bi bi-envelope me-1"></i>Email Selected
+            </button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3" style="width: 38px;">
+                  <input type="checkbox" class="form-check-input" onclick="document.querySelectorAll('.collection-check').forEach(cb => cb.checked = this.checked)">
+                </th>
+                <th>Invoice</th>
+                <th>Client</th>
+                <th>Due</th>
+                <th class="text-end">Outstanding</th>
+                <th>Contact</th>
+                <th class="text-end pe-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in rows %}
+                <tr>
+                  <td class="ps-3">
+                    <input type="checkbox" class="form-check-input collection-check" name="invoice_ids" value="{{ row.voucher.pk }}">
+                  </td>
+                  <td>
+                    <a href="{{ row.voucher_url }}" class="fw-semibold text-decoration-none">{{ row.voucher.number|default:row.voucher.pk }}</a>
+                    <div class="small text-muted invoice-ref">{{ row.voucher.date|date:"d M Y" }} | {{ row.company.short_code|default:row.company.name }}</div>
+                    {% if row.task_exists %}
+                      <span class="badge bg-info-subtle text-info">Task ready</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="fw-semibold">{{ row.party_name }}</div>
+                    <div class="small text-muted">{{ row.company.name }}</div>
+                  </td>
+                  <td>
+                    <span class="badge bg-{{ row.status_class }}-subtle text-{{ row.status_class }}">{{ row.status_label }}</span>
+                    <div class="small {% if row.is_overdue %}text-danger{% else %}text-muted{% endif %}">
+                      {% if row.voucher.due_date %}{{ row.voucher.due_date|date:"d M Y" }}{% else %}No due date{% endif %}
+                      {% if row.days_overdue and row.days_overdue > 0 %} | {{ row.days_overdue }} day(s){% endif %}
+                    </div>
+                  </td>
+                  <td class="text-end fw-semibold">Rs. {{ row.outstanding|floatformat:2 }}</td>
+                  <td>
+                    {% if row.email %}
+                      <div class="small"><i class="bi bi-envelope me-1"></i>{{ row.email }}</div>
+                    {% endif %}
+                    {% if row.whatsapp_number %}
+                      <div class="small"><i class="bi bi-whatsapp me-1"></i>{{ row.whatsapp_number }}</div>
+                    {% endif %}
+                    {% if not row.contact_ready %}
+                      <span class="small text-danger">Add email or WhatsApp</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-end pe-3">
+                    <div class="btn-group btn-group-sm">
+                      <a href="{{ row.whatsapp_url }}" target="_blank" rel="noopener" class="btn btn-outline-success" title="Open WhatsApp reminder">
+                        <i class="bi bi-whatsapp"></i>
+                      </a>
+                      <a href="{{ row.outstanding_url }}" class="btn btn-outline-primary" title="Open outstanding statement">
+                        <i class="bi bi-card-list"></i>
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="7" class="text-center text-muted py-5">No invoices match this collection focus.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

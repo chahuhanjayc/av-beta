@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Payroll Runs – Akshaya Vistara{% endblock %}
+{% block page_title %}Payroll Runs{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <span class="text-muted small">{{ runs|length }} payroll run(s)</span>
+  <div class="d-flex gap-2">
+    <a href="{% url 'payroll:payroll_summary' %}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-table me-1"></i>Payroll Summary
+    </a>
+    <a href="{% url 'payroll:payroll_run_create' %}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-lg me-1"></i>New Payroll Run
+    </a>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    {% if runs %}
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Period</th>
+          <th>Status</th>
+          <th class="text-end">Payslips</th>
+          <th class="text-end">Net Pay (₹)</th>
+          <th>Processed</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for run in runs %}
+        <tr>
+          <td class="fw-semibold">
+            <a href="{% url 'payroll:payroll_run_detail' pk=run.pk %}" class="text-decoration-none">
+              {{ run.get_month_display }} {{ run.year }}
+            </a>
+          </td>
+          <td>
+            {% if run.status == "Draft" %}<span class="badge bg-secondary">Draft</span>
+            {% elif run.status == "Processed" %}<span class="badge bg-primary">Processed</span>
+            {% elif run.status == "Finalized" %}<span class="badge bg-success">Finalized</span>
+            {% endif %}
+          </td>
+          <td class="text-end">{{ run.payslips.count }}</td>
+          <td class="text-end fw-semibold">
+            {% with total=run.payslips.all %}
+            —
+            {% endwith %}
+          </td>
+          <td class="small text-muted">{{ run.processed_at|date:"d M Y"|default:"—" }}</td>
+          <td class="text-end">
+            <a href="{% url 'payroll:payroll_run_detail' pk=run.pk %}" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-eye"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-cash-coin fs-1 d-block mb-2"></i>
+      No payroll runs yet.
+      <a href="{% url 'payroll:payroll_run_create' %}">Create your first payroll run</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

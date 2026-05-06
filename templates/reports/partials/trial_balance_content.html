@@ -1,0 +1,134 @@
+<!-- ── Balance status alert ───────────────────────────────────── -->
+{% if not is_balanced %}
+<div class="alert alert-warning d-flex gap-2 py-2 mb-3 no-print">
+  <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
+  <div>
+    <strong>Double-entry imbalance detected!</strong>
+    Period Debit ≠ Period Credit — difference = ₹{{ difference|floatformat:2 }}.
+    This indicates a voucher entry error. Check unbalanced vouchers immediately.
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Report header ─────────────────────────────────────────── -->
+<div class="text-center mb-3">
+  <h4 class="fw-bold mb-0">{{ current_company.name }}</h4>
+  <h5 class="text-muted mb-0">Trial Balance</h5>
+  <p class="text-muted small">Period: {{ start_date|date:"d M Y" }} to {{ end_date|date:"d M Y" }}</p>
+</div>
+
+<!-- ── Trial Balance Table ─────────────────────────────────────── -->
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    <div class="tb-scroll">
+      <table class="table table-sm table-bordered table-hover table-compact mb-0">
+        <thead>
+          <tr>
+            <th rowspan="2" class="align-middle">Ledger Account</th>
+            <th rowspan="2" class="align-middle text-center" style="width:90px;">Group</th>
+            <th colspan="2" class="text-center border-start">Opening Balance</th>
+            <th colspan="2" class="text-center border-start">Period Movements</th>
+            <th colspan="2" class="text-center border-start">Closing Balance</th>
+          </tr>
+          <tr>
+            <th class="text-end border-start" style="width:120px;">Dr (₹)</th>
+            <th class="text-end" style="width:120px;">Cr (₹)</th>
+            <th class="text-end border-start" style="width:120px;">Dr (₹)</th>
+            <th class="text-end" style="width:120px;">Cr (₹)</th>
+            <th class="text-end border-start" style="width:120px;">Dr (₹)</th>
+            <th class="text-end" style="width:120px;">Cr (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td class="fw-medium">{{ row.name }}</td>
+            <td class="text-center">
+              <span class="badge
+                {% if row.group == 'Asset' %}bg-primary bg-opacity-10 text-primary
+                {% elif row.group == 'Liability' %}bg-warning bg-opacity-10 text-warning-emphasis
+                {% elif row.group == 'Income' %}bg-success bg-opacity-10 text-success
+                {% elif row.group == 'Expense' %}bg-danger bg-opacity-10 text-danger
+                {% else %}bg-secondary bg-opacity-10 text-secondary{% endif %}">
+                {{ row.group }}
+              </span>
+            </td>
+            <td class="text-end {% if row.opening_dr > 0 %}fw-medium{% endif %}">
+              {% if row.opening_dr > 0 %}{{ row.opening_dr|floatformat:2 }}{% else %}—{% endif %}
+            </td>
+            <td class="text-end {% if row.opening_cr > 0 %}fw-medium{% endif %}">
+              {% if row.opening_cr > 0 %}{{ row.opening_cr|floatformat:2 }}{% else %}—{% endif %}
+            </td>
+            <td class="text-end">
+              {% if row.period_dr > 0 %}{{ row.period_dr|floatformat:2 }}{% else %}—{% endif %}
+            </td>
+            <td class="text-end">
+              {% if row.period_cr > 0 %}{{ row.period_cr|floatformat:2 }}{% else %}—{% endif %}
+            </td>
+            <td class="text-end {% if row.closing_dr > 0 %}text-primary fw-semibold{% endif %}">
+              {% if row.closing_dr > 0 %}{{ row.closing_dr|floatformat:2 }}{% else %}—{% endif %}
+            </td>
+            <td class="text-end {% if row.closing_cr > 0 %}text-success fw-semibold{% endif %}">
+              {% if row.closing_cr > 0 %}{{ row.closing_cr|floatformat:2 }}{% else %}—{% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center text-muted py-4">
+              No ledger accounts found for this company.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot style="background:#1f3864; color:#fff;">
+          <tr>
+            <td class="fw-bold">TOTALS</td>
+            <td></td>
+            <td class="text-end fw-bold">{{ tot_open_dr|floatformat:2 }}</td>
+            <td class="text-end fw-bold">{{ tot_open_cr|floatformat:2 }}</td>
+            <td class="text-end fw-bold
+              {% if is_balanced %}text-success{% else %}text-danger{% endif %}">
+              {{ tot_per_dr|floatformat:2 }}
+            </td>
+            <td class="text-end fw-bold
+              {% if is_balanced %}text-success{% else %}text-danger{% endif %}">
+              {{ tot_per_cr|floatformat:2 }}
+            </td>
+            <td class="text-end fw-bold">{{ tot_clos_dr|floatformat:2 }}</td>
+            <td class="text-end fw-bold">{{ tot_clos_cr|floatformat:2 }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── Summary strip ──────────────────────────────────────────── -->
+<div class="card border-0 shadow mt-3">
+  <div class="card-body py-3 rounded-3
+    {% if is_balanced %}bg-success bg-opacity-10{% else %}bg-danger bg-opacity-10{% endif %}">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+      <div class="text-muted small">
+        <strong>{{ rows|length }}</strong> ledger account{{ rows|length|pluralize }}
+      </div>
+      <div class="d-flex gap-4">
+        <div class="text-center">
+          <div class="small text-muted fw-semibold">Period Debit</div>
+          <div class="fw-bold fs-6">₹{{ tot_per_dr|floatformat:2 }}</div>
+        </div>
+        <div class="text-center">
+          <div class="small text-muted fw-semibold">Period Credit</div>
+          <div class="fw-bold fs-6">₹{{ tot_per_cr|floatformat:2 }}</div>
+        </div>
+        <div class="text-center">
+          <div class="small text-muted fw-semibold">Status</div>
+          {% if is_balanced %}
+            <span class="badge bg-success fs-6">✔ Balanced</span>
+          {% else %}
+            <span class="badge bg-danger fs-6">✘ Out by ₹{{ difference|floatformat:2 }}</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

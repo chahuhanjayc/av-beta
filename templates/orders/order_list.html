@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Orders – Akshaya Vistara{% endblock %}
+{% block page_title %}Purchase & Sales Orders{% endblock %}
+
+{% block content %}
+{# ── Filters ── #}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3">
+    <form class="row g-2 align-items-end" method="get">
+      <div class="col-auto">
+        <label class="form-label small mb-1">Type</label>
+        <select name="type" class="form-select form-select-sm">
+          <option value="">— All Types —</option>
+          <option value="Purchase" {% if order_type == "Purchase" %}selected{% endif %}>Purchase Orders</option>
+          <option value="Sales"    {% if order_type == "Sales"    %}selected{% endif %}>Sales Orders</option>
+        </select>
+      </div>
+      <div class="col-auto">
+        <label class="form-label small mb-1">Status</label>
+        <select name="status" class="form-select form-select-sm">
+          <option value="">— All Statuses —</option>
+          {% for val, label in status_choices %}
+          <option value="{{ val }}" {% if status == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <label class="form-label small mb-1">Search</label>
+        <input type="text" name="q" value="{{ q }}" placeholder="Party or order #" class="form-control form-control-sm">
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+        <a href="{% url 'orders:order_list' %}" class="btn btn-outline-secondary btn-sm ms-1">Clear</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── Actions ── #}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <span class="text-muted small">{{ page_obj.paginator.count }} order(s) found</span>
+  <div class="d-flex gap-2">
+    <a href="{% url 'orders:open_orders' %}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-hourglass-split me-1"></i>Open Orders
+    </a>
+    <a href="{% url 'orders:order_create' %}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-lg me-1"></i>New Order
+    </a>
+  </div>
+</div>
+
+{# ── Table ── #}
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    {% if page_obj.object_list %}
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Order #</th>
+          <th>Type</th>
+          <th>Party</th>
+          <th>Date</th>
+          <th>Expected</th>
+          <th class="text-end">Amount (₹)</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for order in page_obj %}
+        <tr>
+          <td><a href="{% url 'orders:order_detail' pk=order.pk %}" class="fw-semibold text-decoration-none">{{ order.number }}</a></td>
+          <td>
+            {% if order.order_type == "Purchase" %}
+              <span class="badge bg-info-subtle text-info">PO</span>
+            {% else %}
+              <span class="badge bg-success-subtle text-success">SO</span>
+            {% endif %}
+          </td>
+          <td>{{ order.party_ledger.name }}</td>
+          <td>{{ order.order_date }}</td>
+          <td>
+            {% if order.expected_date %}
+              <span class="{% if order.status in 'Confirmed,Partially Fulfilled' and order.expected_date < today %}text-danger fw-semibold{% endif %}">
+                {{ order.expected_date }}
+              </span>
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-end">{{ order.total_amount|floatformat:2 }}</td>
+          <td>
+            {% if order.status == "Draft" %}<span class="badge bg-secondary">Draft</span>
+            {% elif order.status == "Confirmed" %}<span class="badge bg-primary">Confirmed</span>
+            {% elif order.status == "Partially Fulfilled" %}<span class="badge bg-warning text-dark">Partial</span>
+            {% elif order.status == "Fulfilled" %}<span class="badge bg-success">Fulfilled</span>
+            {% elif order.status == "Cancelled" %}<span class="badge bg-danger">Cancelled</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <a href="{% url 'orders:order_detail' pk=order.pk %}" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-eye"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-receipt fs-1 d-block mb-2"></i>
+      No orders found.
+      <a href="{% url 'orders:order_create' %}">Create your first order</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{# ── Pagination ── #}
+{% if page_obj.has_other_pages %}
+<nav class="mt-3">
+  <ul class="pagination pagination-sm justify-content-center">
+    {% if page_obj.has_previous %}
+    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&type={{ order_type }}&status={{ status }}&q={{ q }}">«</a></li>
+    {% endif %}
+    <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+    {% if page_obj.has_next %}
+    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&type={{ order_type }}&status={{ status }}&q={{ q }}">»</a></li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+{% endblock %}
+
+{% block extra_body %}
+<script>
+  // Pass today's date for overdue highlighting
+  const today = "{{ today|date:'Y-m-d' }}";
+</script>
+{% endblock %}

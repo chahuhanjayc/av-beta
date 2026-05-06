@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}Edit Payslip – Akshaya Vistara{% endblock %}
+{% block page_title %}Edit Payslip — {{ payslip.employee.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="alert alert-info small">
+      <i class="bi bi-info-circle me-1"></i>
+      Modify attendance or salary overrides. Salary components will be recomputed automatically on save.
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white fw-semibold py-3">
+          Payslip: {{ payslip.employee.name }} — {{ payslip.payroll_run.get_month_display }} {{ payslip.payroll_run.year }}
+        </div>
+        <div class="card-body">
+          <h6 class="text-muted small text-uppercase fw-semibold border-bottom pb-2 mb-3">Salary Structure</h6>
+          <div class="mb-3">{{ form.salary_structure|as_crispy_field }}</div>
+
+          <h6 class="text-muted small text-uppercase fw-semibold border-bottom pb-2 mb-3">Attendance</h6>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">{{ form.working_days|as_crispy_field }}</div>
+            <div class="col-md-6">{{ form.days_worked|as_crispy_field }}</div>
+          </div>
+
+          <h6 class="text-muted small text-uppercase fw-semibold border-bottom pb-2 mb-3">Overrides</h6>
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">{{ form.other_earnings|as_crispy_field }}</div>
+            <div class="col-md-4">{{ form.tds|as_crispy_field }}</div>
+            <div class="col-md-4">{{ form.other_deductions|as_crispy_field }}</div>
+          </div>
+
+          <h6 class="text-muted small text-uppercase fw-semibold border-bottom pb-2 mb-3">Payment</h6>
+          <div class="row g-3">
+            <div class="col-auto">
+              <div class="form-check mt-2">
+                {{ form.is_paid }}
+                <label class="form-check-label" for="{{ form.is_paid.id_for_label }}">Mark as Paid</label>
+              </div>
+            </div>
+            <div class="col-md-4">{{ form.payment_date|as_crispy_field }}</div>
+            <div class="col-md-6">{{ form.notes|as_crispy_field }}</div>
+          </div>
+        </div>
+        <div class="card-footer bg-white">
+          <div class="d-flex gap-2 justify-content-end">
+            <a href="{% url 'payroll:payslip_detail' pk=payslip.pk %}" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-save me-1"></i>Save & Recompute
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Deactivate Ledger – Akshaya Vistara{% endblock %}
+{% block page_title %}Deactivate Ledger{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-5">
+    <div class="card border-warning border-0 shadow-sm">
+      <div class="card-body text-center p-4">
+        <i class="bi bi-slash-circle-fill text-warning fs-1"></i>
+        <h5 class="mt-3">Deactivate "{{ ledger.name }}"?</h5>
+        <p class="text-muted">
+          This ledger will be marked as <strong>inactive</strong> and hidden from
+          voucher entry forms and the default ledger list. All existing voucher
+          transactions that use this ledger are <strong>preserved</strong>.
+        </p>
+        <p class="text-muted small">You can reactivate this ledger at any time.</p>
+        <form method="post">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-warning me-2">
+            <i class="bi bi-slash-circle me-1"></i> Yes, Deactivate
+          </button>
+          <a href="{% url 'ledger:list' %}" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

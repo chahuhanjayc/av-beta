@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}CA Dashboard – Portal Tracking{% endblock %}
+{% block page_title %}Portal Balance Confirmations{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <h5 class="mb-0 fw-bold">Audit Tracking: {{ company.name }}</h5>
+        <span class="badge bg-primary-subtle text-primary">{{ reports|length }} portal users</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Portal User</th>
+                        <th>Linked Ledger</th>
+                        <th class="text-end">Current Outstanding</th>
+                        <th class="text-center">Status</th>
+                        <th>Last Confirmed At</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for report in reports %}
+                    <tr>
+                        <td class="ps-4">
+                            <div class="fw-bold">{{ report.user.name }}</div>
+                            <div class="small text-muted">{{ report.user.email }}</div>
+                        </td>
+                        <td>{{ report.ledger_name }}</td>
+                        <td class="text-end fw-bold">₹{{ report.outstanding|floatformat:2 }}</td>
+                        <td class="text-center">
+                            {% if report.status == 'Confirmed' %}
+                                <span class="badge bg-success-subtle text-success">
+                                    <i class="bi bi-check-circle-fill me-1"></i>Confirmed
+                                </span>
+                            {% elif report.status == 'Disputed' %}
+                                <span class="badge bg-danger-subtle text-danger">
+                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>Disputed
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning-subtle text-warning">
+                                    <i class="bi bi-clock-history me-1"></i>Pending
+                                </span>
+                            {% endif %}
+                            {% if report.remarks %}
+                                <div class="small text-muted mt-1">{{ report.remarks }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if report.last_confirmed %}
+                                {{ report.last_confirmed|date:"d M Y, H:i" }}
+                            {% else %}
+                                <span class="text-muted small">Never</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'portal:ca_view_ledger' report.user.id %}" class="btn btn-outline-primary" title="Preview Ledger">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{% url 'portal:ca_download_pdf' report.user.id %}" class="btn btn-outline-danger" title="Download PDF Statement">
+                                    <i class="bi bi-file-earmark-pdf"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            No portal users found for this company.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mt-4">
+    <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <h5 class="mb-0 fw-bold">Client Document Requests</h5>
+        <span class="badge bg-secondary-subtle text-secondary">{{ document_requests|length }} requests</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Request</th>
+                        <th>Due</th>
+                        <th>Status</th>
+                        <th>Uploaded</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in document_requests %}
+                    <tr>
+                        <td class="ps-4">
+                            <div class="fw-bold">{{ req.title }}</div>
+                            <div class="small text-muted">{{ req.get_document_type_display }}</div>
+                        </td>
+                        <td class="{% if req.is_overdue %}text-danger fw-semibold{% endif %}">{{ req.due_date|date:"d M Y"|default:"-" }}</td>
+                        <td><span class="badge {% if req.status == 'uploaded' %}bg-success-subtle text-success{% elif req.is_overdue %}bg-danger-subtle text-danger{% else %}bg-warning-subtle text-warning{% endif %}">{{ req.get_status_display }}</span></td>
+                        <td>
+                            {% if req.uploaded_submission %}
+                                <a href="{% url 'ocr:verify' req.uploaded_submission.pk %}">OCR #{{ req.uploaded_submission.pk }}</a>
+                            {% else %}
+                                <span class="text-muted small">Not uploaded</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4">
+                            <a href="{% url 'portal:document_request_upload' req.token %}" target="_blank" class="btn btn-sm btn-outline-primary">Upload Link</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5 text-muted">No document requests yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

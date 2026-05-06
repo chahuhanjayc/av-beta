@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}{{ title }} – Akshaya Vistara{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <form method="post">
+      {% csrf_token %}
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white fw-semibold py-3">Salary Structure Details</div>
+        <div class="card-body">
+          <div class="mb-3">{{ form.name|as_crispy_field }}</div>
+
+          <h6 class="text-muted small text-uppercase fw-semibold border-bottom pb-2 mb-3">Allowances (% of Basic)</h6>
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">{{ form.hra_pct|as_crispy_field }}</div>
+            <div class="col-md-4">{{ form.da_pct|as_crispy_field }}</div>
+            <div class="col-md-4">{{ form.special_allowance_pct|as_crispy_field }}</div>
+          </div>
+
+          <h6 class="text-muted small text-uppercase fw-semibold border-bottom pb-2 mb-3">PF Contributions (% of Basic, max ₹1800)</h6>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">{{ form.pf_employee_pct|as_crispy_field }}</div>
+            <div class="col-md-6">{{ form.pf_employer_pct|as_crispy_field }}</div>
+          </div>
+
+          <h6 class="text-muted small text-uppercase fw-semibold border-bottom pb-2 mb-3">ESI Contributions (% of Gross, if Gross ≤ ₹21,000)</h6>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">{{ form.esi_employee_pct|as_crispy_field }}</div>
+            <div class="col-md-6">{{ form.esi_employer_pct|as_crispy_field }}</div>
+          </div>
+
+          <h6 class="text-muted small text-uppercase fw-semibold border-bottom pb-2 mb-3">Professional Tax</h6>
+          <div class="row g-3">
+            <div class="col-md-4">{{ form.pt_monthly|as_crispy_field }}</div>
+          </div>
+        </div>
+        <div class="card-footer bg-white">
+          <div class="d-flex gap-2 justify-content-end">
+            <a href="{% url 'payroll:salary_structure_list' %}" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-save me-1"></i>Save Structure
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

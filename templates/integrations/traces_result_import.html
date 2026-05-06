@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% block title %}TRACES Result Import - Akshaya Vistara{% endblock %}
+{% block page_title %}TRACES Result Import{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h5 class="mb-1">TRACES Result Import</h5>
+    <div class="text-muted small">TDS return status, challan, FVU, default and acknowledgement evidence</div>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{% url 'tds:return_workbench' %}" class="btn btn-sm btn-outline-primary">
+      <i class="bi bi-table"></i> TDS Workbench
+    </a>
+    <a href="{% url 'tds:post_filing_center' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-archive"></i> Post-Filing
+    </a>
+    <a href="{% url 'integrations:statutory_control' %}" class="btn btn-sm btn-outline-dark">
+      <i class="bi bi-router"></i> Control Room
+    </a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Import Result</h6>
+        <span class="badge bg-primary">JSON / CSV</span>
+      </div>
+      <div class="card-body">
+        <form method="post" enctype="multipart/form-data" class="vstack gap-3">
+          {% csrf_token %}
+          <div>
+            <label class="form-label small text-muted mb-1">TRACES Result File</label>
+            <input type="file" name="result_file" class="form-control" accept=".json,.csv" required>
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-cloud-upload"></i> Import TRACES Result
+          </button>
+        </form>
+
+        {% if summary %}
+          <div class="row g-2 mt-3">
+            <div class="col-6">
+              <div class="border rounded p-2">
+                <div class="text-muted small">Updated</div>
+                <div class="h5 mb-0">{{ summary.updated }}</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="border rounded p-2">
+                <div class="text-muted small">Failed</div>
+                <div class="h5 mb-0">{{ summary.failed }}</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="border rounded p-2">
+                <div class="text-muted small">Attention</div>
+                <div class="h5 mb-0">{{ summary.attention }}</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="border rounded p-2">
+                <div class="text-muted small">Tasks</div>
+                <div class="h5 mb-0">{{ summary.tasked }}</div>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">TRACES Connector</h6>
+        {% if traces_connector %}
+          <span class="badge {{ traces_connector.status_badge_class }}">{{ traces_connector.get_status_display }}</span>
+        {% else %}
+          <span class="badge bg-secondary">Not Set</span>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        <div class="row g-2">
+          <div class="col-sm-6">
+            <div class="border rounded p-2 h-100">
+              <div class="text-muted small">TAN / User</div>
+              <div class="fw-semibold">{{ traces_connector.tan|default:"-" }}{% if traces_connector.username %} / {{ traces_connector.masked_username }}{% endif %}</div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="border rounded p-2 h-100">
+              <div class="text-muted small">Last Success</div>
+              <div class="fw-semibold">{{ traces_connector.last_success_at|date:"d M Y H:i"|default:"Never" }}</div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="border rounded p-2 h-100">
+              <div class="text-muted small">Provider</div>
+              <div class="fw-semibold">{{ traces_connector.provider_name|default:"TRACES Portal Upload" }}</div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="border rounded p-2 h-100">
+              <div class="text-muted small">Last Error</div>
+              <div class="fw-semibold text-truncate">{{ traces_connector.last_error|default:"None" }}</div>
+            </div>
+          </div>
+        </div>
+
+        <hr>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="mb-0">Recent Workpapers</h6>
+          <span class="text-muted small">{{ recent_workpapers|length }} shown</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Return</th>
+                <th>TRACES</th>
+                <th>Challan</th>
+                <th class="text-end">Ack</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for workpaper in recent_workpapers %}
+                <tr>
+                  <td>
+                    <a href="{% url 'tds:return_workbench' %}?fy={{ workpaper.financial_year_start }}&quarter={{ workpaper.quarter }}&form_type={{ workpaper.form_type }}" class="text-decoration-none">
+                      {{ workpaper.form_type }} {{ workpaper.quarter }} FY {{ workpaper.financial_year_label }}
+                    </a>
+                  </td>
+                  <td>{{ workpaper.get_traces_statement_status_display }}</td>
+                  <td>{{ workpaper.get_challan_status_display }}</td>
+                  <td class="text-end">{{ workpaper.ack_number|default:"-" }}</td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="4" class="text-center text-muted py-3">No TDS return workpapers yet.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if summary %}
+  <div class="card mt-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h6 class="mb-0">Import Rows</h6>
+      <span class="text-muted small">{{ summary.filename }}</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3">Return</th>
+            <th>Status</th>
+            <th>Message</th>
+            <th class="text-end pe-3">Task</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in summary.rows %}
+            <tr>
+              <td class="ps-3">
+                {% if row.workpaper %}
+                  <a href="{% url 'tds:return_workbench' %}?fy={{ row.financial_year_start }}&quarter={{ row.quarter }}&form_type={{ row.form_type }}" class="text-decoration-none">
+                    {{ row.form_type }} {{ row.quarter }} FY {{ row.workpaper.financial_year_label }}
+                  </a>
+                {% else %}
+                  <span class="text-muted">Unmatched</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if row.status == "updated" %}
+                  <span class="badge bg-success-subtle text-success">Updated</span>
+                {% elif row.status == "attention" %}
+                  <span class="badge bg-warning-subtle text-warning">Attention</span>
+                {% else %}
+                  <span class="badge bg-danger-subtle text-danger">Failed</span>
+                {% endif %}
+              </td>
+              <td class="small text-muted">{{ row.message|default:"-" }}</td>
+              <td class="text-end pe-3">
+                {% if row.task %}
+                  <a href="{% url 'core:practice_task_update' row.task.pk %}" class="btn btn-xs btn-outline-secondary">Open</a>
+                {% else %}
+                  <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endif %}
+
+<div class="card mt-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h6 class="mb-0">TRACES Activity</h6>
+    <span class="text-muted small">Latest integration logs</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th class="ps-3">Time</th>
+          <th>Provider</th>
+          <th>Status</th>
+          <th>By</th>
+          <th class="pe-3">Message</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in recent_logs %}
+          <tr>
+            <td class="ps-3">{{ log.created_at|date:"d M H:i" }}</td>
+            <td>{{ log.provider }}</td>
+            <td>
+              {% if log.status == "success" %}
+                <span class="badge bg-success-subtle text-success">Success</span>
+              {% elif log.status == "config_error" %}
+                <span class="badge bg-warning-subtle text-warning">Config</span>
+              {% else %}
+                <span class="badge bg-danger-subtle text-danger">Failed</span>
+              {% endif %}
+            </td>
+            <td>{{ log.requested_by.email|default:"System" }}</td>
+            <td class="small text-muted pe-3">{{ log.error_message|default:"-"|truncatechars:120 }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5" class="text-center text-muted py-4">No TRACES activity yet.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

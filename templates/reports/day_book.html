@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}Day Book – Akshaya Vistara{% endblock %}
+
+{% block extra_head %}
+<style>
+  .daybook-table td, .daybook-table th { padding: 0.4rem 0.6rem; font-size: 0.88rem; outline: none; }
+  .daybook-table tr:nth-child(even) { background-color: rgba(0,0,0,0.01); }
+  .daybook-table tr.selected { background-color: var(--sidebar-active-bg) !important; color: var(--sidebar-active-text); }
+  .daybook-table tr:hover { background-color: rgba(13, 110, 253, 0.05); }
+  .amount-cell { text-align: right; font-family: 'Courier New', monospace; font-weight: 600; }
+  .type-badge { font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; }
+  .filter-bar { background: var(--surface-muted); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; }
+  .loading-overlay { opacity: 0.5; pointer-events: none; transition: opacity 0.2s; }
+</style>
+{% endblock %}
+
+{% block page_title %}Day Book{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm">
+  <div class="card-body">
+    
+    <!-- Filter Bar (AJAX enabled) -->
+    <form id="filterForm" class="filter-bar d-flex flex-wrap align-items-end gap-3 mb-4">
+      <div>
+        <label class="form-label fw-bold small mb-1">From Date</label>
+        <input type="date" name="start_date" id="start_date" class="form-control form-control-sm" value="{{ start_date|date:'Y-m-d' }}">
+      </div>
+      <div>
+        <label class="form-label fw-bold small mb-1">To Date</label>
+        <input type="date" name="end_date" id="end_date" class="form-control form-control-sm" value="{{ end_date|date:'Y-m-d' }}">
+      </div>
+      <div class="d-flex gap-2">
+        <a href="?{{ export_query }}" class="btn btn-outline-success btn-sm">
+          <i class="bi bi-download"></i> CSV
+        </a>
+        <a href="{% url 'reports:day_book' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+      </div>
+    </form>
+
+    <div class="table-responsive">
+      <table class="table table-hover daybook-table mb-0" id="daybookTable">
+        <thead class="table-light">
+          <tr>
+            <th style="width: 110px;">Date</th>
+            <th style="width: 140px;">Voucher No</th>
+            <th style="width: 110px;">Type</th>
+            <th>Particulars (Party)</th>
+            <th style="width: 140px;" class="text-end">Amount (₹)</th>
+            <th style="width: 140px;" class="text-end">Balance (₹)</th>
+          </tr>
+        </thead>
+        <tbody id="daybookBody">
+          {% include "reports/partials/day_book_table.html" %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const body = document.getElementById('daybookBody');
+  const form = document.getElementById('filterForm');
+  const table = document.getElementById('daybookTable');
+  let selectedIndex = -1;
+
+  // 1. AJAX Filtering
+  async function refreshTable() {
+    const params = new URLSearchParams(new FormData(form));
+    body.classList.add('loading-overlay');
+    try {
+      const resp = await fetch(`?${params.toString()}`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      });
+      if (resp.ok) {
+        body.innerHTML = await resp.text();
+        selectedIndex = -1; // Reset selection on refresh
+        // Update URL without reload
+        window.history.pushState({}, '', `?${params.toString()}`);
+      }
+    } catch (e) { console.error(e); }
+    body.classList.remove('loading-overlay');
+  }
+
+  form.addEventListener('change', refreshTable);
+
+  // 2. Keyboard Navigation
+  function updateSelection() {
+    const rows = body.querySelectorAll('.daybook-row');
+    rows.forEach((r, i) => {
+      r.classList.toggle('selected', i === selectedIndex);
+      if (i === selectedIndex) {
+        r.focus();
+        r.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    });
+  }
+
+  window.addEventListener('keydown', function(e) {
+    const rows = body.querySelectorAll('.daybook-row');
+    if (rows.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      selectedIndex = Math.min(selectedIndex + 1, rows.length - 1);
+      updateSelection();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      selectedIndex = Math.max(selectedIndex - 1, 0);
+      updateSelection();
+    } else if (e.key === 'Enter') {
+      if (selectedIndex >= 0) {
+        const url = rows[selectedIndex].dataset.url;
+        if (url) window.location.href = url;
+      }
+    }
+  });
+
+  // Handle click selection
+  body.addEventListener('click', function(e) {
+    const row = e.target.closest('.daybook-row');
+    if (row) {
+      const rows = Array.from(body.querySelectorAll('.daybook-row'));
+      selectedIndex = rows.indexOf(row);
+      updateSelection();
+    }
+  });
+});
+</script>
+{% endblock %}

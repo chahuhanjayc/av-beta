@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Upload Bank Statement – Akshaya Vistara{% endblock %}
+{% block page_title %}Upload Bank Statement{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3">
+        <h6 class="mb-0"><i class="bi bi-upload me-2"></i>Upload Bank Statement</h6>
+      </div>
+      <div class="card-body">
+
+        {# Instructions #}
+        <div class="alert alert-info d-flex align-items-start gap-2 mb-4">
+          <i class="bi bi-info-circle-fill mt-1"></i>
+          <div>
+            <strong>Formats Supported:</strong> CSV, Excel, PDF, and Images (JPG/PNG).
+            <br>
+            <span class="small">Export from your bank's net banking. For PDF or Images, we will automatically extract
+            Date, Description, Debit, and Credit columns.</span>
+          </div>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" novalidate>
+          {% csrf_token %}
+          {% for field in form %}
+          <div class="mb-3">
+            <label class="form-label{% if field.field.required %} required{% endif %}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors.0 }}</div>{% endif %}
+            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+          </div>
+          {% endfor %}
+          <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-upload me-1"></i> Upload & Parse
+            </button>
+            <a href="{% url 'core:bank_statement_list' %}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

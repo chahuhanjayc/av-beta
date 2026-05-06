@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Project P&L - {{ cost_center.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Project P&L: {{ cost_center.name }}</h2>
+        <span class="badge bg-info text-dark">{{ cost_center.category }}</span>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title text-success">Revenue</h5>
+                    <h3 class="card-text">₹{{ revenue|floatformat:2 }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title text-danger">Direct Costs</h5>
+                    <h3 class="card-text">₹{{ direct_cost|floatformat:2 }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title text-warning">Allocated Costs</h5>
+                    <h3 class="card-text">₹{{ allocated_cost|floatformat:2 }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title {% if net_profit >= 0 %}text-primary{% else %}text-danger{% endif %}">Net Profit / Loss</h5>
+                    <h3 class="card-text">₹{{ net_profit|floatformat:2 }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

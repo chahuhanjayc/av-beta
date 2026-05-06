@@ -1,0 +1,425 @@
+{% extends "base.html" %}
+
+{% block title %}GST Filing Pack - Akshaya Vistara{% endblock %}
+{% block page_title %}GST Filing Pack{% endblock %}
+
+{% block extra_head %}
+<style>
+  .pack-score {
+    font-size: 1.9rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .pack-filter {
+    background: var(--surface-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 0.85rem 1rem;
+  }
+  .pack-filter label {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+  .pack-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 0.72rem;
+  }
+  .pack-table-note {
+    max-width: 32rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h5 class="mb-0">GST Filing Pack</h5>
+    <small class="text-muted">{{ selected_company.name }} | {{ period_start|date:"M Y" }}</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'core:filing_review_center' %}?period={{ period_value }}&company={{ selected_company.pk }}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-patch-check"></i> Review Center
+    </a>
+    <a href="{% url 'core:gst_post_filing' %}?period={{ period_value }}&company={{ selected_company.pk }}" class="btn btn-outline-success btn-sm">
+      <i class="bi bi-archive"></i> Post-Filing
+    </a>
+    <a href="{% url 'reports:gst_report' %}?start_date={{ period_start|date:'Y-m-d' }}&end_date={{ period_end|date:'Y-m-d' }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-receipt"></i> GST Report
+    </a>
+  </div>
+</div>
+
+<form method="get" class="pack-filter mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-5 col-lg-4">
+      <label for="company">Company</label>
+      <select id="company" name="company" class="form-select form-select-sm">
+        {% for company in companies %}
+        <option value="{{ company.pk }}" {% if company.pk == selected_company.pk %}selected{% endif %}>{{ company.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3 col-lg-2">
+      <label for="period">Period</label>
+      <input type="month" id="period" name="period" value="{{ period_value }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-primary btn-sm w-100">
+        <i class="bi bi-funnel"></i> Apply
+      </button>
+    </div>
+  </div>
+</form>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Pack Status</div>
+        <div class="h5 mb-1">
+          {% if pack.pack_record and pack.pack_record.is_filed %}
+            <span class="badge bg-success">Filed</span>
+          {% elif pack.can_generate %}
+            <span class="badge bg-success">Ready</span>
+          {% elif pack.approved_review %}
+            <span class="badge bg-danger">Blocked</span>
+          {% else %}
+            <span class="badge bg-warning text-dark">Review Pending</span>
+          {% endif %}
+        </div>
+        <div class="small text-muted">{{ pack.status }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Critical</div>
+        <div class="pack-score {% if pack.critical_count %}text-danger{% else %}text-success{% endif %}">{{ pack.critical_count }}</div>
+        <div class="small text-muted">{{ pack.warning_count }} warnings</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">GSTR-1 Invoices</div>
+        <div class="pack-score">{{ pack.summary_snapshot.gstr1.invoice_count }}</div>
+        <div class="small text-muted">{{ pack.gstr1.b2cs|length }} B2CS summaries</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Net Tax</div>
+        <div class="h4 mb-0">Rs.{{ pack.report.net_tax_payable|floatformat:2 }}</div>
+        <div class="small text-muted">Output Rs.{{ pack.report.tot_out_tax|floatformat:2 }} | ITC Rs.{{ pack.report.tot_itc|floatformat:2 }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-8">
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-shield-exclamation me-2"></i>Filing Validations</h6>
+        <span class="badge {% if pack.critical_count %}bg-danger{% else %}bg-success{% endif %}">
+          {% if pack.critical_count %}Blocked{% else %}Clear{% endif %}
+        </span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Area</th>
+              <th>Status</th>
+              <th class="text-end">Count</th>
+              <th class="text-end pe-3">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in pack.validations %}
+            <tr>
+              <td class="ps-3">
+                <div class="fw-semibold">{{ item.title }}</div>
+                <div class="small text-muted pack-table-note">{{ item.description }}</div>
+                <div class="text-muted pack-code">{{ item.code }}</div>
+              </td>
+              <td>
+                <span class="badge {% if item.severity == 'critical' %}bg-danger{% elif item.severity == 'warning' %}bg-warning text-dark{% else %}bg-success-subtle text-success{% endif %}">
+                  {% if item.severity == "critical" %}Critical{% elif item.severity == "warning" %}Warning{% else %}Clear{% endif %}
+                </span>
+              </td>
+              <td class="text-end">{{ item.count }}</td>
+              <td class="text-end pe-3">
+                <a href="{{ item.action_url }}" class="btn btn-xs btn-outline-secondary">{{ item.action_label }}</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-braces-asterisk me-2"></i>GSTR-1 Portal JSON Checks</h6>
+        <span class="badge {% if pack.schema_validation.critical_count %}bg-danger{% elif pack.schema_validation.warning_count %}bg-warning text-dark{% else %}bg-success{% endif %}">
+          {% if pack.schema_validation.critical_count %}Blocked{% elif pack.schema_validation.warning_count %}Review{% else %}Clear{% endif %}
+        </span>
+      </div>
+      {% if pack.schema_validation.issues %}
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Severity</th>
+              <th>Path</th>
+              <th class="pe-3">Issue</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for issue in pack.schema_validation.issues %}
+            <tr>
+              <td class="ps-3">
+                <span class="badge {% if issue.severity == 'critical' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                  {{ issue.severity|capfirst }}
+                </span>
+              </td>
+              <td class="pack-code">{{ issue.path }}</td>
+              <td class="small pe-3">{{ issue.message }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-body small text-muted">
+        Portal-style GSTR-1 JSON structure, invoice numbers, dates, GSTINs, POS, amounts, B2CL threshold, HSN rows, and document counts are clear.
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-file-earmark-spreadsheet me-2"></i>GSTR-1 Draft</h6>
+        <span class="small text-muted">B2B, B2CL, B2CS, HSN, documents</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Invoice</th>
+              <th>Party</th>
+              <th>Section</th>
+              <th class="text-end">Taxable</th>
+              <th class="text-end">Tax</th>
+              <th class="text-end pe-3">Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in pack.gstr1.b2b %}
+            <tr>
+              <td class="ps-3">
+                <div class="fw-semibold">{{ row.invoice_number }}</div>
+                <div class="small text-muted">{{ row.date|date:"d M Y" }} | POS {{ row.pos|default:"-" }}</div>
+              </td>
+              <td>
+                <div>{{ row.party_name }}</div>
+                <div class="small text-muted">{{ row.party_gstin|default:"No GSTIN" }}</div>
+              </td>
+              <td><span class="badge bg-primary">{{ row.section }}</span></td>
+              <td class="text-end">Rs.{{ row.taxable_value|floatformat:2 }}</td>
+              <td class="text-end">Rs.{{ row.total_tax|floatformat:2 }}</td>
+              <td class="text-end pe-3">Rs.{{ row.invoice_value|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+            {% for row in pack.gstr1.b2cl %}
+            <tr>
+              <td class="ps-3">
+                <div class="fw-semibold">{{ row.invoice_number }}</div>
+                <div class="small text-muted">{{ row.date|date:"d M Y" }} | POS {{ row.pos|default:"-" }}</div>
+              </td>
+              <td>
+                <div>{{ row.party_name }}</div>
+                <div class="small text-muted">Unregistered</div>
+              </td>
+              <td><span class="badge bg-info text-dark">{{ row.section }}</span></td>
+              <td class="text-end">Rs.{{ row.taxable_value|floatformat:2 }}</td>
+              <td class="text-end">Rs.{{ row.total_tax|floatformat:2 }}</td>
+              <td class="text-end pe-3">Rs.{{ row.invoice_value|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+            {% if not pack.gstr1.b2b and not pack.gstr1.b2cl %}
+            <tr>
+              <td colspan="6" class="text-center text-muted py-4">No B2B or B2CL sales invoices for this period.</td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-calculator me-2"></i>GSTR-3B Draft</h6>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Table</th>
+              <th>Description</th>
+              <th class="text-end">Taxable</th>
+              <th class="text-end">IGST</th>
+              <th class="text-end">CGST</th>
+              <th class="text-end">SGST</th>
+              <th class="text-end pe-3">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in pack.gstr3b %}
+            <tr>
+              <td class="ps-3">{{ row.table }}</td>
+              <td>{{ row.description }}</td>
+              <td class="text-end">Rs.{{ row.taxable_value|floatformat:2 }}</td>
+              <td class="text-end">Rs.{{ row.igst|floatformat:2 }}</td>
+              <td class="text-end">Rs.{{ row.cgst|floatformat:2 }}</td>
+              <td class="text-end">Rs.{{ row.sgst|floatformat:2 }}</td>
+              <td class="text-end pe-3">Rs.{{ row.total|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-4">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-box-arrow-down me-2"></i>Pack Actions</h6>
+      </div>
+      <div class="card-body">
+        {% if can_manage %}
+        <form method="post" class="mb-3">
+          {% csrf_token %}
+          <input type="hidden" name="period" value="{{ period_value }}">
+          <input type="hidden" name="company_id" value="{{ selected_company.pk }}">
+          <div class="mb-2">
+            <label for="notes" class="form-label small fw-semibold">Pack Notes</label>
+            <textarea id="notes" name="notes" rows="3" class="form-control form-control-sm">{% if pack.pack_record %}{{ pack.pack_record.notes }}{% endif %}</textarea>
+          </div>
+          <button type="submit" name="action" value="generate_pack" class="btn btn-primary btn-sm w-100" {% if not pack.can_generate %}disabled{% endif %}>
+            <i class="bi bi-file-earmark-check"></i> Generate Filing Pack
+          </button>
+        </form>
+        {% endif %}
+
+        <div class="d-grid gap-2">
+          <a href="{% url 'core:gst_filing_pack_download' 'xlsx' %}?period={{ period_value }}&company={{ selected_company.pk }}"
+             class="btn btn-success btn-sm {% if not pack.can_generate %}disabled{% endif %}">
+            <i class="bi bi-file-earmark-spreadsheet"></i> Download XLSX
+          </a>
+          <a href="{% url 'core:gst_filing_pack_download' 'json' %}?period={{ period_value }}&company={{ selected_company.pk }}"
+             class="btn btn-outline-primary btn-sm {% if not pack.can_generate %}disabled{% endif %}">
+            <i class="bi bi-braces"></i> Download Draft JSON
+          </a>
+          <a href="{% url 'core:gst_filing_pack_download' 'gstr1' %}?period={{ period_value }}&company={{ selected_company.pk }}"
+             class="btn btn-outline-dark btn-sm {% if not pack.can_generate %}disabled{% endif %}">
+            <i class="bi bi-cloud-arrow-up"></i> Download GSTR-1 Portal JSON
+          </a>
+        </div>
+
+        {% if pack.pack_record %}
+        <hr>
+        <div class="small text-muted mb-2">
+          Generated by {% if pack.pack_record.generated_by %}{{ pack.pack_record.generated_by.email }}{% else %}-{% endif %}
+        </div>
+        {% if pack.pack_record.is_filed %}
+        <div class="alert alert-success py-2 small">
+          Filed with {{ pack.pack_record.arn_ack_number }} on {{ pack.pack_record.filed_at|date:"d M Y H:i" }}.
+        </div>
+        {% if can_manage %}
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="period" value="{{ period_value }}">
+          <input type="hidden" name="company_id" value="{{ selected_company.pk }}">
+          <button type="submit" name="action" value="reopen_pack" class="btn btn-outline-warning btn-sm w-100">
+            <i class="bi bi-unlock"></i> Reopen Pack
+          </button>
+        </form>
+        {% endif %}
+        {% elif can_manage %}
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="period" value="{{ period_value }}">
+          <input type="hidden" name="company_id" value="{{ selected_company.pk }}">
+          <div class="mb-2">
+            <label for="arn_ack_number" class="form-label small fw-semibold">ARN / Ack Number</label>
+            <input id="arn_ack_number" name="arn_ack_number" class="form-control form-control-sm" required>
+          </div>
+          <button type="submit" name="action" value="mark_filed" class="btn btn-outline-success btn-sm w-100">
+            <i class="bi bi-archive"></i> Mark Filed
+          </button>
+        </form>
+        {% endif %}
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-card-checklist me-2"></i>Section Counts</h6>
+      </div>
+      <div class="list-group list-group-flush">
+        <div class="list-group-item d-flex justify-content-between">
+          <span>B2B invoices</span><strong>{{ pack.gstr1.b2b|length }}</strong>
+        </div>
+        <div class="list-group-item d-flex justify-content-between">
+          <span>B2CL invoices</span><strong>{{ pack.gstr1.b2cl|length }}</strong>
+        </div>
+        <div class="list-group-item d-flex justify-content-between">
+          <span>B2CL threshold</span><strong>Rs.{{ pack.summary_snapshot.gstr1.b2cl_threshold }}</strong>
+        </div>
+        <div class="list-group-item d-flex justify-content-between">
+          <span>B2CS summaries</span><strong>{{ pack.gstr1.b2cs|length }}</strong>
+        </div>
+        <div class="list-group-item d-flex justify-content-between">
+          <span>HSN rows</span><strong>{{ pack.gstr1.hsn|length }}</strong>
+        </div>
+        <div class="list-group-item d-flex justify-content-between">
+          <span>Documents issued</span><strong>{{ pack.gstr1.documents.0.net_issued }}</strong>
+        </div>
+        <div class="list-group-item d-flex justify-content-between">
+          <span>Portal JSON issues</span><strong>{{ pack.schema_validation.total_count }}</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Approval Gate</h6>
+      </div>
+      <div class="card-body small">
+        {% if pack.approved_review %}
+        <div class="d-flex justify-content-between mb-2">
+          <span>Approved by</span>
+          <strong>{% if pack.approved_review.approved_by %}{{ pack.approved_review.approved_by.email }}{% else %}-{% endif %}</strong>
+        </div>
+        <div class="d-flex justify-content-between">
+          <span>Approved at</span>
+          <strong>{{ pack.approved_review.approved_at|date:"d M Y H:i" }}</strong>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">Final pack generation is locked until Review Center approval is complete.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

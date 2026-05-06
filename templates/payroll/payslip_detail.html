@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Payslip – {{ payslip.employee.name }} – Akshaya Vistara{% endblock %}
+{% block page_title %}Salary Slip — {{ payslip.employee.name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .slip-section { border-top: 2px solid #e9ecef; padding-top: 1rem; margin-top: 1rem; }
+  .slip-label   { font-size: .75rem; text-transform: uppercase; color: #6c757d; letter-spacing: .05em; }
+  .slip-table td, .slip-table th { padding: .35rem .75rem; }
+  @media print {
+    #topbar, #sidebar, .no-print { display: none !important; }
+    #main-content { margin-left: 0 !important; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+
+    {# ── Payslip Card ── #}
+    <div class="card border-0 shadow-sm" id="payslip-card">
+      {# Header #}
+      <div class="card-header bg-primary text-white py-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h5 class="mb-0">Salary Slip</h5>
+            <div class="small opacity-75">{{ payslip.payroll_run.get_month_display }} {{ payslip.payroll_run.year }}</div>
+          </div>
+          <div class="text-end">
+            {% if payslip.is_paid %}
+              <span class="badge bg-success fs-6"><i class="bi bi-check-circle me-1"></i>Paid</span>
+              {% if payslip.payment_date %}<div class="small opacity-75 mt-1">{{ payslip.payment_date }}</div>{% endif %}
+            {% else %}
+              <span class="badge bg-warning text-dark fs-6">Pending</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body">
+        {# Employee Info #}
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <div class="slip-label mb-1">Employee</div>
+            <div class="fw-semibold">{{ payslip.employee.name }}</div>
+            {% if payslip.employee.employee_code %}<div class="text-muted small">{{ payslip.employee.employee_code }}</div>{% endif %}
+          </div>
+          <div class="col-md-3">
+            <div class="slip-label mb-1">Designation</div>
+            <div>{{ payslip.employee.designation|default:"—" }}</div>
+          </div>
+          <div class="col-md-3">
+            <div class="slip-label mb-1">Department</div>
+            <div>{{ payslip.employee.department|default:"—" }}</div>
+          </div>
+          <div class="col-md-3">
+            <div class="slip-label mb-1">Days Worked</div>
+            <div>{{ payslip.days_worked }} / {{ payslip.working_days }}</div>
+          </div>
+          <div class="col-md-3">
+            <div class="slip-label mb-1">Salary Structure</div>
+            <div>{{ payslip.salary_structure|default:"—" }}</div>
+          </div>
+          {% if payslip.notes %}
+          <div class="col-12">
+            <div class="slip-label mb-1">Notes</div>
+            <div class="text-muted small">{{ payslip.notes }}</div>
+          </div>
+          {% endif %}
+        </div>
+
+        {# Earnings & Deductions #}
+        <div class="row g-3">
+          <div class="col-md-6">
+            <h6 class="fw-semibold text-success border-bottom pb-2">Earnings</h6>
+            <table class="table table-sm slip-table mb-0">
+              <tbody>
+                <tr><td>Basic Salary</td><td class="text-end">₹{{ payslip.basic|floatformat:2 }}</td></tr>
+                <tr><td>HRA</td><td class="text-end">₹{{ payslip.hra|floatformat:2 }}</td></tr>
+                {% if payslip.da > 0 %}<tr><td>DA</td><td class="text-end">₹{{ payslip.da|floatformat:2 }}</td></tr>{% endif %}
+                {% if payslip.special_allowance > 0 %}<tr><td>Special Allowance</td><td class="text-end">₹{{ payslip.special_allowance|floatformat:2 }}</td></tr>{% endif %}
+                {% if payslip.other_earnings > 0 %}<tr><td>Other Earnings</td><td class="text-end">₹{{ payslip.other_earnings|floatformat:2 }}</td></tr>{% endif %}
+              </tbody>
+              <tfoot class="table-light fw-bold">
+                <tr><td>Gross Salary</td><td class="text-end text-success">₹{{ payslip.gross_salary|floatformat:2 }}</td></tr>
+              </tfoot>
+            </table>
+          </div>
+          <div class="col-md-6">
+            <h6 class="fw-semibold text-danger border-bottom pb-2">Deductions</h6>
+            <table class="table table-sm slip-table mb-0">
+              <tbody>
+                {% if payslip.pf_employee > 0 %}<tr><td>PF (Employee)</td><td class="text-end text-danger">₹{{ payslip.pf_employee|floatformat:2 }}</td></tr>{% endif %}
+                {% if payslip.esi_employee > 0 %}<tr><td>ESI (Employee)</td><td class="text-end text-danger">₹{{ payslip.esi_employee|floatformat:2 }}</td></tr>{% endif %}
+                {% if payslip.professional_tax > 0 %}<tr><td>Professional Tax</td><td class="text-end text-danger">₹{{ payslip.professional_tax|floatformat:2 }}</td></tr>{% endif %}
+                {% if payslip.tds > 0 %}<tr><td>TDS</td><td class="text-end text-danger">₹{{ payslip.tds|floatformat:2 }}</td></tr>{% endif %}
+                {% if payslip.other_deductions > 0 %}<tr><td>Other Deductions</td><td class="text-end text-danger">₹{{ payslip.other_deductions|floatformat:2 }}</td></tr>{% endif %}
+              </tbody>
+              <tfoot class="table-light fw-bold">
+                <tr><td>Total Deductions</td><td class="text-end text-danger">₹{{ payslip.total_deductions|floatformat:2 }}</td></tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        {# Net Pay #}
+        <div class="slip-section">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold">Net Pay</h5>
+            <h4 class="mb-0 fw-bold text-primary">₹{{ payslip.net_pay|floatformat:2 }}</h4>
+          </div>
+        </div>
+
+        {# Employer Contributions Note #}
+        {% if payslip.pf_employer > 0 or payslip.esi_employer > 0 %}
+        <div class="slip-section text-muted small">
+          <strong>Employer Contributions (not deducted from salary):</strong>
+          {% if payslip.pf_employer > 0 %}PF ₹{{ payslip.pf_employer|floatformat:2 }}{% endif %}
+          {% if payslip.esi_employer > 0 %}&nbsp;| ESI ₹{{ payslip.esi_employer|floatformat:2 }}{% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Actions #}
+    <div class="d-flex gap-2 mt-3 no-print">
+      {% if payslip.payroll_run.status != "Finalized" %}
+      <a href="{% url 'payroll:payslip_edit' pk=payslip.pk %}" class="btn btn-outline-primary">
+        <i class="bi bi-pencil me-1"></i>Edit
+      </a>
+      {% endif %}
+      <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+        <i class="bi bi-printer me-1"></i>Print
+      </button>
+      <a href="{% url 'payroll:payroll_run_detail' pk=payslip.payroll_run.pk %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Back to Run
+      </a>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

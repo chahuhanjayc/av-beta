@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Bank Reconciliation – Akshaya Vistara{% endblock %}
+{% block page_title %}Bank Reconciliation{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <span class="text-muted small">{{ statements|length }} statement{{ statements|length|pluralize }} uploaded</span>
+  <a href="{% url 'core:bank_statement_upload' %}" class="btn btn-sm btn-primary">
+    <i class="bi bi-upload me-1"></i> Upload Statement
+  </a>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    {% if statements %}
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Bank Account</th>
+          <th>Statement Date</th>
+          <th>Rows</th>
+          <th>Reconciled</th>
+          <th>Pending</th>
+          <th>Notes</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for stmt in statements %}
+        <tr>
+          <td class="fw-semibold">{{ stmt.account_ledger.name|default:"—" }}</td>
+          <td>{{ stmt.statement_date }}</td>
+          <td>{{ stmt.total_rows }}</td>
+          <td>
+            <span class="badge bg-success-subtle text-success">{{ stmt.reconciled_rows }}</span>
+          </td>
+          <td>
+            <span class="badge {% if stmt.pending_rows == 0 %}bg-success-subtle text-success{% else %}bg-warning-subtle text-warning{% endif %}">
+              {{ stmt.pending_rows }}
+            </span>
+          </td>
+          <td class="text-muted small">{{ stmt.notes|default:"—" }}</td>
+          <td class="text-end">
+            <a href="{% url 'core:bank_statement_detail' stmt.pk %}" class="btn btn-sm btn-outline-primary me-1" title="View & Reconcile">
+              <i class="bi bi-journal-check"></i>
+            </a>
+            <a href="{% url 'core:bank_statement_delete' stmt.pk %}" class="btn btn-sm btn-outline-danger" title="Delete">
+              <i class="bi bi-trash"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-bank fs-1 d-block mb-2"></i>
+      No bank statements uploaded yet.
+      <a href="{% url 'core:bank_statement_upload' %}">Upload your first statement</a>.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+{% block title %}External Evidence Register - Akshaya Vistara{% endblock %}
+{% block page_title %}External Evidence Register{% endblock %}
+
+{% block extra_head %}
+<style>
+.evidence-score {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.evidence-filter {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+.evidence-table td {
+  vertical-align: middle;
+}
+.evidence-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end flex-wrap gap-2 mb-3">
+  <a href="{% url 'core:market_external_evidence' %}?export=csv{% if export_query %}&{{ export_query }}{% endif %}" class="btn btn-outline-primary btn-sm">
+    <i class="bi bi-download me-1"></i>Export CSV
+  </a>
+  <a href="{% url 'core:market_proof_pack' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-award me-1"></i>Market Proof
+  </a>
+  <a href="{% url 'core:market_proof_evidence_pack' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-file-earmark-lock me-1"></i>Evidence Pack
+  </a>
+  <a href="{% url 'integrations:provider_readiness' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-plug me-1"></i>Provider Readiness
+  </a>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Verified Evidence</div>
+        <div class="evidence-score text-success">{{ totals.verified }}</div>
+        <div class="small text-muted">{{ totals.items }} item{{ totals.items|pluralize }} tracked</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Companies Complete</div>
+        <div class="evidence-score text-primary">{{ totals.companies_complete }}</div>
+        <div class="small text-muted">{{ totals.companies_blocked }} still missing proof</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Required Missing</div>
+        <div class="evidence-score {% if totals.required_missing %}text-danger{% else %}text-success{% endif %}">{{ totals.required_missing }}</div>
+        <div class="small text-muted">{{ totals.missing_items }} item gap{{ totals.missing_items|pluralize }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Attention</div>
+        <div class="evidence-score {% if totals.expired or totals.rejected %}text-danger{% else %}text-primary{% endif %}">{{ totals.received }}</div>
+        <div class="small text-muted">{{ totals.expired }} expired, {{ totals.rejected }} rejected</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h6 class="mb-0"><i class="bi bi-patch-check me-2"></i>Required Proof Categories</h6>
+    <span class="small text-muted">All are required for Market Ready</span>
+  </div>
+  <div class="card-body">
+    <div class="d-flex flex-wrap gap-2">
+      {% for item in required_categories %}
+        <span class="evidence-chip bg-primary-subtle text-primary">{{ item.label }}</span>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<form method="get" class="evidence-filter mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-3">
+      <label class="form-label small text-muted" for="evidence-q">Search</label>
+      <input id="evidence-q" type="search" class="form-control form-control-sm" name="q" value="{{ q }}" placeholder="Client, reference, hash">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small text-muted" for="evidence-company">Company</label>
+      <select id="evidence-company" class="form-select form-select-sm" name="company">
+        <option value="all" {% if company_filter == "all" %}selected{% endif %}>All Clients</option>
+        {% for company in company_options %}
+          <option value="{{ company.pk }}" {% if company_filter == company.pk|stringformat:"s" %}selected{% endif %}>{{ company.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small text-muted" for="evidence-category">Category</label>
+      <select id="evidence-category" class="form-select form-select-sm" name="category">
+        {% for value,label in category_options %}
+          <option value="{{ value }}" {% if category_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small text-muted" for="evidence-status">Status</label>
+      <select id="evidence-status" class="form-select form-select-sm" name="status">
+        {% for value,label in status_options %}
+          <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2 d-flex gap-2">
+      <button type="submit" class="btn btn-primary btn-sm">
+        <i class="bi bi-funnel me-1"></i>Apply
+      </button>
+      <a href="{% url 'core:market_external_evidence' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+    </div>
+  </div>
+</form>
+
+<div class="row g-3">
+  <div class="col-xl-4">
+    <div class="card h-100">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Capture External Evidence</h6>
+      </div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="create_evidence">
+          <input type="hidden" name="q" value="{{ q }}">
+          <input type="hidden" name="company" value="{{ company_filter }}">
+          <input type="hidden" name="category" value="{{ category_filter }}">
+          <input type="hidden" name="status" value="{{ status_filter }}">
+
+          <div class="row g-2">
+            <div class="col-12">{{ evidence_form.company.label_tag }}{{ evidence_form.company }}</div>
+            <div class="col-12">{{ evidence_form.category.label_tag }}{{ evidence_form.category }}</div>
+            <div class="col-6">{{ evidence_form.status.label_tag }}{{ evidence_form.status }}</div>
+            <div class="col-6">{{ evidence_form.source.label_tag }}{{ evidence_form.source }}</div>
+            <div class="col-12">{{ evidence_form.title.label_tag }}{{ evidence_form.title }}</div>
+            <div class="col-12">{{ evidence_form.evidence_reference.label_tag }}{{ evidence_form.evidence_reference }}</div>
+            <div class="col-12">{{ evidence_form.artifact_sha256.label_tag }}{{ evidence_form.artifact_sha256 }}</div>
+            <div class="col-12">{{ evidence_form.evidence_url.label_tag }}{{ evidence_form.evidence_url }}</div>
+            <div class="col-6">{{ evidence_form.due_date.label_tag }}{{ evidence_form.due_date }}</div>
+            <div class="col-6">{{ evidence_form.expires_on.label_tag }}{{ evidence_form.expires_on }}</div>
+            <div class="col-12">{{ evidence_form.owner.label_tag }}{{ evidence_form.owner }}</div>
+            <div class="col-12">{{ evidence_form.notes.label_tag }}{{ evidence_form.notes }}</div>
+            <div class="col-12">
+              <div class="form-check">
+                {{ evidence_form.create_follow_up_task }}
+                <label class="form-check-label" for="{{ evidence_form.create_follow_up_task.id_for_label }}">{{ evidence_form.create_follow_up_task.label }}</label>
+              </div>
+            </div>
+            {% if evidence_form.non_field_errors %}
+              <div class="col-12 text-danger small">{{ evidence_form.non_field_errors }}</div>
+            {% endif %}
+            <div class="col-12">
+              <button type="submit" class="btn btn-primary btn-sm w-100">
+                <i class="bi bi-save me-1"></i>Save Evidence
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-8">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-journal-check me-2"></i>Evidence Queue</h6>
+        <span class="small text-muted">Verify only after artifact proof is recorded</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover evidence-table mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Evidence</th>
+              <th>Status</th>
+              <th>Reference</th>
+              <th>Missing</th>
+              <th class="text-end pe-3"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+              {% with item=row.item %}
+                <tr>
+                  <td class="ps-3">
+                    <div class="fw-semibold">{{ item.title }}</div>
+                    <div class="small text-muted">{{ item.company.name }} | {{ item.get_category_display }}</div>
+                    <div class="small text-muted">{{ item.get_source_display }}{% if item.owner %} | {{ item.owner.email }}{% endif %}</div>
+                  </td>
+                  <td>
+                    <span class="badge {{ item.status_badge_class }}">{{ item.get_status_display }}</span>
+                    {% if item.is_expired %}
+                      <div class="small text-danger">Expired</div>
+                    {% endif %}
+                    {% if item.verified_at %}
+                      <div class="small text-muted">{{ item.verified_at|date:"d M Y H:i" }}</div>
+                    {% endif %}
+                  </td>
+                  <td style="min-width: 220px;">
+                    <div class="small">{{ item.evidence_reference|default:"No reference" }}</div>
+                    {% if item.artifact_sha256 %}
+                      <div class="small text-muted text-truncate" style="max-width: 260px;">SHA {{ item.artifact_sha256 }}</div>
+                    {% endif %}
+                    {% if item.evidence_url %}
+                      <a href="{{ item.evidence_url }}" class="small" target="_blank" rel="noopener">Open URL</a>
+                    {% endif %}
+                    {% if item.expires_on %}
+                      <div class="small text-muted">Expires {{ item.expires_on|date:"d M Y" }}</div>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% for missing in row.missing_items %}
+                      <span class="evidence-chip bg-warning-subtle text-warning me-1 mb-1">{{ missing }}</span>
+                    {% empty %}
+                      <span class="evidence-chip bg-success-subtle text-success">Complete</span>
+                    {% endfor %}
+                    {% if item.follow_up_task %}
+                      <div class="small text-muted mt-1">Task #{{ item.follow_up_task_id }}</div>
+                    {% endif %}
+                  </td>
+                  <td class="text-end pe-3">
+                    {% if row.can_manage %}
+                      {% if not item.is_verified %}
+                        <form method="post" class="d-inline">
+                          {% csrf_token %}
+                          <input type="hidden" name="action" value="verify_evidence">
+                          <input type="hidden" name="evidence_id" value="{{ item.pk }}">
+                          <input type="hidden" name="q" value="{{ q }}">
+                          <input type="hidden" name="company" value="{{ company_filter }}">
+                          <input type="hidden" name="category" value="{{ category_filter }}">
+                          <input type="hidden" name="status" value="{{ status_filter }}">
+                          <button type="submit" class="btn btn-sm btn-outline-success">Verify</button>
+                        </form>
+                      {% else %}
+                        <form method="post" class="d-inline">
+                          {% csrf_token %}
+                          <input type="hidden" name="action" value="reopen_evidence">
+                          <input type="hidden" name="evidence_id" value="{{ item.pk }}">
+                          <input type="hidden" name="q" value="{{ q }}">
+                          <input type="hidden" name="company" value="{{ company_filter }}">
+                          <input type="hidden" name="category" value="{{ category_filter }}">
+                          <input type="hidden" name="status" value="{{ status_filter }}">
+                          <button type="submit" class="btn btn-sm btn-outline-secondary">Reopen</button>
+                        </form>
+                      {% endif %}
+                      {% if item.status != "rejected" %}
+                        <form method="post" class="d-inline">
+                          {% csrf_token %}
+                          <input type="hidden" name="action" value="reject_evidence">
+                          <input type="hidden" name="evidence_id" value="{{ item.pk }}">
+                          <input type="hidden" name="q" value="{{ q }}">
+                          <input type="hidden" name="company" value="{{ company_filter }}">
+                          <input type="hidden" name="category" value="{{ category_filter }}">
+                          <input type="hidden" name="status" value="{{ status_filter }}">
+                          <button type="submit" class="btn btn-sm btn-outline-danger">Reject</button>
+                        </form>
+                      {% endif %}
+                    {% endif %}
+                    <a href="{{ row.tasks_url }}" class="btn btn-sm btn-outline-secondary">Tasks</a>
+                  </td>
+                </tr>
+              {% endwith %}
+            {% empty %}
+              <tr>
+                <td colspan="5" class="text-center text-muted py-5">
+                  No external evidence matches the current filter.
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

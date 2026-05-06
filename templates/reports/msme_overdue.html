@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}MSME Risk Tracker - Akshaya Vistara{% endblock %}
+{% block page_title %}MSME Tracking & Risk Intelligence{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-auto">
+        <label class="form-label small fw-semibold mb-1">As of Date</label>
+        <input type="date" name="as_of_date" class="form-control form-control-sm" value="{{ as_of_date|date:'Y-m-d' }}">
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-primary btn-sm" type="submit">
+          <i class="bi bi-funnel me-1"></i>Apply
+        </button>
+      </div>
+      <div class="col-auto ms-auto d-flex gap-2">
+        <a class="btn btn-outline-success btn-sm"
+           href="?as_of_date={{ as_of_date|date:'Y-m-d' }}&export=csv">
+          <i class="bi bi-download me-1"></i>CSV
+        </a>
+        <button class="btn btn-outline-secondary btn-sm" type="button" onclick="window.print()">
+          <i class="bi bi-printer me-1"></i>Print
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="text-center mb-4">
+  <h4 class="fw-bold">{{ current_company.name }}</h4>
+  <h5 class="text-primary">MSME Tracking & Risk Intelligence</h5>
+  <p class="text-muted small mb-0">Risk assessment of outstanding payments to MSME vendors.</p>
+  <p class="text-muted small">As of {{ as_of_date|date:"d M Y" }}</p>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm h-100"><div class="card-body">
+      <div class="small text-muted text-uppercase fw-semibold">Outstanding</div>
+      <div class="h5 mb-0">Rs.{{ watch.summary.total_outstanding|floatformat:2 }}</div>
+      <div class="small text-muted">{{ watch.summary.total_count }} MSME bill{{ watch.summary.total_count|pluralize }}</div>
+    </div></div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm h-100"><div class="card-body">
+      <div class="small text-muted text-uppercase fw-semibold">Overdue</div>
+      <div class="h5 mb-0 text-danger">Rs.{{ watch.summary.overdue_amount|floatformat:2 }}</div>
+      <div class="small text-muted">{{ watch.summary.overdue_count }} bill{{ watch.summary.overdue_count|pluralize }}</div>
+    </div></div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm h-100"><div class="card-body">
+      <div class="small text-muted text-uppercase fw-semibold">Due Soon</div>
+      <div class="h5 mb-0 text-warning">Rs.{{ watch.summary.due_soon_amount|floatformat:2 }}</div>
+      <div class="small text-muted">Within 7 days</div>
+    </div></div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm h-100"><div class="card-body">
+      <div class="small text-muted text-uppercase fw-semibold">Interest Exposure</div>
+      <div class="h5 mb-0 text-danger">Rs.{{ watch.summary.interest_liability|floatformat:2 }}</div>
+      <div class="small text-muted">Indicative at 18%</div>
+    </div></div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm overflow-hidden">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0" style="font-size: 0.825rem;">
+      <thead class="bg-light">
+        <tr>
+          <th class="ps-3">Invoice Date</th>
+          <th>Voucher No.</th>
+          <th>Vendor</th>
+          <th class="text-end">Outstanding</th>
+          <th class="text-center">Days Outstanding</th>
+          <th class="text-center">MSME Due Date</th>
+          <th class="text-end pe-3">Interest Exposure</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          {% with voucher=row.voucher %}
+          <tr class="{% if row.status == 'overdue' %}table-danger{% elif row.status == 'due_soon' %}table-warning{% endif %}">
+            <td class="ps-3">{{ voucher.date|date:"d M Y" }}</td>
+            <td class="fw-bold">
+              <a href="{% url 'vouchers:detail' voucher.id %}" class="text-decoration-none">
+                {{ voucher.number|default:voucher.pk }}
+              </a>
+            </td>
+            <td>
+              <span class="fw-semibold">{{ row.vendor.name|default:"MSME vendor" }}</span>
+              {% if row.vendor.msme_reg_number %}
+                <div class="small text-muted">{{ row.vendor.msme_reg_number }}</div>
+              {% endif %}
+            </td>
+            <td class="text-end fw-bold">Rs.{{ row.outstanding_amount|floatformat:2 }}</td>
+            <td class="text-center">
+              <span class="badge {% if row.status == 'overdue' %}bg-danger{% else %}bg-secondary{% endif %} rounded-pill">
+                {{ row.days_outstanding }} d
+              </span>
+            </td>
+            <td class="text-center fw-bold">
+              <div>{{ row.due_date|date:"d M Y" }}</div>
+              {% if row.status == 'overdue' %}
+                <span class="text-danger">EXCEEDED ({{ row.days_overdue }}d)</span>
+              {% else %}
+                <span class="{% if row.status == 'due_soon' %}text-warning{% else %}text-success{% endif %}">
+                  {{ row.days_to_due }} days left
+                </span>
+              {% endif %}
+            </td>
+            <td class="text-end pe-3 text-danger fw-bold">Rs.{{ row.interest_liability|floatformat:2 }}</td>
+          </tr>
+          {% endwith %}
+        {% empty %}
+          <tr>
+            <td colspan="7" class="text-center py-5 text-muted">
+              <i class="bi bi-check-circle fs-1 d-block mb-2 text-success"></i>
+              No outstanding payments to MSME vendors found.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="alert alert-info mt-4">
+  <i class="bi bi-info-circle-fill me-2"></i>
+  <strong>MSME Risk Policy:</strong> This watch uses vendor credit days where configured, capped at 45 days, and the earlier voucher due date where configured. Delayed payments carry interest exposure; the 18% figure here is indicative for operational prioritisation.
+</div>
+{% endblock %}

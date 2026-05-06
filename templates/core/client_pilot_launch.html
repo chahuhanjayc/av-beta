@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% block title %}Pilot Launch Control - Akshaya Vistara{% endblock %}
+{% block page_title %}Pilot Launch Control{% endblock %}
+
+{% block extra_head %}
+<style>
+.launch-score {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.launch-filter {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+.launch-gate {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.launch-table td {
+  vertical-align: middle;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end flex-wrap gap-2 mb-3">
+  <form method="post" class="d-inline">
+    {% csrf_token %}
+    <input type="hidden" name="q" value="{{ q }}">
+    <input type="hidden" name="band" value="{{ band_filter }}">
+    <button type="submit" class="btn btn-outline-danger btn-sm">
+      <i class="bi bi-list-check me-1"></i>Create Launch Tasks
+    </button>
+  </form>
+  <a href="{% url 'core:client_pilot_launch' %}?export=csv{% if export_query %}&{{ export_query }}{% endif %}" class="btn btn-outline-primary btn-sm">
+    <i class="bi bi-download me-1"></i>Export CSV
+  </a>
+  <a href="{% url 'core:client_operating_readiness' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-clipboard2-check me-1"></i>Operating Readiness
+  </a>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Average Launch Score</div>
+        <div class="launch-score {% if totals.avg_score >= 90 %}text-success{% elif totals.avg_score >= 75 %}text-primary{% elif totals.avg_score >= 60 %}text-warning{% else %}text-danger{% endif %}">
+          {{ totals.avg_score }}%
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Pilot Ready</div>
+        <div class="launch-score text-success">{{ totals.pilot_ready }}</div>
+        <div class="small text-muted">{{ totals.clients }} visible clients</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Blocked</div>
+        <div class="launch-score text-danger">{{ totals.blocked }}</div>
+        <div class="small text-muted">{{ totals.critical_gates }} critical gate{{ totals.critical_gates|pluralize }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Client Adoption</div>
+        <div class="launch-score text-primary">{{ totals.portal_users }}</div>
+        <div class="small text-muted">{{ totals.overdue_documents }} overdue document chase</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<form method="get" class="launch-filter mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-5">
+      <label class="form-label small text-muted" for="launch-q">Search</label>
+      <input id="launch-q" type="search" class="form-control form-control-sm" name="q" value="{{ q }}" placeholder="Client name or GSTIN">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small text-muted" for="launch-band">Launch Band</label>
+      <select id="launch-band" class="form-select form-select-sm" name="band">
+        {% for value,label in band_options %}
+          <option value="{{ value }}" {% if band_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-4 d-flex gap-2">
+      <button type="submit" class="btn btn-primary btn-sm">
+        <i class="bi bi-funnel me-1"></i>Apply
+      </button>
+      <a href="{% url 'core:client_pilot_launch' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+    </div>
+  </div>
+</form>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h6 class="mb-0"><i class="bi bi-rocket-takeoff me-2"></i>Client Launch Queue</h6>
+    <span class="small text-muted">Lowest readiness first</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover launch-table mb-0">
+      <thead class="table-light">
+        <tr>
+          <th class="ps-3">Client</th>
+          <th class="text-end">Launch</th>
+          <th>Blocking Gates</th>
+          <th class="text-end">Adoption</th>
+          <th class="text-end">Work</th>
+          <th class="pe-3"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td class="ps-3">
+              <a href="{% url 'core:client_360' row.company.pk %}" class="fw-semibold text-decoration-none">{{ row.company.name }}</a>
+              <div class="small text-muted">{{ row.company.gstin|default:"No GSTIN" }}</div>
+              {% if row.engagement %}
+                <div class="small text-muted">{{ row.engagement.get_status_display }} · {{ row.engagement.get_service_package_display }}</div>
+              {% else %}
+                <span class="badge bg-danger-subtle text-danger mt-1">No engagement</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <span class="badge {{ row.badge_class }}">{{ row.score }}% {{ row.band }}</span>
+              <div class="small text-muted">{{ row.passed_count }}/{{ row.total_gates }} gates</div>
+              <div class="small text-muted">Ops {{ row.operating.score }}%</div>
+            </td>
+            <td style="min-width: 300px;">
+              {% for gate in row.top_gates %}
+                <a href="{{ gate.action_url }}" class="launch-gate text-decoration-none me-1 mb-1 {% if gate.severity == 'critical' %}bg-danger-subtle text-danger{% elif gate.severity == 'warning' %}bg-warning-subtle text-warning{% else %}bg-info-subtle text-info{% endif %}">
+                  {{ gate.title }}
+                </a>
+              {% empty %}
+                <span class="badge bg-success-subtle text-success">Ready for pilot</span>
+              {% endfor %}
+              {% if row.critical_count or row.warning_count %}
+                <div class="small text-muted mt-1">{{ row.critical_count }} critical, {{ row.warning_count }} warning</div>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <div>{{ row.portal_user_count }} portal user{{ row.portal_user_count|pluralize }}</div>
+              <div class="small text-muted">{{ row.overdue_document_requests }} overdue</div>
+              <div class="small text-muted">{{ row.uploaded_document_requests }} uploaded</div>
+            </td>
+            <td class="text-end">
+              <div>{{ row.open_task_count }} open task{{ row.open_task_count|pluralize }}</div>
+              <div class="small text-muted">{{ row.overdue_task_count }} overdue</div>
+              <div class="small text-muted">{{ row.launch_task_count }} launch</div>
+            </td>
+            <td class="text-end pe-3">
+              <a href="{% url 'core:client_engagement_update' row.company.pk %}" class="btn btn-sm btn-outline-secondary">Engagement</a>
+              <a href="{% url 'core:switch_company' row.company.pk %}?next={% url 'core:app_settings' %}" class="btn btn-sm btn-outline-secondary">Settings</a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" class="text-center text-muted py-5">
+              No client workspaces match the current filter.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

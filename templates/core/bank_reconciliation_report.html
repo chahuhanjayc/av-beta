@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Bank Reconciliation Report – Akshaya Vistara{% endblock %}
+{% block page_title %}Bank Reconciliation Report{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 bg-success text-white p-4">
+            <h6 class="text-uppercase small fw-bold opacity-75">Matched Entries</h6>
+            <h3 class="mb-0 fw-bold">₹{{ total_matched|floatformat:2 }}</h3>
+            <div class="mt-2 small">{{ matched_count }} row(s) reconciled</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 bg-warning text-dark p-4">
+            <h6 class="text-uppercase small fw-bold opacity-75">Unmatched Entries</h6>
+            <h3 class="mb-0 fw-bold">₹{{ total_unmatched|floatformat:2 }}</h3>
+            <div class="mt-2 small">{{ unmatched_count }} row(s) pending</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 bg-danger text-white p-4">
+            <h6 class="text-uppercase small fw-bold opacity-75">Net Difference</h6>
+            <h3 class="mb-0 fw-bold">₹{{ net_difference|floatformat:2 }}</h3>
+            <div class="mt-2 small">Total pending reconciliation</div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm app-card">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold">Reconciliation Breakdown</h5>
+        <div class="d-flex gap-2">
+            <a href="?export=csv" class="btn btn-sm btn-outline-success">
+                <i class="bi bi-download me-1"></i> CSV
+            </a>
+            <a href="{% url 'core:bank_statement_list' %}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-list-ul me-1"></i> View Statements
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <p class="text-muted small">
+            This report summarizes the reconciliation status across all uploaded bank statements for the current company.
+            A net difference of zero indicates that all bank transactions have been matched with your internal accounting records.
+        </p>
+        <div class="alert alert-info border-0 shadow-sm d-flex align-items-center">
+            <i class="bi bi-info-circle fs-4 me-3"></i>
+            <div>
+                <strong>Pro Tip:</strong> Use the <strong>Auto-Match</strong> feature inside individual statements to quickly link bank rows with existing vouchers based on amount and date.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Exchange Rates – Akshaya Vistara{% endblock %}
+{% block page_title %}Exchange Rates{% endblock %}
+{% block content %}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3">
+    <form class="row g-2 align-items-end" method="get">
+      <div class="col-auto">
+        <select name="currency" class="form-select form-select-sm">
+          <option value="">— All Currencies —</option>
+          {% for c in currencies %}<option value="{{ c.pk }}" {% if currency_pk == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.code }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+        <a href="{% url 'forex:exchange_rate_list' %}" class="btn btn-outline-secondary btn-sm ms-1">Clear</a>
+      </div>
+      <div class="col-auto ms-auto d-flex gap-2">
+        <a href="{% url 'forex:currency_list' %}" class="btn btn-outline-secondary btn-sm">Currencies</a>
+        <a href="{% url 'forex:exchange_rate_create' %}" class="btn btn-primary btn-sm">
+          <i class="bi bi-plus-lg me-1"></i>Add Rate
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    {% if rates %}
+    <table class="table table-sm table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Currency</th><th>Date</th>
+          <th class="text-end">Rate (1 Unit = INR)</th>
+          <th class="text-end">Buying</th>
+          <th class="text-end">Selling</th>
+          <th>Source</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rates %}
+        <tr>
+          <td class="fw-bold">{{ r.currency.code }}</td>
+          <td>{{ r.date }}</td>
+          <td class="text-end fw-semibold">{{ r.rate }}</td>
+          <td class="text-end text-muted">{{ r.buying_rate|default:"—" }}</td>
+          <td class="text-end text-muted">{{ r.selling_rate|default:"—" }}</td>
+          <td class="small text-muted">{{ r.source|default:"—" }}</td>
+          <td class="text-end">
+            <a href="{% url 'forex:exchange_rate_edit' pk=r.pk %}" class="btn btn-sm btn-outline-secondary me-1"><i class="bi bi-pencil"></i></a>
+            <a href="{% url 'forex:exchange_rate_delete' pk=r.pk %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-center py-5 text-muted">No exchange rates. <a href="{% url 'forex:exchange_rate_create' %}">Add one</a></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

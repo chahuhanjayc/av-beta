@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+{% block title %}Client Portal Health - Akshaya Vistara{% endblock %}
+{% block page_title %}Client Portal Health{% endblock %}
+
+{% block extra_head %}
+<style>
+.portal-score {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.portal-filter {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+.portal-gate {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.portal-contact {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid #e9ecef;
+  border-radius: 999px;
+  padding: 0.18rem 0.45rem;
+  max-width: 100%;
+  font-size: 0.75rem;
+  background: #fff;
+}
+.portal-contact-name {
+  max-width: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.portal-table td {
+  vertical-align: middle;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end flex-wrap gap-2 mb-3">
+  <form method="post" class="d-inline">
+    {% csrf_token %}
+    <input type="hidden" name="q" value="{{ q }}">
+    <input type="hidden" name="band" value="{{ band_filter }}">
+    <button type="submit" class="btn btn-outline-danger btn-sm">
+      <i class="bi bi-list-check me-1"></i>Create Portal Tasks
+    </button>
+  </form>
+  <a href="{% url 'core:client_portal_health' %}?export=csv{% if export_query %}&{{ export_query }}{% endif %}" class="btn btn-outline-primary btn-sm">
+    <i class="bi bi-download me-1"></i>Export CSV
+  </a>
+  <a href="{% url 'portal:client_requests' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-inbox me-1"></i>Client Requests
+  </a>
+  <a href="{% url 'core:app_settings' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-gear me-1"></i>App Settings
+  </a>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Average Portal Health</div>
+        <div class="portal-score {% if totals.avg_score >= 90 %}text-success{% elif totals.avg_score >= 75 %}text-primary{% elif totals.avg_score >= 60 %}text-warning{% else %}text-danger{% endif %}">
+          {{ totals.avg_score }}%
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Ready / Watch</div>
+        <div class="portal-score text-success">{{ totals.ready|add:totals.watch }}</div>
+        <div class="small text-muted">{{ totals.clients }} visible clients</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Disconnected</div>
+        <div class="portal-score text-danger">{{ totals.disconnected }}</div>
+        <div class="small text-muted">{{ totals.missing_delivery }} missing delivery route{{ totals.missing_delivery|pluralize }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Client Chase</div>
+        <div class="portal-score text-primary">{{ totals.open_requests }}</div>
+        <div class="small text-muted">{{ totals.overdue_requests }} overdue, {{ totals.stale_uploaded }} stale uploaded</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<form method="get" class="portal-filter mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-5">
+      <label class="form-label small text-muted" for="portal-q">Search</label>
+      <input id="portal-q" type="search" class="form-control form-control-sm" name="q" value="{{ q }}" placeholder="Client name or GSTIN">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small text-muted" for="portal-band">Portal Band</label>
+      <select id="portal-band" class="form-select form-select-sm" name="band">
+        {% for value,label in band_options %}
+          <option value="{{ value }}" {% if band_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-4 d-flex gap-2">
+      <button type="submit" class="btn btn-primary btn-sm">
+        <i class="bi bi-funnel me-1"></i>Apply
+      </button>
+      <a href="{% url 'core:client_portal_health' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+    </div>
+  </div>
+</form>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h6 class="mb-0"><i class="bi bi-person-lines-fill me-2"></i>Portal Reachability Queue</h6>
+    <span class="small text-muted">Delivery, upload, review, and response readiness</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover portal-table mb-0">
+      <thead class="table-light">
+        <tr>
+          <th class="ps-3">Client</th>
+          <th class="text-end">Health</th>
+          <th>Contacts</th>
+          <th>Portal Gaps</th>
+          <th class="text-end">Requests</th>
+          <th class="text-end">Channels</th>
+          <th class="pe-3"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td class="ps-3">
+              <a href="{% url 'core:client_360' row.company.pk %}" class="fw-semibold text-decoration-none">{{ row.company.name }}</a>
+              <div class="small text-muted">{{ row.company.gstin|default:"No GSTIN" }}</div>
+              {% if row.recent_activity %}
+                <span class="badge bg-success-subtle text-success mt-1">Recent activity</span>
+              {% else %}
+                <span class="badge bg-secondary-subtle text-secondary mt-1">No recent activity</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <span class="badge {{ row.badge_class }}">{{ row.score }}% {{ row.band }}</span>
+              <div class="small text-muted">{{ row.passed_count }}/{{ row.total_gates }} gates</div>
+              <div class="small text-muted">{{ row.critical_count }} critical</div>
+            </td>
+            <td style="min-width: 260px;">
+              {% for contact in row.contact_previews %}
+                <span class="portal-contact me-1 mb-1">
+                  <span class="portal-contact-name">{{ contact.name }}</span>
+                  <span class="badge {{ contact.status_class }}">{{ contact.status_label }}</span>
+                </span>
+              {% empty %}
+                <span class="badge bg-danger-subtle text-danger">No portal contacts</span>
+              {% endfor %}
+              <div class="small text-muted mt-1">
+                {{ row.active_portal_user_count }} active, {{ row.email_contact_count }} email, {{ row.whatsapp_contact_count }} WhatsApp
+              </div>
+            </td>
+            <td style="min-width: 300px;">
+              {% for gate in row.top_gates %}
+                <a href="{{ gate.action_url }}" class="portal-gate text-decoration-none me-1 mb-1 {% if gate.severity == 'critical' %}bg-danger-subtle text-danger{% elif gate.severity == 'warning' %}bg-warning-subtle text-warning{% else %}bg-info-subtle text-info{% endif %}">
+                  {{ gate.title }}
+                </a>
+              {% empty %}
+                <span class="badge bg-success-subtle text-success">Portal ready</span>
+              {% endfor %}
+              {% if row.warning_count %}
+                <div class="small text-muted mt-1">{{ row.warning_count }} warning gate{{ row.warning_count|pluralize }}</div>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <div>{{ row.open_request_count }} open request{{ row.open_request_count|pluralize }}</div>
+              <div class="small text-muted">{{ row.overdue_request_count }} overdue, {{ row.uploaded_request_count }} uploaded</div>
+              <div class="small text-muted">{{ row.response_rate }}% response</div>
+            </td>
+            <td class="text-end">
+              <div>
+                {% if row.invoice_email_ready %}
+                  <span class="badge bg-success-subtle text-success">Email</span>
+                {% else %}
+                  <span class="badge bg-danger-subtle text-danger">Email</span>
+                {% endif %}
+                {% if row.whatsapp_intake_ready %}
+                  <span class="badge bg-success-subtle text-success">WhatsApp</span>
+                {% else %}
+                  <span class="badge bg-warning-subtle text-warning">WhatsApp</span>
+                {% endif %}
+              </div>
+              <div class="small text-muted mt-1">{{ row.missing_delivery_count }} missing, {{ row.unreminded_overdue_count }} unreminded</div>
+              <div class="small text-muted">{{ row.uninvited_contact_count }} uninvited ledger contact{{ row.uninvited_contact_count|pluralize }}</div>
+            </td>
+            <td class="text-end pe-3">
+              <a href="{% url 'portal:client_requests' %}?company={{ row.company.pk }}&status=active" class="btn btn-sm btn-outline-secondary">Requests</a>
+              <a href="{% url 'portal:client_request_create' %}?company={{ row.company.pk }}" class="btn btn-sm btn-outline-secondary">New</a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="7" class="text-center text-muted py-5">
+              No client workspaces match the current filter.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

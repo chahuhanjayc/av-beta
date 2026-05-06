@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}Statutory Integration Control Room - Akshaya Vistara{% endblock %}
+{% block page_title %}Statutory Integration Control Room{% endblock %}
+
+{% block extra_head %}
+<style>
+  .integration-filter {
+    background: var(--surface-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 0.85rem 1rem;
+  }
+  .integration-filter label {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+  }
+  .integration-company-list {
+    max-height: 30rem;
+    overflow: auto;
+  }
+  .integration-actions {
+    flex-wrap: wrap;
+  }
+  .connector-issue {
+    max-width: 28rem;
+  }
+  @media (max-width: 767.98px) {
+    .integration-actions .btn,
+    .integration-actions form,
+    .integration-actions form .btn {
+      width: 100%;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h5 class="mb-1">Statutory Integration Control Room</h5>
+    <small class="text-muted">GST, IRP, e-way, TRACES, Tally sync, and connected banking readiness.</small>
+  </div>
+  <div class="d-flex gap-2 integration-actions">
+    <a href="?{{ export_query }}" class="btn btn-outline-success btn-sm">
+      <i class="bi bi-download me-1"></i>CSV
+    </a>
+    <a href="{% url 'integrations:dashboard' %}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-plug me-1"></i>Configure
+    </a>
+    <a href="{% url 'integrations:provider_readiness' %}" class="btn btn-outline-warning btn-sm">
+      <i class="bi bi-shield-lock me-1"></i>Go-Live
+    </a>
+    <a href="{% url 'integrations:evidence_center' %}" class="btn btn-outline-dark btn-sm">
+      <i class="bi bi-file-earmark-check me-1"></i>Evidence
+    </a>
+  </div>
+</div>
+
+<form method="get" class="integration-filter mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-4 col-xl-3">
+      <label for="company">Workspace</label>
+      <select id="company" name="company" class="form-select form-select-sm">
+        <option value="">All assigned workspaces</option>
+        {% for company in companies %}
+          <option value="{{ company.pk }}" {% if selected_company_id|stringformat:"s" == company.pk|stringformat:"s" %}selected{% endif %}>{{ company.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3 col-xl-2">
+      <label for="focus">Focus</label>
+      <select id="focus" name="focus" class="form-select form-select-sm">
+        {% for value, label in focus_choices %}
+          <option value="{{ value }}" {% if focus == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-primary btn-sm w-100">
+        <i class="bi bi-funnel me-1"></i>Apply
+      </button>
+    </div>
+  </div>
+</form>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Readiness Score</div>
+        <div class="h4 mb-0 {% if totals.avg_score >= 80 %}text-success{% elif totals.avg_score >= 50 %}text-warning{% else %}text-danger{% endif %}">
+          {{ totals.avg_score }}%
+        </div>
+        <div class="small text-muted">{{ totals.company_count }} workspace(s)</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Critical</div>
+        <div class="h4 mb-0 {% if totals.critical_count %}text-danger{% else %}text-success{% endif %}">{{ totals.critical_count }}</div>
+        <div class="small text-muted">blocked connector(s)</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Warnings</div>
+        <div class="h4 mb-0 {% if totals.warning_count %}text-warning{% else %}text-success{% endif %}">{{ totals.warning_count }}</div>
+        <div class="small text-muted">stale or due soon</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Ready</div>
+        <div class="h4 mb-0 text-success">{{ totals.ready_count }}</div>
+        <div class="small text-muted">{{ totals.task_count }} task(s) open</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-4">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-building-check me-2"></i>Client Readiness</h6>
+        <span class="small text-muted">{{ totals.connector_count }} connector(s)</span>
+      </div>
+      <div class="list-group list-group-flush integration-company-list">
+        {% for row in company_rows|slice:":35" %}
+          <div class="list-group-item">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div>
+                <div class="fw-semibold">{{ row.company.name }}</div>
+                <div class="small text-muted">{{ row.primary_connector|default:"Integration stack" }}</div>
+              </div>
+              <span class="badge {% if row.score >= 80 %}bg-success{% elif row.score >= 50 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                {{ row.score }}%
+              </span>
+            </div>
+            <div class="row g-2 small mt-2">
+              <div class="col-4 d-flex justify-content-between"><span>Critical</span><strong>{{ row.critical_count }}</strong></div>
+              <div class="col-4 d-flex justify-content-between"><span>Warn</span><strong>{{ row.warning_count }}</strong></div>
+              <div class="col-4 d-flex justify-content-between"><span>Ready</span><strong>{{ row.ready_count }}</strong></div>
+            </div>
+            <div class="small text-muted mt-2">{{ row.primary_issue }}</div>
+            <div class="d-flex gap-2 mt-2">
+              <a href="{{ row.action_url }}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-sliders me-1"></i>Open
+              </a>
+            </div>
+          </div>
+        {% empty %}
+          <div class="list-group-item text-center text-muted py-4">No clients match this integration focus.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-8">
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="focus" value="{{ focus }}">
+      {% if selected_company_id %}<input type="hidden" name="company" value="{{ selected_company_id }}">{% endif %}
+      <div class="card">
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+          <h6 class="mb-0"><i class="bi bi-router me-2"></i>Connector Queue</h6>
+          <div class="d-flex gap-2 integration-actions">
+            <button type="submit" name="action" value="create_tasks" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-list-check me-1"></i>Create Tasks
+            </button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3" style="width: 38px;">
+                  <input type="checkbox" class="form-check-input" onclick="document.querySelectorAll('.integration-check').forEach(cb => cb.checked = this.checked)">
+                </th>
+                <th>Client</th>
+                <th>Connector</th>
+                <th>Status</th>
+                <th>Last Sync</th>
+                <th class="pe-3">Next</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in connector_rows %}
+                <tr>
+                  <td class="ps-3">
+                    <input type="checkbox" class="form-check-input integration-check" name="connector_ids" value="{{ row.selection_key }}">
+                  </td>
+                  <td>
+                    <div class="fw-semibold">{{ row.company.name }}</div>
+                    <div class="small text-muted">{{ row.provider_name|default:"Provider not set" }}</div>
+                    {% if row.task_exists %}
+                      <span class="badge bg-info-subtle text-info">Task ready</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="fw-semibold">{{ row.name }}</div>
+                    <div class="small text-muted">{{ row.mode_label|default:"-" }} | {{ row.status_label }}</div>
+                  </td>
+                  <td>
+                    <span class="badge {{ row.badge_class }}">{{ row.severity_label }}</span>
+                    <div class="small text-muted connector-issue">{{ row.issue }}</div>
+                    {% if row.last_error %}
+                      <div class="small text-danger connector-issue">{{ row.last_error|truncatechars:90 }}</div>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="small">{% if row.last_success_at %}{{ row.last_success_at|date:"d M H:i" }}{% else %}<span class="text-muted">Never</span>{% endif %}</div>
+                    {% if row.has_credential_age %}
+                      <div class="small text-muted">Cred {{ row.credential_age_days }}d</div>
+                    {% endif %}
+                  </td>
+                  <td class="pe-3">
+                    <div class="small connector-issue">{{ row.next_action }}</div>
+                    <a href="{{ row.action_url }}" class="btn btn-sm btn-outline-primary mt-1">
+                      <i class="bi bi-arrow-right-circle me-1"></i>Open
+                    </a>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="6" class="text-center text-muted py-5">No integration connectors match this focus.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

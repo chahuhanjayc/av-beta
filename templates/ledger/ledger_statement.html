@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}{{ ledger.name }} — Statement – Akshaya Vistara{% endblock %}
+{% block page_title %}Account Statement: {{ ledger.name }}{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+      <h6 class="mb-0">
+        <a href="{% url 'ledger:list' %}" class="text-muted text-decoration-none">Ledgers</a>
+        <span class="text-muted mx-1">›</span>
+        <span class="fw-bold">{{ ledger.name }}</span>
+        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle ms-1">{{ ledger.account_group.name }}</span>
+      </h6>
+      {% if ledger.gstin %}
+      <small class="text-muted"><i class="bi bi-upc-scan me-1"></i>GSTIN: <code>{{ ledger.gstin }}</code></small>
+      {% endif %}
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'ledger:edit' ledger.pk %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-pencil me-1"></i>Edit Ledger
+      </a>
+      <button onclick="window.print()" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-printer me-1"></i>Print
+      </button>
+    </div>
+  </div>
+
+  <!-- Date Filter -->
+  <div class="card-body border-bottom py-2">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label form-label-sm mb-1">From Date</label>
+        <input type="date" name="start_date" class="form-control form-control-sm" value="{{ start_date }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label form-label-sm mb-1">To Date</label>
+        <input type="date" name="end_date" class="form-control form-control-sm" value="{{ end_date }}">
+      </div>
+      <div class="col-md-3 d-flex gap-2">
+        <button type="submit" class="btn btn-primary btn-sm">
+          <i class="bi bi-funnel me-1"></i>Apply
+        </button>
+        {% if start_date or end_date %}
+        <a href="{% url 'ledger:statement' ledger.pk %}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-x-lg me-1"></i>Clear
+        </a>
+        {% endif %}
+      </div>
+      <div class="col-md-3 text-end">
+        <small class="text-muted">{{ rows|length }} transaction{{ rows|length|pluralize }}</small>
+      </div>
+    </form>
+  </div>
+
+  <!-- Opening Balance -->
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width:90px">Date</th>
+            <th style="width:120px">Voucher #</th>
+            <th style="width:90px">Type</th>
+            <th>Particular / Narration</th>
+            <th style="width:120px" class="text-end">Debit (₹)</th>
+            <th style="width:120px" class="text-end">Credit (₹)</th>
+            <th style="width:130px" class="text-end">Balance (₹)</th>
+            <th style="width:130px">Against Invoice</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <!-- Opening row -->
+          <tr class="table-secondary fw-semibold">
+            <td>—</td>
+            <td>—</td>
+            <td><span class="badge bg-secondary">Opening</span></td>
+            <td>Opening Balance</td>
+            <td class="text-end">—</td>
+            <td class="text-end">—</td>
+            <td class="text-end fw-bold">
+              ₹{{ opening_amount|floatformat:2 }}
+              <small class="text-muted fw-normal">{{ opening_side }}</small>
+            </td>
+            <td>—</td>
+          </tr>
+
+          {% for row in rows %}
+          {% with item=row.item %}
+          <tr>
+            <td class="text-muted small">{{ item.voucher.date|date:"d M Y" }}</td>
+            <td>
+              <a href="{% url 'vouchers:detail' item.voucher.pk %}"
+                 class="text-decoration-none fw-semibold">{{ item.voucher.number }}</a>
+            </td>
+            <td>
+              <span class="badge bg-light text-dark border" style="font-size:.72rem;">
+                {{ item.voucher.voucher_type }}
+              </span>
+            </td>
+            <td>
+              {% if item.narration %}
+                {{ item.narration }}
+              {% elif item.voucher.narration %}
+                <span class="text-muted">{{ item.voucher.narration|truncatechars:50 }}</span>
+              {% else %}
+                <span class="text-muted fst-italic">—</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              {% if item.entry_type == 'DR' %}
+                <span class="text-danger fw-semibold">₹{{ item.amount|floatformat:2 }}</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              {% if item.entry_type == 'CR' %}
+                <span class="text-success fw-semibold">₹{{ item.amount|floatformat:2 }}</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="text-end fw-semibold">
+              ₹{{ row.running_amount|floatformat:2 }}
+              <small class="text-muted fw-normal">{{ row.running_side }}</small>
+            </td>
+            <td>
+              {% if item.reference_voucher %}
+                <a href="{% url 'vouchers:detail' item.reference_voucher.pk %}"
+                   class="badge bg-info-subtle text-info border border-info-subtle text-decoration-none"
+                   title="Settles: {{ item.reference_voucher.number }}">
+                  <i class="bi bi-link-45deg"></i> {{ item.reference_voucher.number }}
+                </a>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endwith %}
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center py-4 text-muted">
+              <i class="bi bi-journal-x fs-3 d-block mb-1 opacity-25"></i>
+              No transactions{% if start_date or end_date %} in this date range{% endif %}.
+            </td>
+          </tr>
+          {% endfor %}
+
+        </tbody>
+
+        <!-- Totals footer -->
+        <tfoot class="table-light fw-bold">
+          <tr>
+            <td colspan="4" class="text-end">Totals</td>
+            <td class="text-end text-danger">₹{{ total_dr|floatformat:2 }}</td>
+            <td class="text-end text-success">₹{{ total_cr|floatformat:2 }}</td>
+            <td class="text-end">
+              ₹{{ closing_amount|floatformat:2 }}
+              <small class="text-muted fw-normal">{{ closing_side }}</small>
+            </td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

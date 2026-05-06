@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} – Akshaya Vistara{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3">
+        <h6 class="mb-0"><i class="bi bi-camera me-2"></i>Bulk Add from PDF/Image</h6>
+      </div>
+      <div class="card-body text-center p-5">
+        <i class="bi bi-file-earmark-pdf text-muted display-1 mb-4"></i>
+        <h5 class="fw-bold">Scan your item list</h5>
+        <p class="text-muted small mb-4">Upload a PDF or Image of your stock list or purchase bill. We will automatically extract item names, HSN codes, and prices.</p>
+
+        <form method="post" enctype="multipart/form-data" id="bulkOcrForm">
+          {% csrf_token %}
+          <input type="file" name="file" id="bulkOcrInput" class="d-none" accept=".pdf,image/*">
+          <button type="button" class="btn btn-primary btn-lg px-5 shadow-sm" onclick="document.getElementById('bulkOcrInput').click()">
+            <i class="bi bi-upload me-2"></i>Select Document
+          </button>
+        </form>
+      </div>
+      <div class="card-footer bg-light border-0 py-2">
+        <small class="text-muted"><i class="bi bi-info-circle me-1"></i> Best for scanning long tables of items.</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById('bulkOcrInput').onchange = function() {
+    if (this.files.length > 0) {
+      document.getElementById('bulkOcrForm').submit();
+    }
+  };
+</script>
+{% endblock %}

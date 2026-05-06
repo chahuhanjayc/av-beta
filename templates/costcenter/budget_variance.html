@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Budget Variance – Akshaya Vistara{% endblock %}
+{% block page_title %}Budget Variance Report{% endblock %}
+
+{% block extra_head %}
+<style>
+  .over-budget  { background: #fff5f5; }
+  .under-budget { background: #f0fdf4; }
+  .progress-bg  { background: #e9ecef; border-radius: 4px; height: 6px; }
+  .progress-bar { height: 6px; border-radius: 4px; transition: width .4s; }
+</style>
+{% endblock %}
+
+{% block content %}
+{# ── Filters ── #}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3">
+    <form class="row g-2 align-items-end" method="get">
+      <div class="col-auto">
+        <label class="form-label small mb-1">Financial Year</label>
+        <select name="fy" class="form-select form-select-sm">
+          {% for f in all_fys %}
+          <option value="{{ f }}" {% if fy == f %}selected{% endif %}>{{ f }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <label class="form-label small mb-1">Cost Center</label>
+        <select name="cc" class="form-select form-select-sm" style="width:200px;">
+          <option value="">— All Centers —</option>
+          {% for c in cost_centers %}
+          <option value="{{ c.pk }}" {% if cc_pk == c.pk|stringformat:"s" %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── Summary cards ── #}
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="text-muted small">Total Budget</div>
+      <div class="fw-bold fs-5">₹{{ total_budget|floatformat:2 }}</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="text-muted small">Total Actual</div>
+      <div class="fw-bold fs-5 {% if total_actual > total_budget %}text-danger{% else %}text-success{% endif %}">
+        ₹{{ total_actual|floatformat:2 }}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="text-muted small">Variance (Actual − Budget)</div>
+      <div class="fw-bold fs-5 {% if total_variance > 0 %}text-danger{% else %}text-success{% endif %}">
+        {% if total_variance > 0 %}+{% endif %}₹{{ total_variance|floatformat:2 }}
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ── Detail table ── #}
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    {% if rows %}
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Ledger</th>
+          <th>Cost Center</th>
+          <th class="text-end">Budget (₹)</th>
+          <th class="text-end">Actual (₹)</th>
+          <th class="text-end">Variance (₹)</th>
+          <th style="width:120px">Utilisation</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr class="{% if row.over %}over-budget{% else %}under-budget{% endif %}">
+          <td class="fw-semibold">{{ row.ledger }}</td>
+          <td class="text-muted small">{{ row.cc }}</td>
+          <td class="text-end">₹{{ row.budget|floatformat:2 }}</td>
+          <td class="text-end">₹{{ row.actual|floatformat:2 }}</td>
+          <td class="text-end fw-semibold {% if row.over %}text-danger{% else %}text-success{% endif %}">
+            {% if row.variance > 0 %}+{% endif %}₹{{ row.variance|floatformat:2 }}
+          </td>
+          <td>
+            {% if row.pct is not None %}
+            <div class="progress-bg">
+              <div class="progress-bar {% if row.over %}bg-danger{% else %}bg-success{% endif %}"
+                   style="width: {% if row.pct > 100 %}100{% else %}{{ row.pct }}{% endif %}%"></div>
+            </div>
+            <small class="text-muted">{{ row.pct }}%</small>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if row.over %}
+              <span class="badge bg-danger">Over Budget</span>
+            {% else %}
+              <span class="badge bg-success">Within Budget</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot class="table-light fw-semibold">
+        <tr>
+          <td colspan="2">Total</td>
+          <td class="text-end">₹{{ total_budget|floatformat:2 }}</td>
+          <td class="text-end">₹{{ total_actual|floatformat:2 }}</td>
+          <td class="text-end {% if total_variance > 0 %}text-danger{% else %}text-success{% endif %}">
+            {% if total_variance > 0 %}+{% endif %}₹{{ total_variance|floatformat:2 }}
+          </td>
+          <td colspan="2"></td>
+        </tr>
+      </tfoot>
+    </table>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-bar-chart-steps fs-1 d-block mb-2"></i>
+      No budget heads found for FY {{ fy }}.
+      <a href="{% url 'costcenter:budget_create' %}">Add budget heads</a> first.
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="text-muted small mt-2">
+  Period: {{ start_date }} to {{ end_date }} &nbsp;|&nbsp; Annual budgets only.
+  <a href="{% url 'costcenter:budget_list' %}" class="ms-2">Manage Budgets</a>
+</div>
+{% endblock %}

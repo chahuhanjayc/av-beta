@@ -1,0 +1,47 @@
+{
+  "name": "Akshaya Vistara — Accounting",
+  "short_name": "Akshaya Vistara",
+  "description": "Multi-company double-entry accounting with OCR bill automation",
+  "start_url": "/core/dashboard/",
+  "display": "standalone",
+  "background_color": "#f5f6fa",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en-IN",
+  "categories": ["finance", "business", "productivity"],
+  "icons": [
+    {
+      "src": "/static/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Voucher",
+      "short_name": "Voucher",
+      "url": "/vouchers/create/",
+      "description": "Create a new voucher"
+    },
+    {
+      "name": "Scan Bill",
+      "short_name": "Scan",
+      "url": "/ocr/upload/",
+      "description": "Upload a bill for OCR processing"
+    },
+    {
+      "name": "P&L Report",
+      "short_name": "P&L",
+      "url": "/reports/profit-loss/",
+      "description": "View Profit & Loss report"
+    }
+  ]
+}

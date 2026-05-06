@@ -1,0 +1,606 @@
+{% extends "base.html" %}
+{% block title %}App Settings - Akshaya Vistara{% endblock %}
+{% block page_title %}App Settings{% endblock %}
+
+{% block extra_head %}
+<style>
+.settings-section-header {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6c757d;
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 0.4rem;
+  margin-bottom: 1rem;
+}
+.field-hint {
+  font-size: 0.78rem;
+  color: #6c757d;
+  margin-top: 0.2rem;
+}
+.whatsapp-preview {
+  background: #f0fdf4;
+  border-left: 4px solid #198754;
+  border-radius: 0.5rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-8">
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+          <div class="settings-section-header">
+            <i class="bi bi-whatsapp me-1"></i>WhatsApp Intake
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-7">
+              <label class="form-label fw-semibold" for="{{ form.whatsapp_intake_number.id_for_label }}">
+                {{ form.whatsapp_intake_number.label }}
+              </label>
+              {{ form.whatsapp_intake_number }}
+              <div class="field-hint">{{ form.whatsapp_intake_number.help_text }}</div>
+              {% if form.whatsapp_intake_number.errors %}
+                <div class="text-danger small mt-1">{{ form.whatsapp_intake_number.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+          <div class="settings-section-header">
+            <i class="bi bi-receipt-cutoff me-1"></i>GST E-Invoice Watch
+          </div>
+
+          <div class="form-check form-switch mb-3">
+            {{ form.e_invoice_enabled }}
+            <label class="form-check-label fw-semibold" for="{{ form.e_invoice_enabled.id_for_label }}">
+              {{ form.e_invoice_enabled.label }}
+            </label>
+            <div class="field-hint">{{ form.e_invoice_enabled.help_text }}</div>
+            {% if form.e_invoice_enabled.errors %}
+              <div class="text-danger small mt-1">{{ form.e_invoice_enabled.errors|join:", " }}</div>
+            {% endif %}
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold" for="{{ form.e_invoice_aato_crore.id_for_label }}">
+                {{ form.e_invoice_aato_crore.label }}
+              </label>
+              {{ form.e_invoice_aato_crore }}
+              <div class="field-hint">{{ form.e_invoice_aato_crore.help_text }}</div>
+              {% if form.e_invoice_aato_crore.errors %}
+                <div class="text-danger small mt-1">{{ form.e_invoice_aato_crore.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold" for="{{ form.e_invoice_reporting_deadline_days.id_for_label }}">
+                {{ form.e_invoice_reporting_deadline_days.label }}
+              </label>
+              {{ form.e_invoice_reporting_deadline_days }}
+              <div class="field-hint">{{ form.e_invoice_reporting_deadline_days.help_text }}</div>
+              {% if form.e_invoice_reporting_deadline_days.errors %}
+                <div class="text-danger small mt-1">{{ form.e_invoice_reporting_deadline_days.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold" for="{{ form.e_invoice_warning_days.id_for_label }}">
+                {{ form.e_invoice_warning_days.label }}
+              </label>
+              {{ form.e_invoice_warning_days }}
+              <div class="field-hint">{{ form.e_invoice_warning_days.help_text }}</div>
+              {% if form.e_invoice_warning_days.errors %}
+                <div class="text-danger small mt-1">{{ form.e_invoice_warning_days.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+          <div class="settings-section-header">
+            <i class="bi bi-calendar2-check me-1"></i>Statutory Profile
+          </div>
+
+          <div class="small fw-bold text-uppercase text-muted mb-2">GST Rules</div>
+          <div class="form-check form-switch mb-3">
+            {{ profile_form.gst_registered }}
+            <label class="form-check-label fw-semibold" for="{{ profile_form.gst_registered.id_for_label }}">
+              {{ profile_form.gst_registered.label }}
+            </label>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold" for="{{ profile_form.gst_return_frequency.id_for_label }}">{{ profile_form.gst_return_frequency.label }}</label>
+              {{ profile_form.gst_return_frequency }}
+              {% if profile_form.gst_return_frequency.errors %}<div class="text-danger small mt-1">{{ profile_form.gst_return_frequency.errors|join:", " }}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold" for="{{ profile_form.gstr1_frequency.id_for_label }}">{{ profile_form.gstr1_frequency.label }}</label>
+              {{ profile_form.gstr1_frequency }}
+              {% if profile_form.gstr1_frequency.errors %}<div class="text-danger small mt-1">{{ profile_form.gstr1_frequency.errors|join:", " }}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold" for="{{ profile_form.qrmp_group.id_for_label }}">{{ profile_form.qrmp_group.label }}</label>
+              {{ profile_form.qrmp_group }}
+              {% if profile_form.qrmp_group.errors %}<div class="text-danger small mt-1">{{ profile_form.qrmp_group.errors|join:", " }}</div>{% endif %}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small text-muted" for="{{ profile_form.gstr1_monthly_due_day.id_for_label }}">GSTR-1 Monthly Day</label>
+              {{ profile_form.gstr1_monthly_due_day }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small text-muted" for="{{ profile_form.gstr1_quarterly_due_day.id_for_label }}">GSTR-1 Quarterly Day</label>
+              {{ profile_form.gstr1_quarterly_due_day }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small text-muted" for="{{ profile_form.gstr3b_monthly_due_day.id_for_label }}">GSTR-3B Monthly Day</label>
+              {{ profile_form.gstr3b_monthly_due_day }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small text-muted" for="{{ profile_form.gstr3b_qrmp_due_day.id_for_label }}">GSTR-3B QRMP Day</label>
+              {{ profile_form.gstr3b_qrmp_due_day }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small text-muted" for="{{ profile_form.gst_late_fee_per_day.id_for_label }}">{{ profile_form.gst_late_fee_per_day.label }}</label>
+              {{ profile_form.gst_late_fee_per_day }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small text-muted" for="{{ profile_form.gst_nil_late_fee_per_day.id_for_label }}">{{ profile_form.gst_nil_late_fee_per_day.label }}</label>
+              {{ profile_form.gst_nil_late_fee_per_day }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small text-muted" for="{{ profile_form.gst_interest_rate_percent.id_for_label }}">{{ profile_form.gst_interest_rate_percent.label }}</label>
+              {{ profile_form.gst_interest_rate_percent }}
+            </div>
+          </div>
+
+          <div class="small fw-bold text-uppercase text-muted mb-2">TDS Rules</div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-3">
+              <div class="form-check form-switch">
+                {{ profile_form.tds_applicable }}
+                <label class="form-check-label" for="{{ profile_form.tds_applicable.id_for_label }}">{{ profile_form.tds_applicable.label }}</label>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-check">
+                {{ profile_form.tds_24q_enabled }}
+                <label class="form-check-label" for="{{ profile_form.tds_24q_enabled.id_for_label }}">24Q</label>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-check">
+                {{ profile_form.tds_26q_enabled }}
+                <label class="form-check-label" for="{{ profile_form.tds_26q_enabled.id_for_label }}">26Q</label>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-check">
+                {{ profile_form.tds_27q_enabled }}
+                <label class="form-check-label" for="{{ profile_form.tds_27q_enabled.id_for_label }}">27Q</label>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small text-muted" for="{{ profile_form.tds_deposit_due_day.id_for_label }}">{{ profile_form.tds_deposit_due_day.label }}</label>
+              {{ profile_form.tds_deposit_due_day }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small text-muted" for="{{ profile_form.tds_march_deposit_due_day.id_for_label }}">{{ profile_form.tds_march_deposit_due_day.label }}</label>
+              {{ profile_form.tds_march_deposit_due_day }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small text-muted" for="{{ profile_form.tds_deposit_interest_rate_percent_per_month.id_for_label }}">{{ profile_form.tds_deposit_interest_rate_percent_per_month.label }}</label>
+              {{ profile_form.tds_deposit_interest_rate_percent_per_month }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small text-muted" for="{{ profile_form.tds_return_late_fee_per_day.id_for_label }}">{{ profile_form.tds_return_late_fee_per_day.label }}</label>
+              {{ profile_form.tds_return_late_fee_per_day }}
+            </div>
+          </div>
+
+          <div class="small fw-bold text-uppercase text-muted mb-2">MSME & Notes</div>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="form-check form-switch mt-4">
+                {{ profile_form.msme_watch_enabled }}
+                <label class="form-check-label" for="{{ profile_form.msme_watch_enabled.id_for_label }}">{{ profile_form.msme_watch_enabled.label }}</label>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small text-muted" for="{{ profile_form.msme_default_credit_days.id_for_label }}">{{ profile_form.msme_default_credit_days.label }}</label>
+              {{ profile_form.msme_default_credit_days }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small text-muted" for="{{ profile_form.msme_interest_rate_percent.id_for_label }}">{{ profile_form.msme_interest_rate_percent.label }}</label>
+              {{ profile_form.msme_interest_rate_percent }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small text-muted" for="{{ profile_form.due_date_grace_days.id_for_label }}">{{ profile_form.due_date_grace_days.label }}</label>
+              {{ profile_form.due_date_grace_days }}
+              <div class="field-hint">{{ profile_form.due_date_grace_days.help_text }}</div>
+            </div>
+            <div class="col-md-8">
+              <label class="form-label small text-muted" for="{{ profile_form.rules_notes.id_for_label }}">{{ profile_form.rules_notes.label }}</label>
+              {{ profile_form.rules_notes }}
+              <div class="field-hint">{{ profile_form.rules_notes.help_text }}</div>
+            </div>
+          </div>
+
+          {% if profile_form.non_field_errors %}
+            <div class="text-danger small mt-3">{{ profile_form.non_field_errors|join:", " }}</div>
+          {% endif %}
+          {% if profile_form.errors %}
+            <div class="text-danger small mt-3">{{ profile_form.errors }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+          <div class="settings-section-header">
+            <i class="bi bi-envelope-paper me-1"></i>Invoice Email
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="{{ form.invoice_email_from_name.id_for_label }}">
+                {{ form.invoice_email_from_name.label }}
+              </label>
+              {{ form.invoice_email_from_name }}
+              {% if form.invoice_email_from_name.errors %}
+                <div class="text-danger small mt-1">{{ form.invoice_email_from_name.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="{{ form.invoice_email_from_address.id_for_label }}">
+                {{ form.invoice_email_from_address.label }}
+              </label>
+              {{ form.invoice_email_from_address }}
+              <div class="field-hint">{{ form.invoice_email_from_address.help_text }}</div>
+              {% if form.invoice_email_from_address.errors %}
+                <div class="text-danger small mt-1">{{ form.invoice_email_from_address.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="{{ form.invoice_email_reply_to.id_for_label }}">
+                {{ form.invoice_email_reply_to.label }}
+              </label>
+              {{ form.invoice_email_reply_to }}
+              <div class="field-hint">{{ form.invoice_email_reply_to.help_text }}</div>
+              {% if form.invoice_email_reply_to.errors %}
+                <div class="text-danger small mt-1">{{ form.invoice_email_reply_to.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold" for="{{ form.invoice_email_subject.id_for_label }}">
+                {{ form.invoice_email_subject.label }}
+              </label>
+              {{ form.invoice_email_subject }}
+              <div class="field-hint">{{ form.invoice_email_subject.help_text }}</div>
+              {% if form.invoice_email_subject.errors %}
+                <div class="text-danger small mt-1">{{ form.invoice_email_subject.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold" for="{{ form.invoice_email_body.id_for_label }}">
+                {{ form.invoice_email_body.label }}
+              </label>
+              {{ form.invoice_email_body }}
+              <div class="field-hint">{{ form.invoice_email_body.help_text }}</div>
+              {% if form.invoice_email_body.errors %}
+                <div class="text-danger small mt-1">{{ form.invoice_email_body.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+            <div class="col-12">
+              <hr class="my-2">
+              <div class="small fw-bold text-uppercase text-muted mb-2">Payment Reminder</div>
+              <label class="form-label fw-semibold" for="{{ form.payment_reminder_email_subject.id_for_label }}">
+                {{ form.payment_reminder_email_subject.label }}
+              </label>
+              {{ form.payment_reminder_email_subject }}
+              <div class="field-hint">{{ form.payment_reminder_email_subject.help_text }}</div>
+              {% if form.payment_reminder_email_subject.errors %}
+                <div class="text-danger small mt-1">{{ form.payment_reminder_email_subject.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold" for="{{ form.payment_reminder_email_body.id_for_label }}">
+                {{ form.payment_reminder_email_body.label }}
+              </label>
+              {{ form.payment_reminder_email_body }}
+              <div class="field-hint">{{ form.payment_reminder_email_body.help_text }}</div>
+              {% if form.payment_reminder_email_body.errors %}
+                <div class="text-danger small mt-1">{{ form.payment_reminder_email_body.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+          <div class="settings-section-header">
+            <i class="bi bi-magic me-1"></i>Compliance Autopilot
+          </div>
+          <div class="row g-3 align-items-end">
+            <div class="col-sm-4">
+              <label class="form-label fw-semibold" for="autopilot-months">Prepare Months</label>
+              <input type="number" id="autopilot-months" name="autopilot_months" value="{{ autopilot_months }}" min="1" max="12" class="form-control">
+            </div>
+            <div class="col-sm-8">
+              <button type="submit" name="action" value="run_compliance_autopilot" class="btn btn-outline-primary">
+                <i class="bi bi-calendar2-plus me-1"></i>Save & Run Autopilot
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" name="action" value="save" class="btn btn-primary">
+          <i class="bi bi-floppy me-1"></i>Save App Settings
+        </button>
+        <button type="submit" name="action" value="send_test_email" class="btn btn-outline-success">
+          <i class="bi bi-envelope-check me-1"></i>Send Test Email
+        </button>
+        <a href="{% url 'core:dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="col-lg-4">
+    {% if company.whatsapp_intake_number %}
+    <div class="card border-0 shadow-sm mb-3 whatsapp-preview">
+      <div class="card-body">
+        <div class="small text-success fw-bold text-uppercase mb-1">Configured Number</div>
+        <div class="input-group input-group-sm">
+          <input type="text" class="form-control bg-white" id="whatsapp-intake-number" readonly value="{{ company.whatsapp_intake_number }}">
+          <button class="btn btn-success" type="button" onclick="copyInputValue('whatsapp-intake-number', 'whatsapp-copy-feedback')">
+            <i class="bi bi-clipboard"></i>
+          </button>
+        </div>
+        <div id="whatsapp-copy-feedback" class="small text-success d-none mt-2">
+          <i class="bi bi-check2 me-1"></i>Number copied.
+        </div>
+        {% if whatsapp_test_url %}
+        <a href="{{ whatsapp_test_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success mt-3">
+          <i class="bi bi-whatsapp me-1"></i>Open WhatsApp Test
+        </a>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-body text-center py-4">
+        <i class="bi bi-whatsapp d-block mb-2 text-muted" style="font-size:2.5rem;"></i>
+        <div class="fw-semibold text-muted">No WhatsApp intake number configured</div>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white py-2">
+        <h6 class="mb-0"><i class="bi bi-receipt-cutoff me-1 text-muted"></i>GST E-Invoice Watch</h6>
+      </div>
+      <div class="card-body">
+        {% if company.e_invoice_enabled %}
+          <div class="d-flex justify-content-between mb-2">
+            <span class="small text-muted">Status</span>
+            <span class="badge bg-success">Enabled</span>
+          </div>
+          <div class="d-flex justify-content-between mb-2">
+            <span class="small text-muted">IRP deadline</span>
+            <strong>{{ company.e_invoice_reporting_deadline_days }} days</strong>
+          </div>
+          <div class="d-flex justify-content-between">
+            <span class="small text-muted">Warning starts</span>
+            <strong>{{ company.e_invoice_warning_days }} days</strong>
+          </div>
+          {% if company.e_invoice_aato_crore %}
+            <div class="small text-muted mt-2">AATO Rs.{{ company.e_invoice_aato_crore }} crore</div>
+          {% endif %}
+        {% else %}
+          <div class="text-muted small">Disabled for this company.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white py-2">
+        <h6 class="mb-0"><i class="bi bi-calendar2-check me-1 text-muted"></i>Statutory Profile</h6>
+      </div>
+      <div class="card-body">
+        <div class="d-flex justify-content-between mb-2">
+          <span class="small text-muted">GST</span>
+          <strong>{% if statutory_profile.gst_registered %}{{ statutory_profile.get_gst_return_frequency_display }}{% else %}Disabled{% endif %}</strong>
+        </div>
+        <div class="d-flex justify-content-between mb-2">
+          <span class="small text-muted">GSTR-1</span>
+          <strong>{{ statutory_profile.get_gstr1_frequency_display }}</strong>
+        </div>
+        <div class="d-flex justify-content-between mb-2">
+          <span class="small text-muted">TDS forms</span>
+          <strong>{% if statutory_profile.tds_24q_enabled %}24Q {% endif %}{% if statutory_profile.tds_26q_enabled %}26Q {% endif %}{% if statutory_profile.tds_27q_enabled %}27Q{% endif %}</strong>
+        </div>
+        <div class="d-flex justify-content-between">
+          <span class="small text-muted">MSME</span>
+          <strong>{% if statutory_profile.msme_watch_enabled %}{{ statutory_profile.msme_default_credit_days }} days{% else %}Disabled{% endif %}</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white py-2">
+        <h6 class="mb-0"><i class="bi bi-sliders me-1 text-muted"></i>Rule Overrides</h6>
+      </div>
+      <div class="card-body">
+        <form method="post" class="row g-2 mb-3">
+          {% csrf_token %}
+          <div class="col-12">
+            <label class="form-label small text-muted" for="{{ override_form.rule_type.id_for_label }}">{{ override_form.rule_type.label }}</label>
+            {{ override_form.rule_type }}
+          </div>
+          <div class="col-6">
+            <label class="form-label small text-muted" for="{{ override_form.period_start.id_for_label }}">{{ override_form.period_start.label }}</label>
+            {{ override_form.period_start }}
+          </div>
+          <div class="col-6">
+            <label class="form-label small text-muted" for="{{ override_form.period_end.id_for_label }}">{{ override_form.period_end.label }}</label>
+            {{ override_form.period_end }}
+          </div>
+          <div class="col-6">
+            <label class="form-label small text-muted" for="{{ override_form.original_due_date.id_for_label }}">{{ override_form.original_due_date.label }}</label>
+            {{ override_form.original_due_date }}
+          </div>
+          <div class="col-6">
+            <label class="form-label small text-muted" for="{{ override_form.override_due_date.id_for_label }}">{{ override_form.override_due_date.label }}</label>
+            {{ override_form.override_due_date }}
+          </div>
+          <div class="col-6">
+            <label class="form-label small text-muted" for="{{ override_form.late_fee_per_day.id_for_label }}">{{ override_form.late_fee_per_day.label }}</label>
+            {{ override_form.late_fee_per_day }}
+          </div>
+          <div class="col-6">
+            <label class="form-label small text-muted" for="{{ override_form.interest_rate_percent.id_for_label }}">{{ override_form.interest_rate_percent.label }}</label>
+            {{ override_form.interest_rate_percent }}
+          </div>
+          <div class="col-12">
+            <label class="form-label small text-muted" for="{{ override_form.reason.id_for_label }}">{{ override_form.reason.label }}</label>
+            {{ override_form.reason }}
+          </div>
+          {% if override_form.errors %}
+            <div class="col-12 text-danger small">{{ override_form.errors }}</div>
+          {% endif %}
+          <div class="col-12">
+            <button type="submit" name="action" value="add_rule_override" class="btn btn-outline-primary btn-sm w-100">
+              <i class="bi bi-plus-lg me-1"></i>Add Override
+            </button>
+          </div>
+        </form>
+
+        <div class="list-group list-group-flush">
+          {% for override in rule_overrides %}
+            <div class="list-group-item px-0">
+              <div class="d-flex justify-content-between gap-2">
+                <div>
+                  <div class="fw-semibold small">{{ override.get_rule_type_display }}</div>
+                  <div class="small text-muted">
+                    {% if override.period_start %}{{ override.period_start|date:"d M Y" }}{% else %}Open{% endif %}
+                    -
+                    {% if override.period_end %}{{ override.period_end|date:"d M Y" }}{% else %}Open{% endif %}
+                  </div>
+                  <div class="small text-muted">
+                    {% if override.override_due_date %}Due {{ override.override_due_date|date:"d M Y" }}{% endif %}
+                    {% if override.late_fee_per_day %} Fee Rs.{{ override.late_fee_per_day }}{% endif %}
+                    {% if override.interest_rate_percent %} Interest {{ override.interest_rate_percent }}%{% endif %}
+                  </div>
+                </div>
+                {% if override.is_active %}
+                  <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="override_id" value="{{ override.pk }}">
+                    <button type="submit" name="action" value="deactivate_rule_override" class="btn btn-sm btn-outline-secondary" title="Deactivate">
+                      <i class="bi bi-x-lg"></i>
+                    </button>
+                  </form>
+                {% else %}
+                  <span class="badge bg-secondary align-self-start">Inactive</span>
+                {% endif %}
+              </div>
+              {% if override.reason %}
+                <div class="small text-muted mt-1">{{ override.reason }}</div>
+              {% endif %}
+            </div>
+          {% empty %}
+            <div class="text-muted small">No client-specific statutory overrides.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white py-2">
+        <h6 class="mb-0"><i class="bi bi-envelope-at me-1 text-muted"></i>Invoice Email</h6>
+      </div>
+      <div class="card-body">
+        <div class="small text-muted mb-1">Sender</div>
+        <div class="fw-semibold">
+          {% if company.invoice_email_from_name %}{{ company.invoice_email_from_name }}{% else %}{{ company.name }}{% endif %}
+        </div>
+        <div class="small text-muted text-break">
+          {{ company.invoice_email_from_address|default:"System default sender" }}
+        </div>
+        {% if company.invoice_email_reply_to %}
+          <div class="small text-muted mt-2">Replies: {{ company.invoice_email_reply_to }}</div>
+        {% endif %}
+        <div class="small text-muted mt-3">Reminder subject</div>
+        <div class="small text-break">{{ company.payment_reminder_email_subject }}</div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white py-2">
+        <h6 class="mb-0"><i class="bi bi-link-45deg me-1 text-muted"></i>Webhook Endpoint</h6>
+      </div>
+      <div class="card-body">
+        <div class="input-group input-group-sm">
+          <input type="text" class="form-control bg-light" id="whatsapp-webhook-url" readonly value="{{ whatsapp_webhook_url }}">
+          <button class="btn btn-outline-secondary" type="button" onclick="copyInputValue('whatsapp-webhook-url', 'webhook-copy-feedback')">
+            <i class="bi bi-clipboard"></i>
+          </button>
+        </div>
+        <div id="webhook-copy-feedback" class="small text-success d-none mt-2">
+          <i class="bi bi-check2 me-1"></i>Webhook copied.
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-2">
+        <h6 class="mb-0"><i class="bi bi-cloud-arrow-up me-1 text-muted"></i>Client Upload Portal</h6>
+      </div>
+      <div class="card-body">
+        <div class="input-group input-group-sm">
+          <input type="text" class="form-control bg-light" id="portal-url" readonly
+                 value="{{ request.scheme }}://{{ request.get_host }}{% url 'ocr:client_portal' company.portal_token %}">
+          <button class="btn btn-outline-secondary" type="button" onclick="copyInputValue('portal-url', 'portal-copy-feedback')">
+            <i class="bi bi-clipboard"></i>
+          </button>
+        </div>
+        <div id="portal-copy-feedback" class="small text-success d-none mt-2">
+          <i class="bi bi-check2 me-1"></i>Portal link copied.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copyInputValue(inputId, feedbackId) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  input.select();
+  input.setSelectionRange(0, 99999);
+  navigator.clipboard.writeText(input.value);
+
+  const feedback = document.getElementById(feedbackId);
+  if (feedback) {
+    feedback.classList.remove("d-none");
+    setTimeout(() => feedback.classList.add("d-none"), 3000);
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}{{ title }} – Akshaya Vistara{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <form method="post">
+      {% csrf_token %}
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold py-3">Asset Details</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-8">{{ form.name|as_crispy_field }}</div>
+            <div class="col-md-4">{{ form.asset_code|as_crispy_field }}</div>
+            <div class="col-md-6">{{ form.asset_group|as_crispy_field }}</div>
+            <div class="col-md-6">{{ form.location|as_crispy_field }}</div>
+            <div class="col-md-6">{{ form.serial_number|as_crispy_field }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold py-3">Valuation</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">{{ form.purchase_date|as_crispy_field }}</div>
+            <div class="col-md-6">{{ form.purchase_value|as_crispy_field }}</div>
+            <div class="col-md-6">{{ form.salvage_value|as_crispy_field }}</div>
+            <div class="col-md-6">{{ form.useful_life_years|as_crispy_field }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold py-3">Depreciation</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">{{ form.depreciation_method|as_crispy_field }}</div>
+            <div class="col-md-6">{{ form.wdv_rate|as_crispy_field }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold py-3">Notes</div>
+        <div class="card-body">{{ form.notes|as_crispy_field }}</div>
+      </div>
+
+      <div class="d-flex gap-2 justify-content-end">
+        <a href="{% url 'fixedassets:asset_list' %}" class="btn btn-outline-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i>Save Asset</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

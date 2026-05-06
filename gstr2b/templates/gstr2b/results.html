@@ -1,0 +1,401 @@
+{% extends "base.html" %}
+
+{% block title %}GSTR-2B IMS Console - Akshaya Vistara{% endblock %}
+{% block page_title %}GSTR-2B IMS Console{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h5 class="mb-0">GSTR-2B IMS Console</h5>
+        <small class="text-muted">{{ period_start|date:"d M Y" }} to {{ period_end|date:"d M Y" }}</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'gstr2b:vendor_register' %}?from_period={{ period_value }}&to_period={{ period_value }}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-building-check me-1"></i> Vendor Register
+        </a>
+        <a href="{% url 'gstr2b:results' %}?{{ filter_query }}&export=csv" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-download me-1"></i> Export CSV
+        </a>
+        <a href="{% url 'gstr2b:upload' %}" class="btn btn-sm btn-primary">
+            <i class="bi bi-cloud-upload me-1"></i> Upload 2B
+        </a>
+    </div>
+</div>
+
+<form method="get" class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-6 col-lg-2">
+                <label class="form-label small text-muted" for="period">Period</label>
+                <input type="month" id="period" name="period" class="form-control form-control-sm" value="{{ period_value }}">
+            </div>
+            <div class="col-6 col-lg-3">
+                <label class="form-label small text-muted" for="status">Match</label>
+                <select id="status" name="status" class="form-select form-select-sm">
+                    {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-lg-3">
+                <label class="form-label small text-muted" for="action">IMS Action</label>
+                <select id="action" name="action" class="form-select form-select-sm">
+                    {% for value, label in action_choices %}
+                        <option value="{{ value }}" {% if filters.action == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12 col-lg-3">
+                <label class="form-label small text-muted" for="q">Search</label>
+                <input type="search" id="q" name="q" class="form-control form-control-sm" value="{{ filters.q }}" placeholder="GSTIN, supplier, invoice">
+            </div>
+            <div class="col-12 col-lg-1 d-grid">
+                <button type="submit" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-funnel me-1"></i> Apply
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<div class="row g-3 mb-3">
+    <div class="col-6 col-xl-2">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body py-3">
+                <div class="text-muted small text-uppercase fw-semibold">Matched</div>
+                <div class="h5 mb-0 text-success">{{ summary.matched }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-2">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body py-3">
+                <div class="text-muted small text-uppercase fw-semibold">Missing Books</div>
+                <div class="h5 mb-0 text-danger">{{ summary.missing_in_books }}</div>
+                <div class="small text-muted">Rs. {{ summary.missing_books_itc|floatformat:2 }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-2">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body py-3">
+                <div class="text-muted small text-uppercase fw-semibold">Missing 2B</div>
+                <div class="h5 mb-0 text-warning">{{ summary.missing_in_portal }}</div>
+                <div class="small text-muted">Rs. {{ summary.missing_portal_itc|floatformat:2 }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-2">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body py-3">
+                <div class="text-muted small text-uppercase fw-semibold">Accepted ITC</div>
+                <div class="h5 mb-0 text-success">Rs. {{ summary.accepted_itc|floatformat:2 }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-2">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body py-3">
+                <div class="text-muted small text-uppercase fw-semibold">Pending/Rejected</div>
+                <div class="h5 mb-0 text-primary">Rs. {{ summary.pending_rejected_itc|floatformat:2 }}</div>
+                <div class="small text-muted">{{ summary.pending_actions }} pending, {{ summary.rejected }} rejected</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-2">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body py-3">
+                <div class="text-muted small text-uppercase fw-semibold">ITC At Risk</div>
+                <div class="h5 mb-0 text-danger">Rs. {{ summary.itc_at_risk|floatformat:2 }}</div>
+                <div class="small text-muted">{{ summary.no_action }} no action</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <ul class="nav nav-tabs border-0 bg-light px-3 pt-2" id="reconTabs" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active fw-medium" id="matched-tab" data-bs-toggle="tab" data-bs-target="#matched" type="button">
+                    Matched <span class="badge text-bg-success ms-1">{{ result_counts.matched }}</span>
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link fw-medium" id="missing-books-tab" data-bs-toggle="tab" data-bs-target="#missing-books" type="button">
+                    Missing in Books <span class="badge text-bg-danger ms-1">{{ result_counts.missing_in_books }}</span>
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link fw-medium" id="missing-portal-tab" data-bs-toggle="tab" data-bs-target="#missing-portal" type="button">
+                    Missing in 2B <span class="badge text-bg-warning ms-1">{{ result_counts.missing_in_portal }}</span>
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="reconTabsContent">
+            <div class="tab-pane fade show active p-3" id="matched">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="period" value="{{ period_value }}">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                        <div class="d-flex flex-wrap gap-2">
+                            <input type="text" name="action_note" class="form-control form-control-sm" style="max-width: 320px;" placeholder="Action note">
+                            <button type="submit" formaction="{% url 'gstr2b:bulk_action' %}" name="action_status" value="accepted" class="btn btn-sm btn-outline-success bulk-btn" data-action-button="matched" disabled>
+                                <i class="bi bi-check2-circle me-1"></i> Accept
+                            </button>
+                            <button type="submit" formaction="{% url 'gstr2b:bulk_action' %}" name="action_status" value="pending" class="btn btn-sm btn-outline-warning bulk-btn" data-action-button="matched" disabled>
+                                <i class="bi bi-clock me-1"></i> Pending
+                            </button>
+                            <button type="submit" formaction="{% url 'gstr2b:bulk_action' %}" name="action_status" value="rejected" class="btn btn-sm btn-outline-danger bulk-btn" data-action-button="matched" disabled>
+                                <i class="bi bi-x-circle me-1"></i> Reject
+                            </button>
+                            <button type="submit" formaction="{% url 'gstr2b:create_tasks' %}" class="btn btn-sm btn-outline-secondary bulk-btn" data-action-button="matched" disabled>
+                                <i class="bi bi-list-task me-1"></i> Create Task
+                            </button>
+                        </div>
+                        <div class="form-check small">
+                            <input type="checkbox" id="selectMatched" class="form-check-input" data-select-all="matched">
+                            <label class="form-check-label text-muted" for="selectMatched">Select visible</label>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 42px;"></th>
+                                    <th>Supplier</th>
+                                    <th>GSTIN</th>
+                                    <th>Invoice</th>
+                                    <th>Date</th>
+                                    <th class="text-end">Tax</th>
+                                    <th>Voucher</th>
+                                    <th>IMS</th>
+                                    <th class="text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for entry in matched %}
+                                <tr>
+                                    <td><input type="checkbox" name="entry_ids" value="{{ entry.pk }}" class="form-check-input" data-select-group="matched"></td>
+                                    <td class="fw-medium">{{ entry.supplier_name|default:"-" }}</td>
+                                    <td><code>{{ entry.gstin }}</code></td>
+                                    <td><code>{{ entry.invoice_number }}</code></td>
+                                    <td>{{ entry.invoice_date|date:"d M Y" }}</td>
+                                    <td class="text-end">Rs. {{ entry.tax_amount|floatformat:2 }}</td>
+                                    <td>
+                                        {% if entry.matched_voucher %}
+                                            <a href="{% url 'vouchers:detail' entry.matched_voucher.pk %}" class="text-decoration-none">{{ entry.matched_voucher.number }}</a>
+                                            <div class="small text-muted">{{ entry.match_score }}% match</div>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if entry.action_status == "accepted" %}
+                                            <span class="badge text-bg-success">{{ entry.get_action_status_display }}</span>
+                                        {% elif entry.action_status == "pending" %}
+                                            <span class="badge text-bg-warning">{{ entry.get_action_status_display }}</span>
+                                        {% elif entry.action_status == "rejected" %}
+                                            <span class="badge text-bg-danger">{{ entry.get_action_status_display }}</span>
+                                        {% else %}
+                                            <span class="badge text-bg-secondary">{{ entry.get_action_status_display }}</span>
+                                        {% endif %}
+                                        {% if entry.action_note %}
+                                            <div class="small text-muted text-truncate" style="max-width: 220px;">{{ entry.action_note }}</div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end text-nowrap">
+                                        <button type="submit" formaction="{% url 'gstr2b:mark_action' entry.pk %}" name="action_status" value="accepted" class="btn btn-sm btn-outline-success" title="Accept">
+                                            <i class="bi bi-check2"></i>
+                                        </button>
+                                        <button type="submit" formaction="{% url 'gstr2b:mark_action' entry.pk %}" name="action_status" value="pending" class="btn btn-sm btn-outline-warning" title="Pending">
+                                            <i class="bi bi-clock"></i>
+                                        </button>
+                                        <button type="submit" formaction="{% url 'gstr2b:mark_action' entry.pk %}" name="action_status" value="rejected" class="btn btn-sm btn-outline-danger" title="Reject">
+                                            <i class="bi bi-x"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="9" class="text-center text-muted py-4">No matched entries.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+            </div>
+
+            <div class="tab-pane fade p-3" id="missing-books">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="period" value="{{ period_value }}">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                        <div class="d-flex flex-wrap gap-2">
+                            <input type="text" name="action_note" class="form-control form-control-sm" style="max-width: 320px;" placeholder="Action note">
+                            <button type="submit" formaction="{% url 'gstr2b:bulk_create' %}" class="btn btn-sm btn-success bulk-btn" data-action-button="missing-books" disabled>
+                                <i class="bi bi-plus-square me-1"></i> Create Voucher
+                            </button>
+                            <button type="submit" formaction="{% url 'gstr2b:bulk_action' %}" name="action_status" value="pending" class="btn btn-sm btn-outline-warning bulk-btn" data-action-button="missing-books" disabled>
+                                <i class="bi bi-clock me-1"></i> Pending
+                            </button>
+                            <button type="submit" formaction="{% url 'gstr2b:bulk_action' %}" name="action_status" value="rejected" class="btn btn-sm btn-outline-danger bulk-btn" data-action-button="missing-books" disabled>
+                                <i class="bi bi-x-circle me-1"></i> Reject
+                            </button>
+                            <button type="submit" formaction="{% url 'gstr2b:create_tasks' %}" class="btn btn-sm btn-outline-secondary bulk-btn" data-action-button="missing-books" disabled>
+                                <i class="bi bi-list-task me-1"></i> Create Task
+                            </button>
+                        </div>
+                        <div class="form-check small">
+                            <input type="checkbox" id="selectMissingBooks" class="form-check-input" data-select-all="missing-books">
+                            <label class="form-check-label text-muted" for="selectMissingBooks">Select visible</label>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 42px;"></th>
+                                    <th>Supplier</th>
+                                    <th>GSTIN</th>
+                                    <th>Invoice</th>
+                                    <th>Date</th>
+                                    <th class="text-end">Tax</th>
+                                    <th>IMS</th>
+                                    <th class="text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for entry in missing_in_books %}
+                                <tr>
+                                    <td><input type="checkbox" name="entry_ids" value="{{ entry.pk }}" class="form-check-input" data-select-group="missing-books"></td>
+                                    <td class="fw-medium">{{ entry.supplier_name|default:"-" }}</td>
+                                    <td><code>{{ entry.gstin }}</code></td>
+                                    <td><code>{{ entry.invoice_number }}</code></td>
+                                    <td>{{ entry.invoice_date|date:"d M Y" }}</td>
+                                    <td class="text-end">Rs. {{ entry.tax_amount|floatformat:2 }}</td>
+                                    <td>
+                                        {% if entry.action_status == "accepted" %}
+                                            <span class="badge text-bg-success">{{ entry.get_action_status_display }}</span>
+                                        {% elif entry.action_status == "pending" %}
+                                            <span class="badge text-bg-warning">{{ entry.get_action_status_display }}</span>
+                                        {% elif entry.action_status == "rejected" %}
+                                            <span class="badge text-bg-danger">{{ entry.get_action_status_display }}</span>
+                                        {% else %}
+                                            <span class="badge text-bg-secondary">{{ entry.get_action_status_display }}</span>
+                                        {% endif %}
+                                        {% if entry.action_note %}
+                                            <div class="small text-muted text-truncate" style="max-width: 220px;">{{ entry.action_note }}</div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end text-nowrap">
+                                        <button type="submit" formaction="{% url 'gstr2b:mark_action' entry.pk %}" name="action_status" value="pending" class="btn btn-sm btn-outline-warning" title="Pending">
+                                            <i class="bi bi-clock"></i>
+                                        </button>
+                                        <button type="submit" formaction="{% url 'gstr2b:mark_action' entry.pk %}" name="action_status" value="rejected" class="btn btn-sm btn-outline-danger" title="Reject">
+                                            <i class="bi bi-x"></i>
+                                        </button>
+                                        <a href="{% url 'gstr2b:create_voucher' entry.pk %}" class="btn btn-sm btn-outline-primary" title="Create voucher">
+                                            <i class="bi bi-plus"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="8" class="text-center text-muted py-4">No missing-book entries.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+            </div>
+
+            <div class="tab-pane fade p-3" id="missing-portal">
+                <form method="post" action="{% url 'gstr2b:create_tasks' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="period" value="{{ period_value }}">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary bulk-btn" data-action-button="missing-portal" disabled>
+                            <i class="bi bi-list-task me-1"></i> Create Vendor Tasks
+                        </button>
+                        <div class="form-check small">
+                            <input type="checkbox" id="selectMissingPortal" class="form-check-input" data-select-all="missing-portal">
+                            <label class="form-check-label text-muted" for="selectMissingPortal">Select visible</label>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 42px;"></th>
+                                    <th>Voucher</th>
+                                    <th>Date</th>
+                                    <th>Supplier</th>
+                                    <th>GSTIN</th>
+                                    <th class="text-end">Books Tax</th>
+                                    <th class="text-end">Task</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in missing_in_portal %}
+                                <tr>
+                                    <td><input type="checkbox" name="voucher_ids" value="{{ row.voucher.pk }}" class="form-check-input" data-select-group="missing-portal"></td>
+                                    <td><a href="{% url 'vouchers:detail' row.voucher.pk %}" class="text-decoration-none">{{ row.voucher.number }}</a></td>
+                                    <td>{{ row.voucher.date|date:"d M Y" }}</td>
+                                    <td class="fw-medium">{% if row.party %}{{ row.party.name }}{% else %}-{% endif %}</td>
+                                    <td>{% if row.party and row.party.gstin %}<code>{{ row.party.gstin }}</code>{% else %}<span class="text-muted">-</span>{% endif %}</td>
+                                    <td class="text-end">Rs. {{ row.voucher.total_tax|floatformat:2 }}</td>
+                                    <td class="text-end">
+                                        {% if row.task_exists %}
+                                            <span class="badge text-bg-secondary">Open</span>
+                                        {% else %}
+                                            <span class="badge text-bg-light text-muted">Not created</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="7" class="text-center text-muted py-4">No book invoices missing from 2B.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const syncGroup = (group) => {
+        const boxes = Array.from(document.querySelectorAll(`[data-select-group="${group}"]`));
+        const checked = boxes.filter((box) => box.checked).length;
+        document.querySelectorAll(`[data-action-button="${group}"]`).forEach((button) => {
+            button.disabled = checked === 0;
+        });
+        const selectAll = document.querySelector(`[data-select-all="${group}"]`);
+        if (selectAll) {
+            selectAll.checked = boxes.length > 0 && checked === boxes.length;
+            selectAll.indeterminate = checked > 0 && checked < boxes.length;
+        }
+    };
+
+    document.querySelectorAll("[data-select-all]").forEach((control) => {
+        control.addEventListener("change", () => {
+            const group = control.dataset.selectAll;
+            document.querySelectorAll(`[data-select-group="${group}"]`).forEach((box) => {
+                box.checked = control.checked;
+            });
+            syncGroup(group);
+        });
+    });
+
+    document.querySelectorAll("[data-select-group]").forEach((box) => {
+        box.addEventListener("change", () => syncGroup(box.dataset.selectGroup));
+        syncGroup(box.dataset.selectGroup);
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% for row in day_book_rows %}
+<tr tabindex="0" class="daybook-row" data-id="{{ row.id }}" data-url="{% url 'vouchers:detail' row.id %}">
+  <td class="text-muted">{{ row.date|date:"d-M-Y" }}</td>
+  <td>
+    <a href="{% url 'vouchers:detail' row.id %}" class="fw-bold text-decoration-none voucher-link quick-view">
+      {{ row.number }}
+    </a>
+  </td>
+  <td>
+    <span class="type-badge bg-secondary-subtle text-secondary border">
+      {{ row.type }}
+    </span>
+  </td>
+  <td>{{ row.party }}</td>
+  <td class="amount-cell text-primary">₹{{ row.amount|floatformat:2 }}</td>
+  <td class="amount-cell text-secondary">₹{{ row.balance|floatformat:2 }}</td>
+</tr>
+{% empty %}
+<tr>
+  <td colspan="6" class="text-center py-5 text-muted">
+    <i class="bi bi-info-circle d-block fs-2 mb-2"></i>
+    No transactions found for the selected period.
+  </td>
+</tr>
+{% endfor %}

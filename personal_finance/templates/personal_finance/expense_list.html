@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Expense History - SpendSight{% endblock %}
+{% block page_title %}Expense History{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <form method="get" class="row g-3 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label small fw-semibold">Category</label>
+        <select name="category" class="form-select">
+          <option value="">All categories</option>
+          {% for cat in categories %}
+          <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:'s' %}selected{% endif %}>{{ cat.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small fw-semibold">Search</label>
+        <input type="text" name="q" class="form-control" value="{{ search }}" placeholder="Item or note">
+      </div>
+      <div class="col-md-4 d-flex gap-2">
+        <button type="submit" class="btn btn-outline-secondary">Filter</button>
+        <a href="{% url 'personal_finance:expense_create' %}" class="btn btn-primary">Add</a>
+        <a href="{% url 'personal_finance:export_csv' %}" class="btn btn-outline-success" title="Download CSV"><i class="bi bi-filetype-csv"></i></a>
+        <a href="{% url 'personal_finance:export_pdf' %}" class="btn btn-outline-danger" title="Download PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Date</th>
+          <th>Category</th>
+          <th>Item</th>
+          <th>Details</th>
+          <th>Method</th>
+          <th class="text-end">Amount</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ex in expenses %}
+        <tr>
+          <td>{{ ex.date|date:"d M Y" }}</td>
+          <td><span class="badge" style="background-color: {{ ex.category.color }}22; color: {{ ex.category.color }};">{{ ex.category.name }}</span></td>
+          <td>{{ ex.item_name|default:"-" }}</td>
+          <td>
+            <div>{{ ex.description|default:"-" }}</div>
+            {% if ex.quantity %}<div class="text-muted small">{{ ex.quantity }} {{ ex.unit }}</div>{% endif %}
+          </td>
+          <td class="text-muted small">{{ ex.payment_method }}</td>
+          <td class="text-end fw-bold text-danger">{{ currency_symbol }}{{ ex.amount|floatformat:2 }}</td>
+          <td class="text-end">
+            <div class="d-inline-flex gap-2">
+              <a href="{% url 'personal_finance:expense_edit' ex.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+              <form method="post" action="{% url 'personal_finance:expense_delete' ex.pk %}" onsubmit="return confirm('Delete this expense?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center py-5 text-muted">No expenses found for this filter.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

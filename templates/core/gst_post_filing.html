@@ -1,0 +1,573 @@
+{% extends "base.html" %}
+
+{% block title %}GST Post-Filing Center - Akshaya Vistara{% endblock %}
+{% block page_title %}GST Post-Filing Center{% endblock %}
+
+{% block extra_head %}
+<style>
+  .post-filter {
+    background: var(--surface-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 0.85rem 1rem;
+  }
+  .post-filter label,
+  .post-form label {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+  .post-score {
+    font-size: 1.9rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .post-note {
+    max-width: 30rem;
+  }
+  .post-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 0.72rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h5 class="mb-0">GST Post-Filing Center</h5>
+    <small class="text-muted">{{ selected_company.name }} | {{ period_start|date:"M Y" }}</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'core:gst_post_filing_dashboard' %}?period={{ period_value }}" class="btn btn-outline-dark btn-sm">
+      <i class="bi bi-columns-gap"></i> Dashboard
+    </a>
+    <a href="{% url 'core:gst_workbench' %}?period={{ period_value }}&company={{ selected_company.pk }}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-shield-check"></i> GST Workbench
+    </a>
+    <a href="{% url 'core:gst_filing_pack' %}?period={{ period_value }}&company={{ selected_company.pk }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-file-earmark-spreadsheet"></i> Filing Pack
+    </a>
+  </div>
+</div>
+
+<form method="get" class="post-filter mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-5 col-lg-4">
+      <label for="company">Company</label>
+      <select id="company" name="company" class="form-select form-select-sm">
+        {% for company in companies %}
+        <option value="{{ company.pk }}" {% if company.pk == selected_company.pk %}selected{% endif %}>{{ company.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3 col-lg-2">
+      <label for="period">Period</label>
+      <input type="month" id="period" name="period" value="{{ period_value }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-primary btn-sm w-100">
+        <i class="bi bi-funnel"></i> Apply
+      </button>
+    </div>
+  </div>
+</form>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Closure Score</div>
+        <div class="post-score {% if center.summary.score >= 80 %}text-success{% elif center.summary.score >= 50 %}text-warning{% else %}text-danger{% endif %}">
+          {{ center.summary.score }}
+        </div>
+        <div class="small text-muted">{{ center.summary.pack_status }} pack</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">ARN / Evidence</div>
+        <div class="h6 mb-1 text-truncate">{{ center.summary.arn|default:"Missing" }}</div>
+        <div class="small text-muted">{{ center.tracker_values.portal_evidence_reference|default:"No evidence reference" }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">ITC at Risk</div>
+        <div class="h4 mb-0">Rs.{{ center.summary.itc_at_risk|floatformat:2 }}</div>
+        <div class="small text-muted">{{ center.summary.pending_2b }} IMS / 2B actions</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">GST Notices</div>
+        <div class="h4 mb-0 {% if center.summary.open_notices %}text-danger{% else %}text-success{% endif %}">
+          {{ center.summary.open_notices }}
+        </div>
+        <div class="small text-danger">{{ center.summary.overdue_notices }} overdue</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-8">
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-patch-check me-2"></i>Post-Filing Controls</h6>
+        {% if center.summary.tracker_saved %}
+          <span class="badge bg-success">Saved</span>
+        {% else %}
+          <span class="badge bg-warning text-dark">Draft</span>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        {% if can_manage %}
+        <form method="post" class="post-form">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="save_tracker">
+          <input type="hidden" name="period" value="{{ period_value }}">
+          <input type="hidden" name="company_id" value="{{ selected_company.pk }}">
+
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label for="gstr1_status">GSTR-1 Status</label>
+              <select id="gstr1_status" name="gstr1_status" class="form-select form-select-sm">
+                {% for value, label in return_status_choices %}
+                  <option value="{{ value }}" {% if center.tracker_values.gstr1_status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-5">
+              <label for="gstr1_arn">GSTR-1 ARN</label>
+              <input id="gstr1_arn" name="gstr1_arn" value="{{ center.tracker_values.gstr1_arn }}" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-4">
+              <label for="gstr1_filed_at">GSTR-1 Filed At</label>
+              <input id="gstr1_filed_at" name="gstr1_filed_at" value="{{ center.tracker_values.gstr1_filed_at|date:'Y-m-d H:i' }}" class="form-control form-control-sm" placeholder="YYYY-MM-DD HH:MM">
+            </div>
+
+            <div class="col-md-3">
+              <label for="gstr3b_status">GSTR-3B Status</label>
+              <select id="gstr3b_status" name="gstr3b_status" class="form-select form-select-sm">
+                {% for value, label in return_status_choices %}
+                  <option value="{{ value }}" {% if center.tracker_values.gstr3b_status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-5">
+              <label for="gstr3b_arn">GSTR-3B ARN</label>
+              <input id="gstr3b_arn" name="gstr3b_arn" value="{{ center.tracker_values.gstr3b_arn }}" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-4">
+              <label for="gstr3b_filed_at">GSTR-3B Filed At</label>
+              <input id="gstr3b_filed_at" name="gstr3b_filed_at" value="{{ center.tracker_values.gstr3b_filed_at|date:'Y-m-d H:i' }}" class="form-control form-control-sm" placeholder="YYYY-MM-DD HH:MM">
+            </div>
+
+            <div class="col-md-3">
+              <label for="ims_status">IMS / 2B Status</label>
+              <select id="ims_status" name="ims_status" class="form-select form-select-sm">
+                {% for value, label in ims_status_choices %}
+                  <option value="{{ value }}" {% if center.tracker_values.ims_status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label for="payment_status">Payment Status</label>
+              <select id="payment_status" name="payment_status" class="form-select form-select-sm">
+                {% for value, label in payment_status_choices %}
+                  <option value="{{ value }}" {% if center.tracker_values.payment_status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label for="payment_challan_reference">Challan / CIN</label>
+              <input id="payment_challan_reference" name="payment_challan_reference" value="{{ center.tracker_values.payment_challan_reference }}" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-2">
+              <label for="payment_date">Payment Date</label>
+              <input type="date" id="payment_date" name="payment_date" value="{{ center.tracker_values.payment_date|date:'Y-m-d' }}" class="form-control form-control-sm">
+            </div>
+
+            <div class="col-md-3">
+              <label for="itc_at_risk">ITC at Risk</label>
+              <input type="number" step="0.01" id="itc_at_risk" name="itc_at_risk" value="{{ center.tracker_values.itc_at_risk }}" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-9">
+              <label for="portal_evidence_reference">Portal Evidence Reference</label>
+              <input id="portal_evidence_reference" name="portal_evidence_reference" value="{{ center.tracker_values.portal_evidence_reference }}" class="form-control form-control-sm" placeholder="ARN PDF, challan CIN, evidence path, or portal note">
+            </div>
+            <div class="col-12">
+              <label for="notes">Review Notes</label>
+              <textarea id="notes" name="notes" rows="3" class="form-control form-control-sm">{{ center.tracker_values.notes }}</textarea>
+            </div>
+          </div>
+
+          <div class="mt-3">
+            <button type="submit" class="btn btn-primary btn-sm">
+              <i class="bi bi-save"></i> Save Post-Filing Status
+            </button>
+          </div>
+        </form>
+        {% else %}
+          <p class="text-muted mb-0">You have view-only access to this company.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-list-check me-2"></i>Closure Checklist</h6>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Control</th>
+              <th>Status</th>
+              <th class="pe-3">Reason</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in center.validations %}
+            <tr>
+              <td class="ps-3">
+                <div class="fw-semibold">{{ item.title }}</div>
+                <div class="post-code text-muted">{{ item.code }}</div>
+              </td>
+              <td>
+                <span class="badge {% if item.severity == 'critical' %}bg-danger{% elif item.severity == 'warning' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                  {{ item.severity|capfirst }}
+                </span>
+              </td>
+              <td class="small pe-3 post-note">{{ item.description }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-folder-check me-2"></i>GST Evidence Vault</h6>
+        <span class="small text-muted">{{ center.evidence_documents|length }} documents</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Evidence</th>
+              <th>Type</th>
+              <th>Reference</th>
+              <th>Uploaded</th>
+              <th class="text-end pe-3">File</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for document in center.evidence_documents %}
+            <tr>
+              <td class="ps-3">
+                <div class="fw-semibold">{{ document.title }}</div>
+                <div class="small text-muted">
+                  {% if document.notice %}{{ document.notice.title }}{% elif document.filing %}{{ document.filing.get_filing_type_display }}{% else %}{{ document.get_return_type_display }}{% endif %}
+                </div>
+              </td>
+              <td><span class="badge bg-secondary-subtle text-secondary">{{ document.get_evidence_type_display }}</span></td>
+              <td>
+                <div class="small">{{ document.arn_ack_number|default:document.challan_reference|default:document.external_reference|default:"-" }}</div>
+              </td>
+              <td>
+                <div class="small">{{ document.uploaded_at|date:"d M Y H:i" }}</div>
+                <div class="small text-muted">{% if document.uploaded_by %}{{ document.uploaded_by.email }}{% else %}-{% endif %}</div>
+              </td>
+              <td class="text-end pe-3">
+                <a class="btn btn-xs btn-outline-primary" href="{{ document.file.url }}" target="_blank">Open</a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="text-center text-muted py-4">No GST evidence has been uploaded for this period.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-exclamation-diamond me-2"></i>GST Notice Response Room</h6>
+        <span class="small text-muted">{{ center.notices|length }} period-linked notices</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Notice</th>
+              <th>Due</th>
+              <th>Status</th>
+              <th class="pe-3">Update</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for notice in center.notices %}
+            <tr>
+              <td class="ps-3">
+                <a href="{% url 'core:compliance_notice_update' notice.pk %}" class="fw-semibold text-decoration-none">{{ notice.title }}</a>
+                <div class="small text-muted">{{ notice.reference_number|default:"No reference" }} | {{ notice.related_filing.get_filing_type_display|default:"GST" }}</div>
+              </td>
+              <td class="{% if notice.response_due_date and notice.response_due_date < today and notice.is_open %}text-danger fw-semibold{% endif %}">
+                {{ notice.response_due_date|date:"d M Y"|default:"-" }}
+              </td>
+              <td>
+                <span class="badge {% if notice.status == 'closed' %}bg-success{% elif notice.status == 'escalated' %}bg-danger{% elif notice.status == 'data_pending' %}bg-warning text-dark{% else %}bg-primary-subtle text-primary{% endif %}">
+                  {{ notice.get_status_display }}
+                </span>
+              </td>
+              <td class="pe-3">
+                {% if can_manage %}
+                <form method="post" class="row g-1 align-items-center">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="update_notice">
+                  <input type="hidden" name="period" value="{{ period_value }}">
+                  <input type="hidden" name="company_id" value="{{ selected_company.pk }}">
+                  <input type="hidden" name="notice_id" value="{{ notice.pk }}">
+                  <div class="col-md-4">
+                    <select name="status" class="form-select form-select-sm">
+                      {% for value, label in notice_status_choices %}
+                        <option value="{{ value }}" {% if notice.status == value %}selected{% endif %}>{{ label }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-md-3">
+                    <input name="portal_status" value="{{ notice.portal_status }}" class="form-control form-control-sm" placeholder="Portal status">
+                  </div>
+                  <div class="col-md-4">
+                    <input name="response_summary" value="{{ notice.response_summary }}" class="form-control form-control-sm" placeholder="Response / proof">
+                  </div>
+                  <div class="col-md-1 text-end">
+                    <button class="btn btn-outline-primary btn-sm" type="submit"><i class="bi bi-check2"></i></button>
+                  </div>
+                </form>
+                {% else %}
+                  <span class="small text-muted">{{ notice.response_summary|default:"-" }}</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4" class="text-center text-muted py-4">No GST notices are linked to this period.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-4">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-file-earmark-check me-2"></i>Return Status</h6>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for row in center.filing_rows %}
+        <div class="list-group-item">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">{{ row.label }}</div>
+              {% if row.filing %}
+                <div class="small text-muted">{{ row.filing.arn_ack_number|default:row.filing.portal_status|default:"No portal reference" }}</div>
+              {% else %}
+                <div class="small text-muted">Workflow not created yet</div>
+              {% endif %}
+            </div>
+            {% if row.filing %}
+              <span class="badge {% if row.filing.status == 'filed' %}bg-success{% elif row.filing.status == 'blocked' %}bg-danger{% else %}bg-primary-subtle text-primary{% endif %}">
+                {{ row.filing.get_status_display }}
+              </span>
+            {% else %}
+              <span class="badge bg-secondary-subtle text-secondary">Missing</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-calculator me-2"></i>Tax Summary</h6>
+      </div>
+      <div class="list-group list-group-flush small">
+        <div class="list-group-item d-flex justify-content-between">
+          <span>Output tax</span><strong>Rs.{{ center.report.tot_out_tax|floatformat:2 }}</strong>
+        </div>
+        <div class="list-group-item d-flex justify-content-between">
+          <span>Eligible ITC</span><strong>Rs.{{ center.report.tot_itc|floatformat:2 }}</strong>
+        </div>
+        <div class="list-group-item d-flex justify-content-between">
+          <span>Net tax payable</span><strong>Rs.{{ center.report.net_tax_payable|floatformat:2 }}</strong>
+        </div>
+        <div class="list-group-item d-flex justify-content-between">
+          <span>2B matched</span><strong>{{ center.gstr2b.matched }}</strong>
+        </div>
+        <div class="list-group-item d-flex justify-content-between">
+          <span>Missing in books</span><strong>{{ center.gstr2b.missing_in_books }}</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-cloud-arrow-up me-2"></i>Upload Evidence</h6>
+      </div>
+      <div class="card-body">
+        {% if can_manage %}
+        <form method="post" enctype="multipart/form-data" class="post-form">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="upload_evidence">
+          <input type="hidden" name="period" value="{{ period_value }}">
+          <input type="hidden" name="company_id" value="{{ selected_company.pk }}">
+          <div class="mb-2">
+            <label for="evidence_title">Title</label>
+            <input id="evidence_title" name="evidence_title" class="form-control form-control-sm" placeholder="GSTR-3B ARN acknowledgement">
+          </div>
+          <div class="row g-2">
+            <div class="col-6">
+              <label for="evidence_type">Type</label>
+              <select id="evidence_type" name="evidence_type" class="form-select form-select-sm">
+                {% for value, label in evidence_type_choices %}
+                  <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-6">
+              <label for="return_type">Return</label>
+              <select id="return_type" name="return_type" class="form-select form-select-sm">
+                {% for value, label in return_type_choices %}
+                  <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-6">
+              <label for="evidence_arn_ack_number">ARN / Ack</label>
+              <input id="evidence_arn_ack_number" name="evidence_arn_ack_number" class="form-control form-control-sm">
+            </div>
+            <div class="col-6">
+              <label for="evidence_challan_reference">Challan / CIN</label>
+              <input id="evidence_challan_reference" name="evidence_challan_reference" class="form-control form-control-sm">
+            </div>
+          </div>
+          <div class="mt-2">
+            <label for="external_reference">Evidence Reference</label>
+            <input id="external_reference" name="external_reference" class="form-control form-control-sm" placeholder="Portal path or internal reference">
+          </div>
+          <div class="mt-2">
+            <label for="evidence_notice_id">Link Notice</label>
+            <select id="evidence_notice_id" name="evidence_notice_id" class="form-select form-select-sm">
+              <option value="">None</option>
+              {% for notice in center.notices %}
+                <option value="{{ notice.pk }}">{{ notice.title }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mt-2">
+            <label for="evidence_file">File</label>
+            <input type="file" id="evidence_file" name="evidence_file" class="form-control form-control-sm" required>
+          </div>
+          <div class="mt-2">
+            <label for="evidence_notes">Notes</label>
+            <textarea id="evidence_notes" name="evidence_notes" rows="2" class="form-control form-control-sm"></textarea>
+          </div>
+          <div class="mt-3 d-grid">
+            <button type="submit" class="btn btn-outline-primary btn-sm">
+              <i class="bi bi-cloud-arrow-up"></i> Upload Evidence
+            </button>
+          </div>
+        </form>
+        {% else %}
+          <p class="text-muted small mb-0">You have view-only access to this company.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Open GST Notice</h6>
+      </div>
+      <div class="card-body">
+        {% if can_manage %}
+        <form method="post" class="post-form">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="create_notice">
+          <input type="hidden" name="period" value="{{ period_value }}">
+          <input type="hidden" name="company_id" value="{{ selected_company.pk }}">
+          <div class="mb-2">
+            <label for="notice_title">Title</label>
+            <input id="notice_title" name="notice_title" class="form-control form-control-sm" placeholder="ASMT-10 / DRC-01 response" required>
+          </div>
+          <div class="row g-2">
+            <div class="col-6">
+              <label for="notice_related_return">Return</label>
+              <select id="notice_related_return" name="notice_related_return" class="form-select form-select-sm">
+                {% for value, label in gst_filing_type_choices %}
+                  <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-6">
+              <label for="notice_reference">Reference</label>
+              <input id="notice_reference" name="notice_reference" class="form-control form-control-sm">
+            </div>
+            <div class="col-6">
+              <label for="notice_issue_date">Issue Date</label>
+              <input type="date" id="notice_issue_date" name="notice_issue_date" class="form-control form-control-sm">
+            </div>
+            <div class="col-6">
+              <label for="notice_due_date">Due Date</label>
+              <input type="date" id="notice_due_date" name="notice_due_date" class="form-control form-control-sm">
+            </div>
+            <div class="col-6">
+              <label for="notice_status">Status</label>
+              <select id="notice_status" name="notice_status" class="form-select form-select-sm">
+                {% for value, label in notice_status_choices %}
+                  <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-6">
+              <label for="notice_priority">Priority</label>
+              <select id="notice_priority" name="notice_priority" class="form-select form-select-sm">
+                {% for value, label in notice_priority_choices %}
+                  <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="mt-2">
+            <label for="notice_description">Description</label>
+            <textarea id="notice_description" name="notice_description" rows="3" class="form-control form-control-sm"></textarea>
+          </div>
+          <div class="mt-3 d-grid">
+            <button type="submit" class="btn btn-outline-primary btn-sm">
+              <i class="bi bi-plus-circle"></i> Open Notice Room
+            </button>
+          </div>
+        </form>
+        {% else %}
+          <p class="text-muted small mb-0">You have view-only access to this company.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

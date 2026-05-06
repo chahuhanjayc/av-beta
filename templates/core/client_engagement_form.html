@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}{{ company.name }} Engagement - Akshaya Vistara{% endblock %}
+{% block page_title %}Client Engagement{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h5 class="mb-0">{{ company.name }}</h5>
+    <small class="text-muted">{{ company.gstin|default:"No GSTIN" }}</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'core:client_360' company.pk %}" class="btn btn-outline-secondary btn-sm">Client 360</a>
+    <a href="{% url 'core:client_engagements' %}" class="btn btn-outline-secondary btn-sm">Engagements</a>
+  </div>
+</div>
+
+<form method="post" class="card border-0 shadow-sm">
+  {% csrf_token %}
+  {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+  <div class="card-body">
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger">{{ form.non_field_errors|join:", " }}</div>
+    {% endif %}
+
+    <div class="row g-3">
+      <div class="col-md-3">
+        <label class="form-label fw-semibold" for="{{ form.status.id_for_label }}">Status</label>
+        {{ form.status }}
+        {% if form.status.errors %}<div class="text-danger small mt-1">{{ form.status.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-semibold" for="{{ form.service_package.id_for_label }}">Service Package</label>
+        {{ form.service_package }}
+        {% if form.service_package.errors %}<div class="text-danger small mt-1">{{ form.service_package.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-semibold" for="{{ form.monthly_retainer.id_for_label }}">Retainer / Fee</label>
+        {{ form.monthly_retainer }}
+        {% if form.monthly_retainer.errors %}<div class="text-danger small mt-1">{{ form.monthly_retainer.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-semibold" for="{{ form.billing_cycle.id_for_label }}">Billing Cycle</label>
+        {{ form.billing_cycle }}
+        {% if form.billing_cycle.errors %}<div class="text-danger small mt-1">{{ form.billing_cycle.errors|join:", " }}</div>{% endif %}
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label fw-semibold" for="{{ form.renewal_date.id_for_label }}">Renewal Date</label>
+        {{ form.renewal_date }}
+        {% if form.renewal_date.errors %}<div class="text-danger small mt-1">{{ form.renewal_date.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-semibold" for="{{ form.risk_rating.id_for_label }}">Risk Rating</label>
+        {{ form.risk_rating }}
+        {% if form.risk_rating.errors %}<div class="text-danger small mt-1">{{ form.risk_rating.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-semibold" for="{{ form.partner_owner.id_for_label }}">Partner Owner</label>
+        {{ form.partner_owner }}
+        {% if form.partner_owner.errors %}<div class="text-danger small mt-1">{{ form.partner_owner.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-semibold" for="{{ form.manager_owner.id_for_label }}">Manager Owner</label>
+        {{ form.manager_owner }}
+        {% if form.manager_owner.errors %}<div class="text-danger small mt-1">{{ form.manager_owner.errors|join:", " }}</div>{% endif %}
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label fw-semibold" for="{{ form.scope_summary.id_for_label }}">Scope Summary</label>
+        {{ form.scope_summary }}
+        {% if form.scope_summary.errors %}<div class="text-danger small mt-1">{{ form.scope_summary.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label fw-semibold" for="{{ form.out_of_scope.id_for_label }}">Out of Scope</label>
+        {{ form.out_of_scope }}
+        {% if form.out_of_scope.errors %}<div class="text-danger small mt-1">{{ form.out_of_scope.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="col-md-8">
+        <label class="form-label fw-semibold" for="{{ form.internal_notes.id_for_label }}">Internal Notes</label>
+        {{ form.internal_notes }}
+        {% if form.internal_notes.errors %}<div class="text-danger small mt-1">{{ form.internal_notes.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold" for="{{ form.last_reviewed_at.id_for_label }}">Last Reviewed</label>
+        {{ form.last_reviewed_at }}
+        {% if form.last_reviewed_at.errors %}<div class="text-danger small mt-1">{{ form.last_reviewed_at.errors|join:", " }}</div>{% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="card-footer bg-white text-end">
+    <a href="{% url 'core:client_engagements' %}" class="btn btn-outline-secondary">Cancel</a>
+    <button type="submit" class="btn btn-primary">Save Engagement</button>
+  </div>
+</form>
+{% endblock %}

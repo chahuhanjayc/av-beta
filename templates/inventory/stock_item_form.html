@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} – Akshaya Vistara{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-7">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">{{ title }}</h6>
+        <div class="d-flex gap-2 align-items-center">
+          {% if not item %}
+          <a href="{% url 'inventory:bulk_create_ocr' %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-camera me-1"></i> Bulk Add (Scan)
+          </a>
+          {% endif %}
+          {% if item %}
+            <code class="text-muted">ID #{{ item.pk }}</code>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger py-2">
+            {% for err in form.non_field_errors %}{{ err }}{% endfor %}
+          </div>
+          {% endif %}
+
+          <!-- Name & Unit -->
+          <div class="row g-3 mb-3">
+            <div class="col-md-8">
+              <label class="form-label fw-semibold">Item Name <span class="text-danger">*</span></label>
+              {{ form.name }}
+              {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Unit <span class="text-danger">*</span></label>
+              {{ form.unit }}
+            </div>
+          </div>
+
+          <!-- Stock -->
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Opening Quantity</label>
+              {{ form.opening_quantity }}
+              <div class="form-text">{{ form.opening_quantity.help_text }}</div>
+              {% if form.opening_quantity.errors %}<div class="text-danger small">{{ form.opening_quantity.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Low Stock Alert Threshold</label>
+              {{ form.low_stock_threshold }}
+              <div class="form-text">{{ form.low_stock_threshold.help_text }}</div>
+            </div>
+          </div>
+
+          <!-- Prices -->
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Purchase Price (₹ per unit)</label>
+              {{ form.purchase_price }}
+              {% if form.purchase_price.errors %}<div class="text-danger small">{{ form.purchase_price.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Selling Price (₹ per unit)</label>
+              {{ form.selling_price }}
+              {% if form.selling_price.errors %}<div class="text-danger small">{{ form.selling_price.errors.0 }}</div>{% endif %}
+            </div>
+          </div>
+
+          <!-- GST -->
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">HSN / SAC Code</label>
+              {{ form.hsn_sac }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Tax Rate</label>
+              {{ form.tax_rate }}
+            </div>
+          </div>
+
+          <!-- Active -->
+          <div class="mb-4">
+            <div class="form-check">
+              {{ form.is_active }}
+              <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                Active (visible in voucher item dropdowns)
+              </label>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check-lg me-1"></i>
+              {% if item %}Save Changes{% else %}Create Item{% endif %}
+            </button>
+            <a href="{% url 'inventory:list' %}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

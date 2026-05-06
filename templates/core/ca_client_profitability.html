@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Client Profitability - Akshaya Vistara{% endblock %}
+{% block page_title %}Client Profitability{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h5 class="mb-0">Client Profitability & Workload Control</h5>
+    <small class="text-muted">Rank clients by visible fee proxy, workload pressure, and pricing action</small>
+  </div>
+  <a href="{% url 'core:ca_client_profitability' %}?{{ export_query }}" class="btn btn-outline-primary btn-sm">
+    <i class="bi bi-download me-1"></i> Export CSV
+  </a>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-2">
+    <div class="p-3 rounded bg-light h-100">
+      <div class="text-muted small text-uppercase fw-semibold">Clients</div>
+      <div class="h4 mb-0 fw-bold">{{ totals.clients }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="p-3 rounded bg-light h-100">
+      <div class="text-muted small text-uppercase fw-semibold">Fee Proxy</div>
+      <div class="h5 mb-0 fw-bold">Rs. {{ totals.fee_proxy|floatformat:0 }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="p-3 rounded bg-light h-100">
+      <div class="text-muted small text-uppercase fw-semibold">Workload Units</div>
+      <div class="h4 mb-0 fw-bold">{{ totals.workload_units|floatformat:1 }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="p-3 rounded bg-light h-100">
+      <div class="text-muted small text-uppercase fw-semibold">Avg Realization</div>
+      <div class="h5 mb-0 fw-bold">Rs. {{ totals.avg_realization|floatformat:0 }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="p-3 rounded bg-light h-100">
+      <div class="text-muted small text-uppercase fw-semibold">Underpriced</div>
+      <div class="h4 mb-0 fw-bold text-danger">{{ totals.underpriced }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="p-3 rounded bg-light h-100">
+      <div class="text-muted small text-uppercase fw-semibold">Overloaded</div>
+      <div class="h4 mb-0 fw-bold text-warning">{{ totals.overloaded }}</div>
+    </div>
+  </div>
+</div>
+
+<form method="get" class="card border-0 shadow-sm mb-3">
+  <div class="card-body">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label small text-muted">Client / GSTIN</label>
+        <input type="search" name="q" value="{{ q }}" class="form-control" placeholder="Search client">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small text-muted">Focus</label>
+        <select name="band" class="form-select">
+          {% for value, label in band_options %}
+          <option value="{{ value }}" {% if band_filter == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <button type="submit" class="btn btn-primary w-100">
+          <i class="bi bi-funnel me-1"></i> Apply
+        </button>
+      </div>
+    </div>
+  </div>
+</form>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Client</th>
+            <th class="text-end">Fee Proxy</th>
+            <th>Workload</th>
+            <th>Realization</th>
+            <th>Open Work</th>
+            <th>Pressure Drivers</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td>
+              <a href="{{ row.client_360_url }}" class="fw-semibold text-decoration-none">{{ row.company.name }}</a>
+              <div class="small text-muted">{{ row.company.gstin|default:"No GSTIN" }}</div>
+              {% if row.plan %}<div class="small text-muted">{{ row.plan }}</div>{% endif %}
+            </td>
+            <td class="text-end">
+              <div class="fw-semibold">Rs. {{ row.fee_proxy|floatformat:0 }}</div>
+              <div class="small text-muted">{{ row.fee_source }}</div>
+              {% if row.usage_percent != None %}
+              <div class="small text-muted">Usage {{ row.usage_percent }}%</div>
+              {% endif %}
+            </td>
+            <td>
+              <div class="fw-semibold">{{ row.workload_units|floatformat:1 }}</div>
+              <span class="badge {{ row.workload_badge_class }}">{{ row.workload_band }}</span>
+            </td>
+            <td>
+              <div class="fw-semibold">Rs. {{ row.realization_per_unit|floatformat:0 }}</div>
+              <span class="badge {{ row.realization_badge_class }}">{{ row.realization_band }}</span>
+            </td>
+            <td>
+              <div class="fw-semibold">{{ row.open_work }} open</div>
+              <div class="small {% if row.overdue_work %}text-danger{% else %}text-muted{% endif %}">{{ row.overdue_work }} overdue</div>
+              <div class="small text-muted">{{ row.voucher_volume }} vouchers in 30d</div>
+            </td>
+            <td>
+              <div class="small">
+                Tasks {{ row.open_tasks }}{% if row.critical_tasks %}, critical {{ row.critical_tasks }}{% endif %}{% if row.blocked_tasks %}, blocked {{ row.blocked_tasks }}{% endif %}
+              </div>
+              <div class="small">
+                Filings {{ row.open_filings }}, notices {{ row.open_notices }}, requests {{ row.open_requests }}
+              </div>
+              <div class="small text-muted">
+                Bank rows {{ row.unreconciled_bank_rows }}, uploads {{ row.uploads_for_review }}
+              </div>
+            </td>
+            <td>
+              <a href="{{ row.client_360_url }}" class="btn btn-sm btn-outline-secondary me-1">
+                360
+              </a>
+              <a href="{{ row.pricing_action.url }}" class="btn btn-sm {% if row.pricing_action.tone == 'critical' %}btn-outline-danger{% elif row.pricing_action.tone == 'warning' %}btn-outline-warning{% elif row.pricing_action.tone == 'success' %}btn-outline-success{% else %}btn-outline-primary{% endif %}">
+                {{ row.pricing_action.label }}
+              </a>
+              <div class="small text-muted mt-1">{{ row.pricing_action.detail }}</div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center py-5 text-muted">No clients match the current filters.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

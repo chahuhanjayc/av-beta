@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ user.name }} Portal - Akshaya Vistara</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <script>
+        (function() {
+            const theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-bs-theme', theme);
+        })();
+    </script>
+    <style>
+        :root {
+            --body-bg: #f7f8fb;
+            --surface-bg: #ffffff;
+            --surface-muted: #f1f5f9;
+            --border-color: #dde3ea;
+            --text-main: #243044;
+            --text-muted: #667085;
+            --accent: #1d4ed8;
+            --accent-soft: #dbeafe;
+            --success-soft: #dcfce7;
+            --warning-soft: #fef3c7;
+            --danger-soft: #fee2e2;
+        }
+        [data-bs-theme="dark"] {
+            --body-bg: #15171a;
+            --surface-bg: #202327;
+            --surface-muted: #2b3036;
+            --border-color: #3a414b;
+            --text-main: #f2f4f7;
+            --text-muted: #aab2bd;
+            --accent: #60a5fa;
+            --accent-soft: rgba(96, 165, 250, 0.16);
+            --success-soft: rgba(34, 197, 94, 0.14);
+            --warning-soft: rgba(245, 158, 11, 0.16);
+            --danger-soft: rgba(239, 68, 68, 0.16);
+            color-scheme: dark;
+        }
+        body {
+            background: var(--body-bg);
+            color: var(--text-main);
+        }
+        .navbar {
+            background: var(--surface-bg);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .portal-shell {
+            max-width: 1180px;
+        }
+        .panel,
+        .metric-card,
+        .action-strip,
+        .request-row {
+            background: var(--surface-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+        }
+        .metric-card {
+            height: 100%;
+            padding: 1rem;
+        }
+        .metric-label {
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0;
+            text-transform: uppercase;
+        }
+        .metric-value {
+            font-size: clamp(1.25rem, 1.1rem + 0.45vw, 1.75rem);
+            font-weight: 800;
+            line-height: 1.15;
+        }
+        .panel-header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.9rem 1rem;
+        }
+        .panel-body {
+            padding: 1rem;
+        }
+        .request-row {
+            padding: 0.85rem;
+        }
+        .request-row + .request-row {
+            margin-top: 0.65rem;
+        }
+        .request-title {
+            max-width: 36rem;
+        }
+        .request-meta,
+        .text-muted {
+            color: var(--text-muted) !important;
+        }
+        .action-strip {
+            padding: 0.8rem 0.9rem;
+            height: 100%;
+        }
+        .action-primary {
+            background: var(--accent-soft);
+            border-color: rgba(29, 78, 216, 0.22);
+        }
+        .action-success {
+            background: var(--success-soft);
+            border-color: rgba(22, 163, 74, 0.24);
+        }
+        .action-warning {
+            background: var(--warning-soft);
+            border-color: rgba(217, 119, 6, 0.24);
+        }
+        .action-danger {
+            background: var(--danger-soft);
+            border-color: rgba(220, 38, 38, 0.24);
+        }
+        .status-dot {
+            width: 0.65rem;
+            height: 0.65rem;
+            border-radius: 999px;
+            display: inline-block;
+            flex: 0 0 auto;
+        }
+        .table-card {
+            background: var(--surface-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        .table {
+            --bs-table-color: var(--text-main);
+            --bs-table-border-color: var(--border-color);
+            --bs-table-hover-bg: var(--surface-muted);
+        }
+        .table-light > * > * {
+            background-color: var(--surface-muted) !important;
+            color: var(--text-main) !important;
+            border-color: var(--border-color) !important;
+        }
+        .progress {
+            height: 0.55rem;
+            background: var(--surface-muted);
+        }
+        code {
+            color: inherit;
+            overflow-wrap: anywhere;
+        }
+        .top-actions {
+            flex-wrap: wrap;
+        }
+        @media (max-width: 767.98px) {
+            .navbar .container,
+            .top-actions {
+                align-items: stretch !important;
+            }
+            .top-actions .btn,
+            .top-actions form,
+            .top-actions form .btn,
+            .request-row .btn {
+                width: 100%;
+            }
+            .request-row {
+                padding: 0.75rem;
+            }
+            .panel-body,
+            .panel-header {
+                padding-left: 0.85rem;
+                padding-right: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar mb-4 py-3">
+        <div class="container portal-shell">
+            <div>
+                <span class="navbar-brand mb-0 h1 fw-bold text-primary">Akshaya Vistara</span>
+                {% if is_staff_view %}
+                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-2">Staff preview</span>
+                {% endif %}
+            </div>
+            <div class="d-flex align-items-center gap-2 top-actions">
+                <span class="small text-muted">Welcome, <strong>{{ user.name }}</strong></span>
+                <a href="{{ download_url }}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-file-earmark-pdf"></i> Statement
+                </a>
+                {% if is_staff_view %}
+                    <a href="{% url 'portal:ca_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-arrow-left"></i> CA Dashboard
+                    </a>
+                {% else %}
+                    <form action="{% url 'portal:logout' %}" method="post" class="m-0">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                            <i class="bi bi-box-arrow-right"></i> Logout
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <main class="container portal-shell pb-5">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-3 small" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+            <div>
+                <div class="text-muted small fw-semibold text-uppercase">Client Portal</div>
+                <h1 class="h4 fw-bold mb-1">{{ company.name }}</h1>
+                <div class="text-muted small">Ledger: {{ ledger.name }}</div>
+            </div>
+            {% if next_due_request %}
+                <div class="small text-muted">
+                    Next due:
+                    <strong class="{% if next_due_request.is_overdue %}text-danger{% endif %}">
+                        {{ next_due_request.title }}
+                    </strong>
+                    {% if next_due_request.due_date %}on {{ next_due_request.due_date|date:"d M Y" }}{% endif %}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-6 col-lg-3">
+                <div class="metric-card">
+                    <div class="metric-label">Outstanding</div>
+                    <div class="metric-value {% if total_outstanding > 0 %}text-danger{% else %}text-success{% endif %}">
+                        Rs. {{ total_outstanding|floatformat:2 }}
+                    </div>
+                    <div class="small text-muted">Statement balance</div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="metric-card">
+                    <div class="metric-label">Document Score</div>
+                    <div class="metric-value">{{ request_summary.completion_score }}%</div>
+                    <div class="progress mt-2" role="progressbar" aria-valuenow="{{ request_summary.completion_score }}" aria-valuemin="0" aria-valuemax="100">
+                        <div class="progress-bar bg-success" style="width: {{ request_summary.completion_score }}%;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="metric-card">
+                    <div class="metric-label">Need Upload</div>
+                    <div class="metric-value text-warning">{{ request_summary.open }}</div>
+                    <div class="small text-muted">{{ request_summary.due_soon }} due in 7 days</div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="metric-card">
+                    <div class="metric-label">Overdue</div>
+                    <div class="metric-value text-danger">{{ request_summary.overdue }}</div>
+                    <div class="small text-muted">{{ request_summary.uploaded }} under review</div>
+                </div>
+            </div>
+        </div>
+
+        {% if portal_actions %}
+            <div class="row g-2 mb-3">
+                {% for action in portal_actions %}
+                    <div class="col-md-6 col-xl-3">
+                        <div class="action-strip action-{{ action.tone }} d-flex align-items-start gap-2">
+                            <i class="bi {{ action.icon }} mt-1"></i>
+                            <div>
+                                <div class="fw-semibold small">{{ action.title }}</div>
+                                <div class="small text-muted">{{ action.detail }}</div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="row g-3 mb-3">
+            <div class="col-lg-8">
+                <section class="panel h-100">
+                    <div class="panel-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+                        <div>
+                            <h2 class="h6 fw-bold mb-0"><i class="bi bi-inbox me-2"></i>Action Queue</h2>
+                            <div class="small text-muted">Upload pending documents and track CA review.</div>
+                        </div>
+                        <span class="badge bg-primary-subtle text-primary">{{ request_summary.total }} total request(s)</span>
+                    </div>
+                    <div class="panel-body">
+                        {% for req in open_document_requests %}
+                            <div class="request-row">
+                                <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+                                    <div class="request-title">
+                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                            <span class="status-dot {% if req.is_overdue %}bg-danger{% else %}bg-warning{% endif %}"></span>
+                                            <span class="fw-semibold">{{ req.title }}</span>
+                                        </div>
+                                        <div class="request-meta small">
+                                            {{ req.get_document_type_display }}
+                                            {% if req.source_reference %} | <code>{{ req.source_reference }}</code>{% endif %}
+                                        </div>
+                                        {% if req.notes %}
+                                            <div class="small mt-2">{{ req.notes|linebreaksbr }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-lg-end">
+                                        <div class="small {% if req.is_overdue %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+                                            Due: {{ req.due_date|date:"d M Y"|default:"No due date" }}
+                                        </div>
+                                        <a href="{% url 'portal:document_request_upload' req.token %}" class="btn btn-primary btn-sm mt-2">
+                                            <i class="bi bi-cloud-upload"></i> Upload
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <div class="text-center text-muted py-4">
+                                <i class="bi bi-check2-circle d-block h3 mb-2 text-success"></i>
+                                No pending uploads.
+                            </div>
+                        {% endfor %}
+                    </div>
+                </section>
+            </div>
+
+            <div class="col-lg-4">
+                <section class="panel h-100">
+                    <div class="panel-header">
+                        <h2 class="h6 fw-bold mb-0"><i class="bi bi-patch-check me-2"></i>Balance Confirmation</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+                            <div>
+                                <div class="small text-muted">Current balance</div>
+                                <div class="h5 fw-bold mb-0 {% if total_outstanding > 0 %}text-danger{% else %}text-success{% endif %}">
+                                    Rs. {{ total_outstanding|floatformat:2 }}
+                                </div>
+                            </div>
+                            {% if last_confirmation %}
+                                <span class="badge {% if last_confirmation.response_status == 'disputed' %}bg-danger-subtle text-danger{% else %}bg-success-subtle text-success{% endif %}">
+                                    {{ last_confirmation.get_response_status_display }}
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        {% if last_confirmation %}
+                            <div class="small text-muted mb-3">
+                                Last response: {{ last_confirmation.confirmed_at|date:"d M Y, H:i" }}
+                                {% if last_confirmation.remarks %}
+                                    <div class="mt-2 text-body">{{ last_confirmation.remarks|linebreaksbr }}</div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+
+                        {% if not is_staff_view %}
+                            <form action="{% url 'portal:confirm_balance' %}" method="post">
+                                {% csrf_token %}
+                                <div class="mb-2">
+                                    <label for="remarks" class="form-label small fw-semibold">Remarks</label>
+                                    <textarea id="remarks" name="remarks" class="form-control form-control-sm" rows="3" placeholder="Required only if disputed"></textarea>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <button type="submit" name="response_status" value="confirmed" class="btn btn-primary btn-sm">
+                                        <i class="bi bi-check2-circle"></i> Confirm Balance
+                                    </button>
+                                    <button type="submit" name="response_status" value="disputed" class="btn btn-outline-danger btn-sm">
+                                        <i class="bi bi-exclamation-triangle"></i> Dispute Balance
+                                    </button>
+                                </div>
+                            </form>
+                        {% else %}
+                            <div class="small text-muted">Balance response actions are hidden in staff preview.</div>
+                        {% endif %}
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        {% if uploaded_document_requests %}
+            <section class="panel mb-3">
+                <div class="panel-header">
+                    <h2 class="h6 fw-bold mb-0"><i class="bi bi-hourglass-split me-2"></i>Uploaded And Under Review</h2>
+                </div>
+                <div class="panel-body">
+                    <div class="row g-2">
+                        {% for req in uploaded_document_requests %}
+                            <div class="col-md-6">
+                                <div class="request-row h-100">
+                                    <div class="d-flex justify-content-between align-items-start gap-2">
+                                        <div>
+                                            <div class="fw-semibold">{{ req.title }}</div>
+                                            <div class="small text-muted">
+                                                Uploaded {{ req.uploaded_at|date:"d M Y, H:i"|default:"recently" }}
+                                            </div>
+                                            {% if req.response_note %}
+                                                <div class="small mt-2">{{ req.response_note|linebreaksbr }}</div>
+                                            {% endif %}
+                                        </div>
+                                        <span class="badge bg-success-subtle text-success">Uploaded</span>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+        {% endif %}
+
+        <section class="table-card mb-3">
+            <div class="panel-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <h2 class="h6 fw-bold mb-0"><i class="bi bi-receipt me-2"></i>Recent Transactions</h2>
+                <span class="small text-muted">Latest 25 entries</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead>
+                        <tr class="table-light">
+                            <th class="ps-3">Date</th>
+                            <th>Voucher #</th>
+                            <th>Type</th>
+                            <th class="text-end">Amount</th>
+                            <th class="text-end pe-3">Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tx in transactions|slice:":25" %}
+                            <tr>
+                                <td class="ps-3 text-muted small">{{ tx.date|date:"d M Y" }}</td>
+                                <td class="fw-semibold"><code>{{ tx.number|default:"-" }}</code></td>
+                                <td>
+                                    <span class="badge {% if tx.type == 'DR' %}bg-primary-subtle text-primary{% else %}bg-success-subtle text-success{% endif %}">
+                                        {{ tx.type }}
+                                    </span>
+                                </td>
+                                <td class="text-end fw-semibold">Rs. {{ tx.amount|floatformat:2 }}</td>
+                                <td class="text-end pe-3 font-monospace">Rs. {{ tx.balance|floatformat:2 }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-5 text-muted">No transactions found.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        {% if closed_document_requests %}
+            <section class="panel">
+                <div class="panel-header">
+                    <h2 class="h6 fw-bold mb-0"><i class="bi bi-archive me-2"></i>Recently Closed</h2>
+                </div>
+                <div class="panel-body">
+                    <div class="row g-2">
+                        {% for req in closed_document_requests %}
+                            <div class="col-md-6 col-xl">
+                                <div class="small fw-semibold">{{ req.title }}</div>
+                                <div class="small text-muted">{{ req.closed_at|date:"d M Y"|default:"Closed" }}</div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+        {% endif %}
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

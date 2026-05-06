@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} – Akshaya Vistara{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+    <h6 class="mb-0"><i class="bi bi-table me-2 text-primary"></i>Review Extracted Items ({{ filename }})</h6>
+    <div class="d-flex gap-2">
+      <button type="submit" form="bulkSaveForm" name="confirm_save" class="btn btn-primary btn-sm px-4 shadow-sm">
+        <i class="bi bi-check-lg me-1"></i>Create All Items
+      </button>
+      <a href="{% url 'inventory:bulk_create_ocr' %}" class="btn btn-outline-secondary btn-sm">Rescan</a>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <form method="post" id="bulkSaveForm">
+      {% csrf_token %}
+      <div class="table-responsive">
+        <table class="table table-hover mb-0" style="font-size: 0.85rem;">
+          <thead class="bg-light">
+            <tr>
+              <th style="width: 40px;" class="text-center">#</th>
+              <th>Item Name <span class="text-danger">*</span></th>
+              <th style="width: 150px;">HSN Code</th>
+              <th style="width: 150px;">Purchase (₹)</th>
+              <th style="width: 150px;">Selling (₹)</th>
+              <th style="width: 100px;">Tax %</th>
+              <th style="width: 50px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for it in items %}
+            <tr class="item-row">
+              <td class="text-center text-muted pt-3">{{ forloop.counter }}</td>
+              <td>
+                <input type="text" name="item_name" class="form-control form-control-sm border-0 bg-transparent fw-bold" value="{{ it.name }}" required>
+              </td>
+              <td>
+                <input type="text" name="hsn" class="form-control form-control-sm border-0 bg-transparent" value="{{ it.hsn }}">
+              </td>
+              <td>
+                <input type="number" step="0.01" name="purchase_price" class="form-control form-control-sm border-0 bg-transparent" value="{{ it.purchase_price }}">
+              </td>
+              <td>
+                <input type="number" step="0.01" name="selling_price" class="form-control form-control-sm border-0 bg-transparent" value="{{ it.selling_price }}">
+              </td>
+              <td>
+                <select name="tax_rate" class="form-select form-select-sm border-0 bg-transparent">
+                  <option value="18" {% if it.tax_rate == '18' %}selected{% endif %}>18%</option>
+                  <option value="12" {% if it.tax_rate == '12' %}selected{% endif %}>12%</option>
+                  <option value="5" {% if it.tax_rate == '5' %}selected{% endif %}>5%</option>
+                  <option value="28" {% if it.tax_rate == '28' %}selected{% endif %}>28%</option>
+                  <option value="0" {% if it.tax_rate == '0' %}selected{% endif %}>0%</option>
+                </select>
+              </td>
+              <td class="text-center pt-2">
+                <button type="button" class="btn btn-link btn-sm text-danger p-0" onclick="this.closest('tr').remove()">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="text-center p-5 text-muted">No items extracted. Try rescanning with a clearer document.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <input type="hidden" name="confirm_save" value="1">
+    </form>
+  </div>
+  <div class="card-footer bg-white border-top py-2">
+    <p class="small text-muted mb-0"><i class="bi bi-info-circle me-1"></i> You can edit names and prices directly in the table before creating.</p>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ title }} - Akshaya Vistara{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="row g-3">
+        <div class="col-md-6">{{ form.company|as_crispy_field }}</div>
+        <div class="col-md-3">{{ form.assigned_to|as_crispy_field }}</div>
+        <div class="col-md-3">{{ form.related_filing|as_crispy_field }}</div>
+        <div class="col-12">{{ form.title|as_crispy_field }}</div>
+        <div class="col-md-3">{{ form.notice_type|as_crispy_field }}</div>
+        <div class="col-md-3">{{ form.priority|as_crispy_field }}</div>
+        <div class="col-md-3">{{ form.status|as_crispy_field }}</div>
+        <div class="col-md-3">{{ form.response_due_date|as_crispy_field }}</div>
+        <div class="col-md-4">{{ form.issue_date|as_crispy_field }}</div>
+        <div class="col-md-4">{{ form.reference_number|as_crispy_field }}</div>
+        <div class="col-md-4">{{ form.portal_status|as_crispy_field }}</div>
+        <div class="col-12">{{ form.description|as_crispy_field }}</div>
+        <div class="col-12">{{ form.response_summary|as_crispy_field }}</div>
+      </div>
+      <div class="mt-4 border-top pt-3">
+        <button type="submit" class="btn btn-primary">Save Notice</button>
+        <a href="{% url 'core:compliance_notices' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

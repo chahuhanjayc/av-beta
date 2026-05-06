@@ -1,0 +1,441 @@
+{% extends "base.html" %}
+{% block title %}Production Trust - Akshaya Vistara{% endblock %}
+{% block page_title %}Production Trust{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end flex-wrap gap-2 mb-3">
+  <a href="{% url 'core:operations_monitor' %}" class="btn btn-outline-primary btn-sm">
+    <i class="bi bi-activity me-1"></i>Operations Monitor
+  </a>
+  <a href="{% url 'core:production_trust_center' %}{% if not include_deploy %}?deploy=1{% endif %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-shield-check me-1"></i>{% if include_deploy %}Hide Deploy Checks{% else %}Include Deploy Checks{% endif %}
+  </a>
+  <a href="{% url 'integrations:evidence_center' %}" class="btn btn-outline-dark btn-sm">
+    <i class="bi bi-shield-lock me-1"></i>Evidence Vault
+  </a>
+  <form method="post" class="d-flex align-items-center flex-wrap gap-2">
+    {% csrf_token %}
+    {% if include_deploy %}<input type="hidden" name="deploy" value="1">{% endif %}
+    <label class="form-check form-check-inline small mb-0">
+      <input class="form-check-input" type="checkbox" name="encrypt_backup" value="1" {% if backup_encryption_available %}checked{% else %}disabled{% endif %}>
+      <span class="{% if not backup_encryption_available %}text-muted{% endif %}">Encrypt</span>
+    </label>
+    <label class="form-check form-check-inline small mb-0">
+      <input class="form-check-input" type="checkbox" name="prune_backups" value="1" checked>
+      <span>Prune old</span>
+    </label>
+    <label class="form-check form-check-inline small mb-0">
+      <input class="form-check-input" type="checkbox" name="copy_offsite" value="1" checked>
+      <span>Offsite</span>
+    </label>
+    <button type="submit" name="action" value="run_backup" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-database-down me-1"></i>Run Backup Drill
+    </button>
+    <button type="submit" name="action" value="run_scheduled_backup" class="btn btn-primary btn-sm">
+      <i class="bi bi-cloud-arrow-up me-1"></i>Run Scheduled Backup
+    </button>
+  </form>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Trust Score</div>
+        <div class="h3 mb-0">
+          <span class="badge {{ summary.badge_class }}">{{ summary.score }}% {{ summary.band }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Preflight Errors</div>
+        <div class="h3 mb-0 text-danger">{{ summary.errors }}</div>
+        <div class="small text-muted">{{ summary.warnings }} warning(s)</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Backup Manifests</div>
+        <div class="h3 mb-0 {% if summary.has_backup %}text-success{% else %}text-danger{% endif %}">{{ summary.backup_count }}</div>
+        <div class="small text-muted">{{ backup_dir }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Backup Policy</div>
+        <div class="h3 mb-0">
+          <span class="badge {{ backup_policy.badge_class }}">{{ backup_policy.status }}</span>
+        </div>
+        <div class="small text-muted">
+          {{ backup_policy.critical_count }} critical &middot; {{ backup_policy.warning_count }} warning(s)
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Restore Drill</div>
+        {% if latest_restore_drill %}
+          <div class="fw-semibold">{{ latest_restore_drill.outcome_label }}</div>
+          <div class="small {% if latest_restore_drill.passed %}text-success{% else %}text-danger{% endif %}">
+            {{ latest_restore_drill.completed_checks }} / {{ latest_restore_drill.total_checks }} checks &middot; {{ latest_restore_drill.unresolved_findings }} finding(s)
+          </div>
+        {% else %}
+          <div class="fw-semibold text-danger">No restore drill</div>
+          <div class="small text-muted">Record restore evidence.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Schedule / Offsite</div>
+        <div class="h3 mb-0">
+          <span class="badge {{ scheduled_backup.badge_class }}">{{ scheduled_backup.status }}</span>
+        </div>
+        <div class="small text-muted">
+          {{ scheduled_backup.critical_count }} critical &middot; {{ scheduled_backup.warning_count }} warning(s)
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-7">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-shield-exclamation me-2"></i>Production Preflight</h6>
+        <span class="small text-muted">{% if include_deploy %}Deploy checks included{% else %}Runtime checks{% endif %}</span>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for check in checks %}
+          <div class="list-group-item">
+            <div class="d-flex justify-content-between gap-3">
+              <div>
+                <div class="fw-semibold">{{ check.name }}</div>
+                <div class="small text-muted">{{ check.message }}</div>
+                {% if check.hint %}
+                  <div class="small text-muted mt-1">{{ check.hint }}</div>
+                {% endif %}
+              </div>
+              <span class="badge align-self-start {% if check.level == 'error' %}bg-danger{% elif check.level == 'warning' %}bg-warning text-dark{% elif check.level == 'ok' %}bg-success{% else %}bg-info text-dark{% endif %}">
+                {{ check.level|upper }}
+              </span>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-5">
+    <div class="card h-100">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-archive me-2"></i>Backup Manifests</h6>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for manifest in manifests %}
+          <div class="list-group-item">
+            <div class="d-flex justify-content-between gap-3">
+              <div>
+                <div class="fw-semibold">{{ manifest.name }}</div>
+                <div class="small text-muted">{{ manifest.created_at }}</div>
+                <div class="small text-muted">
+                  Data {{ manifest.data_size|filesizeformat }} &middot; Media {{ manifest.media_file_count }} file(s)
+                </div>
+                <div class="small {% if manifest.encrypted %}text-success{% else %}text-danger{% endif %}">
+                  {% if manifest.encrypted %}Encrypted{% else %}Not encrypted{% endif %}
+                  {% if manifest.compressed %}&middot; Compressed{% endif %}
+                  {% if manifest.encryption_verified %}&middot; Verified{% endif %}
+                </div>
+                {% if manifest.data_sha256 %}
+                  <div class="small text-muted text-truncate" style="max-width: 22rem;">SHA {{ manifest.data_sha256 }}</div>
+                {% endif %}
+                {% if manifest.error %}
+                  <div class="small text-danger">{{ manifest.error }}</div>
+                {% endif %}
+              </div>
+              <span class="badge align-self-start {% if manifest.valid and manifest.data_file_exists %}bg-success{% else %}bg-danger{% endif %}">
+                {% if manifest.valid and manifest.data_file_exists %}OK{% else %}CHECK{% endif %}
+              </span>
+            </div>
+          </div>
+        {% empty %}
+          <div class="list-group-item text-center text-muted py-4">
+            No backup manifest has been created yet.
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
+        <div>
+          <h6 class="mb-0"><i class="bi bi-shield-lock me-2"></i>Backup Policy Watchdog</h6>
+          <div class="small text-muted">
+            Latest backup age {{ backup_policy.latest_age_label }} &middot;
+            {{ backup_policy.restorable_count }} restorable &middot;
+            {{ backup_policy.encrypted_count }} encrypted &middot;
+            {{ backup_policy.verified_encrypted_count }} verified
+          </div>
+        </div>
+        <form method="post" class="d-inline">
+          {% csrf_token %}
+          {% if include_deploy %}<input type="hidden" name="deploy" value="1">{% endif %}
+          <button type="submit" name="action" value="create_backup_policy_tasks" class="btn btn-outline-primary btn-sm" {% if not backup_policy.has_taskable_issues %}disabled{% endif %}>
+            <i class="bi bi-list-check me-1"></i>Sync Follow-Up Tasks
+          </button>
+        </form>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for issue in backup_policy.issues %}
+          <div class="list-group-item">
+            <div class="d-flex justify-content-between gap-3">
+              <div>
+                <div class="fw-semibold">{{ issue.title }}</div>
+                <div class="small text-muted">{{ issue.detail }}</div>
+                <div class="small text-muted mt-1">{{ issue.recommendation }}</div>
+              </div>
+              <span class="badge align-self-start {{ issue.badge_class }}">{{ issue.severity|upper }}</span>
+            </div>
+          </div>
+        {% empty %}
+          <div class="list-group-item text-center text-muted py-4">
+            Backup retention, freshness, encryption evidence, and restore drill policy are clean.
+          </div>
+        {% endfor %}
+      </div>
+      <div class="card-footer small text-muted">
+        Policy: backup age {{ backup_policy.policy.max_age_hours }} hour(s), retain {{ backup_policy.policy.min_retained_manifests }} manifest(s), restore drill every {{ backup_policy.policy.restore_drill_max_age_days }} day(s). Backup retention cleanup keeps {{ backup_retention_count }} manifest(s).
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-xl-5">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center gap-3">
+        <div>
+          <h6 class="mb-0"><i class="bi bi-calendar2-check me-2"></i>Scheduled / Offsite Backups</h6>
+          <div class="small text-muted">
+            Every {{ scheduled_backup.policy.interval_hours }} hour(s) &middot;
+            stale after {{ scheduled_backup.policy.max_age_hours }} hour(s)
+          </div>
+        </div>
+        <span class="badge {{ scheduled_backup.badge_class }}">{{ scheduled_backup.status }}</span>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for issue in scheduled_backup.issues %}
+          <div class="list-group-item">
+            <div class="d-flex justify-content-between gap-3">
+              <div>
+                <div class="fw-semibold">{{ issue.title }}</div>
+                <div class="small text-muted">{{ issue.detail }}</div>
+                <div class="small text-muted mt-1">{{ issue.recommendation }}</div>
+              </div>
+              <span class="badge align-self-start {{ issue.badge_class }}">{{ issue.severity|upper }}</span>
+            </div>
+          </div>
+        {% empty %}
+          <div class="list-group-item text-center text-muted py-4">
+            Scheduled run freshness and offsite copy evidence are clean.
+          </div>
+        {% endfor %}
+      </div>
+      <div class="card-footer d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <span class="small text-muted">Offsite required: {% if scheduled_backup.policy.offsite_required %}yes{% else %}no{% endif %}</span>
+        <form method="post" class="d-inline">
+          {% csrf_token %}
+          {% if include_deploy %}<input type="hidden" name="deploy" value="1">{% endif %}
+          <button type="submit" name="action" value="create_scheduled_backup_tasks" class="btn btn-outline-primary btn-sm" {% if not scheduled_backup.has_taskable_issues %}disabled{% endif %}>
+            <i class="bi bi-list-check me-1"></i>Sync Schedule Tasks
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-7">
+    <div class="card h-100">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-cloud-check me-2"></i>Scheduled Backup Evidence</h6>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for run in scheduled_backup_runs %}
+          <div class="list-group-item">
+            <div class="d-flex justify-content-between gap-3">
+              <div>
+                <div class="fw-semibold">{{ run.name }}</div>
+                <div class="small text-muted">{{ run.created_at }} &middot; {{ run.manifest_name }}</div>
+                <div class="small {% if run.offsite_status == 'copied' %}text-success{% elif run.offsite_status == 'disabled' %}text-muted{% else %}text-danger{% endif %}">
+                  Offsite {{ run.offsite_label }}{% if run.offsite_dir %} &middot; {{ run.offsite_dir }}{% endif %}
+                </div>
+                {% if run.evidence_hash %}
+                  <div class="small text-muted text-truncate" style="max-width: 34rem;">Evidence {{ run.evidence_hash }}</div>
+                {% endif %}
+                {% if run.error %}
+                  <div class="small text-danger">{{ run.error }}</div>
+                {% endif %}
+              </div>
+              <div class="text-end">
+                <span class="badge {% if run.status == 'ok' %}bg-success{% else %}bg-danger{% endif %}">{{ run.status_label }}</span>
+                <div class="small text-muted mt-1">{% if run.encrypted %}Encrypted{% else %}Plain{% endif %}</div>
+                <div class="small text-muted">{{ run.copied_files|length }} file(s)</div>
+              </div>
+            </div>
+          </div>
+        {% empty %}
+          <div class="list-group-item text-center text-muted py-4">
+            No scheduled backup evidence has been recorded yet.
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-xl-5">
+    <div class="card h-100">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-clipboard2-check me-2"></i>Record Restore Drill</h6>
+      </div>
+      <div class="card-body">
+        <form method="post" class="vstack gap-3">
+          {% csrf_token %}
+          {% if include_deploy %}<input type="hidden" name="deploy" value="1">{% endif %}
+          <input type="hidden" name="action" value="record_restore_drill">
+          <div>
+            <label class="form-label small text-muted mb-1">Backup Manifest</label>
+            <select name="manifest_name" class="form-select form-select-sm" required>
+              <option value="">Select manifest</option>
+              {% for manifest in manifests %}
+                <option value="{{ manifest.name }}" {% if forloop.first %}selected{% endif %}>{{ manifest.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="row g-2">
+            <div class="col-sm-6">
+              <label class="form-label small text-muted mb-1">Outcome</label>
+              <select name="outcome" class="form-select form-select-sm">
+                <option value="passed">Passed</option>
+                <option value="partial">Partial</option>
+                <option value="failed">Failed</option>
+              </select>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label small text-muted mb-1">Open Findings</label>
+              <input type="number" min="0" step="1" name="unresolved_findings" class="form-control form-control-sm" value="0">
+            </div>
+          </div>
+          <div>
+            <label class="form-label small text-muted mb-1">Target Environment</label>
+            <input type="text" name="target_environment" class="form-control form-control-sm" placeholder="restore-drill VM / staging / local">
+          </div>
+          <div class="row g-2">
+            {% for key, label in restore_checklist %}
+              <div class="col-12">
+                <label class="border rounded p-2 d-flex align-items-start gap-2 small">
+                  <input class="form-check-input mt-0" type="checkbox" name="{{ key }}" checked>
+                  <span>{{ label }}</span>
+                </label>
+              </div>
+            {% endfor %}
+          </div>
+          <div>
+            <label class="form-label small text-muted mb-1">Evidence Notes</label>
+            <textarea name="notes" rows="3" class="form-control form-control-sm" placeholder="Restore DB loaded, media sampled, login smoke passed, operator initials."></textarea>
+          </div>
+          <div>
+            <label class="form-label small text-muted mb-1">Open Findings / Exceptions</label>
+            <textarea name="finding_notes" rows="3" class="form-control form-control-sm" placeholder="List unresolved restore issues, missing evidence, failed smoke checks, or owner/date commitments."></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm" {% if not manifests %}disabled{% endif %}>
+            <i class="bi bi-shield-check me-1"></i>Record Restore Evidence
+          </button>
+        </form>
+        <hr>
+        <form method="post" class="vstack gap-2">
+          {% csrf_token %}
+          {% if include_deploy %}<input type="hidden" name="deploy" value="1">{% endif %}
+          <input type="hidden" name="action" value="verify_restore_rehearsal">
+          <input type="hidden" name="target_environment" value="archive rehearsal">
+          <div>
+            <label class="form-label small text-muted mb-1">Automated Rehearsal Manifest</label>
+            <select name="manifest_name" class="form-select form-select-sm" required>
+              <option value="">Latest backup</option>
+              {% for manifest in manifests %}
+                <option value="{{ manifest.name }}" {% if forloop.first %}selected{% endif %}>{{ manifest.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn-outline-primary btn-sm" {% if not manifests %}disabled{% endif %}>
+            <i class="bi bi-play-circle me-1"></i>Verify Restore Rehearsal
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-7">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-journal-check me-2"></i>Restore Drill Evidence</h6>
+        <span class="badge {% if summary.restore_ready %}bg-success{% else %}bg-danger{% endif %}">
+          {% if summary.restore_ready %}Recoverable{% else %}Needs Drill{% endif %}
+        </span>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for drill in restore_drills %}
+          <div class="list-group-item">
+            <div class="d-flex justify-content-between gap-3">
+              <div>
+                <div class="fw-semibold">{{ drill.name }}</div>
+                <div class="small text-muted">{{ drill.created_at }} &middot; {{ drill.manifest_name }}</div>
+                <div class="small text-muted">
+                  {{ drill.target_environment|default:"-" }} &middot; {{ drill.operator_email|default:"System" }}
+                </div>
+                {% if drill.finding_notes %}
+                  <div class="small text-danger">{{ drill.finding_notes|linebreaksbr }}</div>
+                {% endif %}
+                {% if drill.evidence_hash %}
+                  <div class="small text-muted text-truncate" style="max-width: 34rem;">Evidence {{ drill.evidence_hash }}</div>
+                {% endif %}
+                {% if drill.error %}
+                  <div class="small text-danger">{{ drill.error }}</div>
+                {% endif %}
+              </div>
+              <div class="text-end">
+                <span class="badge {% if drill.passed %}bg-success{% elif drill.outcome == 'partial' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                  {{ drill.outcome_label }}
+                </span>
+                <div class="small text-muted mt-1">{{ drill.completed_checks }}/{{ drill.total_checks }} checks</div>
+                <div class="small text-muted">{{ drill.unresolved_findings }} finding(s)</div>
+              </div>
+            </div>
+          </div>
+        {% empty %}
+          <div class="list-group-item text-center text-muted py-4">
+            No restore drill evidence has been recorded yet.
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

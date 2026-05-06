@@ -1,0 +1,899 @@
+
+<!-- ── Help Center Modal (Integrated Audit Rules) ── -->
+<div class="modal fade" id="helpCenterModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-dark text-white py-1 px-3">
+        <div>
+          <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-journal-text me-2 text-info"></i> Product Guide</h5>
+          <div class="small text-white-50">What each menu is for, when to use it, and what output to expect.</div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" style="font-size: 0.7rem;"></button>
+      </div>
+      <div class="modal-body bg-light p-0">
+        <div class="row g-0">
+          <!-- Sidebar: Categories (Tightened) -->
+          <div class="col-md-3 border-end bg-white" style="min-height: 400px;">
+            <div class="list-group list-group-flush" id="helpCategoryList">
+              <button class="list-group-item list-group-item-action active border-0 py-2 px-3 small" data-category="ALL">
+                <i class="bi bi-grid-fill me-2"></i> Guide Home
+              </button>
+              <button class="list-group-item list-group-item-action border-0 py-2 px-3 small" data-category="Dashboard">
+                <i class="bi bi-speedometer2 me-2 text-primary"></i> Dashboard
+              </button>
+              <button class="list-group-item list-group-item-action border-0 py-2 px-3 small" data-category="Practice">
+                <i class="bi bi-kanban me-2 text-primary"></i> Practice
+              </button>
+              <button class="list-group-item list-group-item-action border-0 py-2 px-3 small" data-category="Clients">
+                <i class="bi bi-people me-2 text-primary"></i> Clients
+              </button>
+              <button class="list-group-item list-group-item-action border-0 py-2 px-3 small" data-category="Pilot">
+                <i class="bi bi-rocket-takeoff me-2 text-primary"></i> Pilot
+              </button>
+              <button class="list-group-item list-group-item-action border-0 py-2 px-3 small" data-category="Market Proof">
+                <i class="bi bi-award me-2 text-primary"></i> Market Proof
+              </button>
+              <button class="list-group-item list-group-item-action border-0 py-2 px-3 small" data-category="Accounting">
+                <i class="bi bi-calculator-fill me-2 text-primary"></i> Accounting
+              </button>
+              <button class="list-group-item list-group-item-action border-0 py-2 px-3 small" data-category="GST">
+                <i class="bi bi-percent me-2 text-warning"></i> GST / Tax
+              </button>
+              <button class="list-group-item list-group-item-action border-0 py-2 px-3 small" data-category="Integrations">
+                <i class="bi bi-plug me-2 text-secondary"></i> Integrations
+              </button>
+              <button class="list-group-item list-group-item-action border-0 py-2 px-3 small" data-category="Reports">
+                <i class="bi bi-bar-chart-line me-2 text-success"></i> Reports
+              </button>
+              <button class="list-group-item list-group-item-action border-0 py-2 px-3 small" data-category="Inventory">
+                <i class="bi bi-boxes me-2 text-success"></i> Inventory
+              </button>
+              <button class="list-group-item list-group-item-action border-0 py-2 px-3 small" data-category="Compliance">
+                <i class="bi bi-journal-check me-2 text-secondary"></i> Compliance
+              </button>
+              <button class="list-group-item list-group-item-action border-0 py-2 px-3 small" data-category="Settings">
+                <i class="bi bi-gear me-2 text-secondary"></i> Settings / Ops
+              </button>
+              <button class="list-group-item list-group-item-action border-0 py-2 px-3 small" data-category="SYSTEM_RULES">
+                <i class="bi bi-shield-lock me-2 text-secondary"></i> System Controls
+              </button>
+            </div>
+          </div>
+
+          <!-- Main Content Area (Tightened Padding) -->
+          <div class="col-md-9 p-3">
+            <!-- Search/Filter (Compact) -->
+            <div class="mb-3">
+              <div class="input-group input-group-sm shadow-sm border rounded">
+                <span class="input-group-text bg-white border-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" id="helpSearchInput" class="form-control border-0 ps-0 py-2" placeholder="Search menus, workflows, settings, reports, or controls..." autocomplete="off">
+              </div>
+            </div>
+
+            <div id="helpContentArea">
+              <!-- Content loaded dynamically via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer with Version Tracker (Compact) -->
+      <div class="modal-footer bg-white border-top py-1 px-3 d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-3">
+          <div class="text-muted" style="font-size: 0.65rem;">
+            <i class="bi bi-compass me-1"></i> <strong>Guide:</strong> Current menu map
+          </div>
+          <div class="text-muted" style="font-size: 0.65rem;">
+            <i class="bi bi-list-check me-1"></i> <strong>Topics:</strong> Menus, workflows, controls
+          </div>
+          <div class="text-muted" style="font-size: 0.65rem;">
+            <i class="bi bi-shield-check me-1"></i> <strong>Controls:</strong> Separate reference
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  #helpCenterModal .list-group-item { border-bottom: 1px solid #f1f5f9 !important; font-size: 0.75rem; }
+  #helpCenterModal .rule-card { margin-bottom: 0.75rem !important; }
+  #helpCenterModal .card-body { padding: 0.75rem !important; }
+  #helpCenterModal .badge { font-size: 0.55rem; padding: 0.2em 0.5em; }
+  .last-child-border-0:last-child { border-bottom: 0 !important; }
+  .btn-xs { padding: 0.1rem 0.4rem; line-height: 1.2; border-radius: 0.2rem; }
+  .guide-home {
+    background: var(--surface-bg, #fff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 0.5rem;
+    padding: 0.9rem;
+    margin-bottom: 0.9rem;
+  }
+  .guide-home h6,
+  .guide-section h6,
+  .guide-item h6 {
+    letter-spacing: 0;
+  }
+  .guide-workflow-grid,
+  .guide-meta-grid,
+  .guide-item-grid {
+    display: grid;
+    gap: 0.65rem;
+  }
+  .guide-workflow-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .guide-meta-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: 0.65rem;
+  }
+  .guide-item-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 0.6rem;
+  }
+  .guide-mini-card,
+  .guide-meta-box {
+    background: var(--surface-muted, #f8fafc);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 0.45rem;
+    padding: 0.65rem;
+  }
+  .guide-section {
+    margin-bottom: 0.9rem;
+  }
+  .guide-section-summary {
+    background: var(--surface-bg, #fff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 0.5rem 0.5rem 0 0;
+    padding: 0.8rem 0.9rem;
+  }
+  .guide-item-list {
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-top: 0;
+    border-radius: 0 0 0.5rem 0.5rem;
+    overflow: hidden;
+  }
+  .guide-item {
+    background: var(--surface-bg, #fff);
+    padding: 0.8rem 0.9rem;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+  }
+  .guide-item:last-child {
+    border-bottom: 0;
+  }
+  .guide-label {
+    color: var(--text-muted, #64748b);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 0.18rem;
+  }
+  .guide-steps {
+    display: grid;
+    gap: 0.3rem;
+    margin: 0.45rem 0 0;
+    padding-left: 1.1rem;
+    color: var(--text-muted, #64748b);
+    font-size: 0.72rem;
+  }
+  .guide-control-card {
+    background: var(--surface-bg, #fff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    margin-bottom: 0.55rem;
+  }
+  @media (max-width: 991.98px) {
+    .guide-workflow-grid,
+    .guide-meta-grid,
+    .guide-item-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .page-explainer {
+    position: fixed;
+    left: var(--page-explainer-left, 1rem);
+    top: var(--page-explainer-top, 1rem);
+    z-index: 2400;
+    width: min(360px, calc(100vw - 2rem));
+    background: var(--surface-bg, #fff);
+    color: var(--text-main, #111827);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 0.75rem;
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.18);
+    opacity: 0;
+    transform: translateX(-8px);
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+  }
+
+  .page-explainer.show {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+
+  .page-explainer::before {
+    content: "";
+    position: absolute;
+    left: -7px;
+    top: var(--page-explainer-arrow-top, 1rem);
+    width: 12px;
+    height: 12px;
+    background: var(--surface-bg, #fff);
+    border-left: 1px solid var(--border-color, #e5e7eb);
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    transform: rotate(45deg);
+  }
+
+  .page-explainer--fallback {
+    left: auto;
+    top: auto;
+    right: 1.25rem;
+    bottom: 1.25rem;
+    transform: translateY(12px);
+  }
+
+  .page-explainer--fallback.show {
+    transform: translateY(0);
+  }
+
+  .page-explainer--fallback::before {
+    display: none;
+  }
+
+  #sidebar .nav-link.page-explainer-target {
+    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.22);
+  }
+
+  .page-explainer__body {
+    padding: 0.85rem 0.95rem;
+  }
+
+  .page-explainer__label {
+    color: var(--text-muted, #64748b);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .page-explainer__title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    margin: 0.12rem 0 0.2rem;
+  }
+
+  .page-explainer__text {
+    color: var(--text-muted, #64748b);
+    font-size: 0.78rem;
+    line-height: 1.35;
+    margin: 0;
+  }
+
+  .page-explainer__actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0 0.95rem 0.85rem;
+  }
+
+  .page-explainer__close {
+    width: 1.9rem;
+    height: 1.9rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  @media (max-width: 767.98px) {
+    .page-explainer {
+      left: 1rem;
+      right: 1rem;
+      top: auto;
+      bottom: 1rem;
+      width: auto;
+      transform: translateY(12px);
+    }
+
+    .page-explainer.show {
+      transform: translateY(0);
+    }
+
+    .page-explainer::before {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  window.AKSHAYA_MENU_GUIDE = [
+    {
+      category: "Dashboard",
+      icon: "bi-speedometer2",
+      items: [
+        { title: "Dashboard", url: "{% url 'core:dashboard' %}", text: "Start here for the selected company's operating snapshot, alerts, and quick movement into daily work.", steps: ["Use the company switcher first when needed.", "Review high-priority cards before opening detailed modules."] }
+      ]
+    },
+    {
+      category: "Practice",
+      icon: "bi-kanban",
+      items: [
+        { title: "Command Center", url: "{% url 'core:ca_command_center' %}", text: "Runs the CA firm's daily command queue across filings, clients, collections, and exceptions.", steps: ["Open this first during daily review.", "Use priorities and owners to move work out of backlog."] },
+        { title: "Approval Inbox", url: "{% url 'core:ca_approval_inbox' %}", text: "Central maker-checker inbox for approvals that should not move without review.", steps: ["Review pending approvals.", "Resolve blocked statutory or accounting items before approval."] },
+        { title: "Partner Review", url: "{% url 'core:partner_review_cockpit' %}", text: "Partner-level cockpit for high-risk clients, reviews, and signoffs.", steps: ["Filter by risk or pending review.", "Close items only after evidence is checked."] },
+        { title: "Work Queue", url: "{% url 'core:practice_tasks' %}", text: "Tracks practice tasks, owners, due dates, and escalation status in one list.", steps: ["Assign owners.", "Update status as work moves from pending to done."] },
+        { title: "Filings", url: "{% url 'core:compliance_filings' %}", text: "Manages statutory filing workflows from preparation through filed status.", steps: ["Create or review filings by period.", "Keep due dates, owners, and status current."] },
+        { title: "Notices", url: "{% url 'core:compliance_notices' %}", text: "Tracks tax and compliance notices with response ownership, due dates, and closure evidence.", steps: ["Add notice details.", "Assign a response owner and monitor aging."] }
+      ]
+    },
+    {
+      category: "Clients",
+      icon: "bi-people",
+      items: [
+        { title: "Operating Readiness", url: "{% url 'core:client_operating_readiness' %}", text: "Shows whether each client is ready to run smoothly on the application.", steps: ["Review blockers by client.", "Clear setup gaps before go-live."] },
+        { title: "Client Success", url: "{% url 'core:client_success_cockpit' %}", text: "Monitors client adoption, satisfaction signals, open issues, and success actions.", steps: ["Review risk and adoption signals.", "Create follow-up actions for weak accounts."] },
+        { title: "Portal Health", url: "{% url 'core:client_portal_health' %}", text: "Checks client portal activation, request responsiveness, and portal operating health.", steps: ["Find inactive clients.", "Use reminders to improve response time."] },
+        { title: "Engagements", url: "{% url 'core:client_engagements' %}", text: "Maintains client engagement ownership, renewal, scope, and risk details.", steps: ["Keep manager and partner ownership updated.", "Review renewal and risk fields regularly."] },
+        { title: "Client Profitability", url: "{% url 'core:ca_client_profitability' %}", text: "Compares client effort, revenue, risk, and profitability so the firm can price and serve better.", steps: ["Review low-margin clients.", "Use insights for pricing and service planning."] },
+        { title: "Client Requests", url: "{% url 'portal:client_requests' %}", text: "Creates and tracks document or information requests sent to clients.", steps: ["Create request rooms by client.", "Track received and pending documents."] },
+        { title: "Request Reminders", url: "{% url 'portal:client_request_reminders' %}", text: "Sends and monitors reminders for pending client documents and confirmations.", steps: ["Filter overdue requests.", "Trigger reminders before filing deadlines."] }
+      ]
+    },
+    {
+      category: "Pilot",
+      icon: "bi-rocket-takeoff",
+      items: [
+        { title: "Pilot Launch", url: "{% url 'core:client_pilot_launch' %}", text: "Plans and tracks pilot onboarding so target clients reach measurable adoption.", steps: ["Pick pilot clients.", "Track readiness, usage, and blockers."] },
+        { title: "Pilot Evidence", url: "{% url 'core:pilot_adoption_evidence' %}", text: "Collects adoption proof from pilot clients for product depth and sales confidence.", steps: ["Record evidence from real usage.", "Use evidence in market proof review."] },
+        { title: "Pilot Feedback", url: "{% url 'core:pilot_feedback_register' %}", text: "Captures pilot feedback, sentiment, follow-up owners, and improvement actions.", steps: ["Log feedback with sentiment.", "Convert issues into owned practice tasks."] }
+      ]
+    },
+    {
+      category: "Market Proof",
+      icon: "bi-award",
+      items: [
+        { title: "Market Proof", url: "{% url 'core:market_proof_pack' %}", text: "Builds the signed evidence view of why the product is competitive for Indian CA practices.", steps: ["Review readiness signals.", "Export the signed evidence pack when proof is complete."] },
+        { title: "External Evidence", url: "{% url 'core:market_external_evidence' %}", text: "Stores verified external proof such as competitor comparisons, references, and buyer signals.", steps: ["Add source and confidence.", "Keep only evidence that can be defended."] },
+        { title: "Case Studies", url: "{% url 'core:market_case_studies' %}", text: "Maintains approved client outcomes and success stories for sales and trust-building.", steps: ["Capture before and after outcomes.", "Publish only approved, consented case studies."] }
+      ]
+    },
+    {
+      category: "GST",
+      icon: "bi-percent",
+      items: [
+        { title: "Statutory Exposure", url: "{% url 'core:statutory_exposure' %}", text: "Highlights tax, filing, and receivable exposures that need immediate CA attention.", steps: ["Review high-risk exposure first.", "Create tasks or filing actions from exceptions."] },
+        { title: "Export Center", url: "{% url 'core:statutory_export_center' %}", text: "Generates statutory export packs for filing and working-paper review.", steps: ["Choose period and export type.", "Download clean working files for review."] },
+        { title: "Review Center", url: "{% url 'core:filing_review_center' %}", text: "Gives reviewers a focused place to approve filing readiness and exceptions.", steps: ["Check exceptions.", "Record review decisions before filing."] },
+        { title: "GST Filing Pack", url: "{% url 'core:gst_filing_pack' %}", text: "Assembles GST return data, checks, and export files for the selected period.", steps: ["Pick return period.", "Download pack after validation."] },
+        { title: "GST Post-Filing", url: "{% url 'core:gst_post_filing' %}", text: "Tracks acknowledgements, ARN details, and post-filing evidence after returns are submitted.", steps: ["Record ARN or acknowledgement.", "Attach evidence for audit trail."] },
+        { title: "GST Closure Board", url: "{% url 'core:gst_post_filing_dashboard' %}", text: "Shows filing closure status across clients and periods after submission.", steps: ["Find open closures.", "Clear missing evidence before month-end close."] },
+        { title: "Filing Readiness", url: "{% url 'core:filing_readiness' %}", text: "Checks whether clients, books, documents, and statutory data are ready for filing.", steps: ["Review readiness gaps.", "Trigger client requests for missing documents."] },
+        { title: "Calendar", url: "{% url 'core:compliance_calendar' %}", text: "Shows statutory due dates and compliance workload across the practice.", steps: ["Scan upcoming deadlines.", "Assign owners for due items."] },
+        { title: "GST Workbench", url: "{% url 'core:gst_workbench' %}", text: "Runs the GST execution workflow across 2B, documents, tasks, exceptions, and signoff.", steps: ["Create filings for the period.", "Resolve exceptions and complete signoff."] },
+        { title: "Integration Control", url: "{% url 'integrations:statutory_control' %}", text: "Controls GST, IRP, e-way bill, TRACES, and statutory connector readiness.", steps: ["Check connector status.", "Fix configuration or provider issues before live use."] },
+        { title: "Provider Go-Live", url: "{% url 'integrations:provider_readiness' %}", text: "Validates whether statutory integration providers are ready for production use.", steps: ["Review readiness gates.", "Retry failed jobs only after root cause is addressed."] },
+        { title: "E-Invoice Cockpit", url: "{% url 'integrations:e_invoice_cockpit' %}", text: "Handles IRP e-invoice generation, status tracking, and payload review.", steps: ["Review eligible invoices.", "Generate or mark IRN status with evidence."] },
+        { title: "E-Way Bill Cockpit", url: "{% url 'integrations:e_way_bill_cockpit' %}", text: "Manages e-way bill generation and status tracking for movement-linked invoices.", steps: ["Review eligible documents.", "Generate or update e-way bill status."] },
+        { title: "TRACES Results", url: "{% url 'integrations:traces_result_import' %}", text: "Imports and reviews TRACES results for TDS compliance follow-through.", steps: ["Import result files.", "Review mismatches and create follow-up work."] },
+        { title: "Evidence Center", url: "{% url 'integrations:evidence_center' %}", text: "Stores statutory integration evidence, acknowledgements, and supporting files.", steps: ["Upload source evidence.", "Link evidence to filing or integration events."] }
+      ]
+    },
+    {
+      category: "Integrations",
+      icon: "bi-plug",
+      items: [
+        { title: "Bank Feed Import", url: "{% url 'integrations:bank_feed_import' %}", text: "Imports bank feed data for reconciliation and accounting automation.", steps: ["Upload or import bank feed.", "Review created or matched entries."] },
+        { title: "Integrations", url: "{% url 'integrations:dashboard' %}", text: "Shows connector health, configuration, and sync status in one place.", steps: ["Check failed connectors.", "Open the relevant connector before retrying."] }
+      ]
+    },
+    {
+      category: "Accounting",
+      icon: "bi-calculator",
+      items: [
+        { title: "Ledgers", url: "{% url 'ledger:list' %}", text: "Creates and maintains customer, vendor, bank, tax, income, expense, and balance-sheet ledgers.", steps: ["Search existing ledgers first.", "Create missing ledgers with correct group and tax settings."] },
+        { title: "Vouchers", url: "{% url 'vouchers:list' %}", text: "Lists accounting vouchers with status, audit, invoice, and action controls.", steps: ["Filter by type or status.", "Open voucher details for edit, PDF, email, or approval actions."] },
+        { title: "Voucher Quality", url: "{% url 'vouchers:quality' %}", text: "Finds voucher issues before they become audit, GST, or client-delivery problems.", steps: ["Review warnings.", "Correct missing GSTIN, scans, TDS, or posting gaps."] },
+        { title: "Collections", url: "{% url 'core:collections_command_center' %}", text: "Prioritizes receivables, reminders, and collection actions for faster cash recovery.", steps: ["Review overdue customers.", "Send reminders or create collection tasks."] },
+        { title: "Bank Autopilot", url: "{% url 'core:bank_reco_autopilot' %}", text: "Automates reconciliation suggestions and bank-led accounting follow-up.", steps: ["Review suggested matches.", "Post or resolve only after checking confidence."] },
+        { title: "Close Workbench", url: "{% url 'core:accounting_close' %}", text: "Coordinates month-end close checks, blockers, and signoff.", steps: ["Review open close items.", "Clear bank, GST, and accounting blockers before lock."] },
+        { title: "New Voucher", url: "{% url 'vouchers:create' %}", text: "Creates sales, purchase, receipt, payment, journal, and other vouchers.", steps: ["Choose voucher type.", "Enter balanced ledger lines and save."] },
+        { title: "Outstanding", url: "{% url 'vouchers:outstanding' %}", text: "Shows pending receivables and payables with settlement and reminder actions.", steps: ["Filter overdue accounts.", "Create tasks or reminders from open balances."] },
+        { title: "Bulk Settlement", url: "{% url 'receivables:bulk_settlement' %}", text: "Settles multiple receivable items efficiently after payment confirmation.", steps: ["Select eligible invoices.", "Apply settlement details and review totals."] },
+        { title: "GSTR-2B Reconciliation", url: "{% url 'gstr2b:upload' %}", text: "Uploads and reconciles GSTR-2B data against books for ITC control.", steps: ["Upload GSTR-2B.", "Review mismatches and vendor follow-up actions."] }
+      ]
+    },
+    {
+      category: "Reports",
+      icon: "bi-bar-chart-line",
+      items: [
+        { title: "Financial Dashboard", url: "{% url 'reports:dashboard_financials' %}", text: "Summarizes financial performance, balances, and key accounting indicators.", steps: ["Review top-level health.", "Open detailed reports for investigation."] },
+        { title: "Day Book", url: "{% url 'reports:day_book' %}", text: "Shows day-wise accounting entries for review and audit tracing.", steps: ["Filter by date.", "Open supporting voucher records when needed."] },
+        { title: "P&L Simple", url: "{% url 'reports:profit_loss_simple' %}", text: "Gives a fast profit and loss view for routine client review.", steps: ["Select period.", "Compare income and expense movement."] },
+        { title: "Balance Sheet Simple", url: "{% url 'reports:balance_sheet_simple' %}", text: "Gives a concise balance-sheet view for quick review.", steps: ["Select as-of date.", "Review major asset and liability balances."] },
+        { title: "Trial Balance Simple", url: "{% url 'reports:trial_balance_simple' %}", text: "Shows simplified ledger balances for checking accounting completeness.", steps: ["Review debit and credit totals.", "Open ledger drilldowns for unusual balances."] },
+        { title: "Profit & Loss", url: "{% url 'reports:profit_loss' %}", text: "Detailed profit and loss report for client reporting and analysis.", steps: ["Select period.", "Export or print after review."] },
+        { title: "Balance Sheet", url: "{% url 'reports:balance_sheet' %}", text: "Detailed balance sheet for statutory, partner, and client review.", steps: ["Select date.", "Check grouping and closing balances."] },
+        { title: "Trial Balance", url: "{% url 'reports:trial_balance' %}", text: "Detailed trial balance for audit and closing verification.", steps: ["Review account balances.", "Drill down into ledgers when needed."] },
+        { title: "Receivables Aging", url: "{% url 'reports:receivables_aging' %}", text: "Ages customer dues so collection and provisioning decisions are visible.", steps: ["Review high-aging buckets.", "Coordinate collection actions."] },
+        { title: "GST Report", url: "{% url 'reports:gst_report' %}", text: "Summarizes GST impact from accounting data for review.", steps: ["Select period.", "Compare with filing workbench numbers."] },
+        { title: "GSTR-1 Export", url: "{% url 'reports:gstr1_export' %}", text: "Exports GSTR-1-ready sales data for filing workflows.", steps: ["Select period.", "Download and validate before filing."] },
+        { title: "GSTR-3B Export", url: "{% url 'reports:gstr3b_export' %}", text: "Exports GSTR-3B summary data for filing workflows.", steps: ["Select period.", "Review tax buckets before upload or filing."] },
+        { title: "Cash Flow", url: "{% url 'reports:cash_flow' %}", text: "Shows cash inflows and outflows for the selected period.", steps: ["Select period.", "Compare operating, investing, and financing movement."] },
+        { title: "Cash Flow Forecast", url: "{% url 'reports:cash_flow_forecast' %}", text: "Projects expected cash movement using receivables, payables, and trend data.", steps: ["Review expected inflows and outflows.", "Use it for collections and payment planning."] }
+      ]
+    },
+    {
+      category: "Inventory",
+      icon: "bi-boxes",
+      items: [
+        { title: "Cost Centers", url: "{% url 'costcenter:cost_center_list' %}", text: "Maintains cost centers for project, branch, department, or client profitability tracking.", steps: ["Create centers before posting tagged vouchers.", "Use reports to review variance and P&L by center."] },
+        { title: "Add Cost Center", url: "{% url 'costcenter:cost_center_create' %}", text: "Creates a new cost center for allocation and reporting.", steps: ["Enter code and name.", "Set parent or status if applicable."] },
+        { title: "Budget Heads", url: "{% url 'costcenter:budget_list' %}", text: "Maintains budgets for tracking actuals against planned spend.", steps: ["Create budget heads.", "Review variance reports after voucher posting."] },
+        { title: "All Orders", url: "{% url 'orders:order_list' %}", text: "Lists purchase and sales orders with status and fulfillment context.", steps: ["Filter open or confirmed orders.", "Convert eligible orders to vouchers."] },
+        { title: "New Order", url: "{% url 'orders:order_create' %}", text: "Creates a purchase or sales order before invoice or fulfillment.", steps: ["Choose party and order type.", "Add lines, quantities, tax, and save."] },
+        { title: "Open Orders", url: "{% url 'orders:open_orders' %}", text: "Shows orders still awaiting closure, fulfillment, or conversion.", steps: ["Review overdue open orders.", "Convert, confirm, or cancel as appropriate."] },
+        { title: "Stock Items", url: "{% url 'inventory:list' %}", text: "Maintains inventory masters including HSN, tax, units, and valuation settings.", steps: ["Search before creating.", "Keep HSN and tax rates accurate."] },
+        { title: "Add Stock Item", url: "{% url 'inventory:create' %}", text: "Creates a new stock item for inventory-linked vouchers and orders.", steps: ["Enter item details.", "Set unit, HSN, tax, and valuation method."] },
+        { title: "Stock Summary", url: "{% url 'inventory:summary' %}", text: "Shows item-wise quantity movement and current stock position.", steps: ["Review quantity changes.", "Investigate negative or unusual movement."] },
+        { title: "Stock Valuation", url: "{% url 'inventory:valuation' %}", text: "Shows stock value using the configured valuation method.", steps: ["Review closing value.", "Check high-value inventory before close."] },
+        { title: "Low Stock Alerts", url: "{% url 'inventory:low_stock' %}", text: "Highlights items below reorder or minimum stock thresholds.", steps: ["Review low stock list.", "Raise purchase or replenishment actions."] },
+        { title: "Godowns", url: "{% url 'inventory:godown_list' %}", text: "Maintains warehouse and storage locations for stock tracking.", steps: ["Create godowns before location-wise stock posting.", "Keep inactive locations cleaned up."] },
+        { title: "Batches", url: "{% url 'inventory:batch_list' %}", text: "Tracks batch-wise inventory, expiry, and movement where required.", steps: ["Maintain batch details.", "Check expiry-sensitive items before sales."] }
+      ]
+    },
+    {
+      category: "Compliance",
+      icon: "bi-journal-check",
+      items: [
+        { title: "Employees", url: "{% url 'payroll:employee_list' %}", text: "Maintains employee masters for payroll processing and salary reporting.", steps: ["Add or update employees.", "Keep statutory and bank details current."] },
+        { title: "Salary Structures", url: "{% url 'payroll:salary_structure_list' %}", text: "Defines salary components used for payroll runs.", steps: ["Create salary structures.", "Map components before processing payroll."] },
+        { title: "Payroll Runs", url: "{% url 'payroll:payroll_run_list' %}", text: "Processes payroll periods and generates payslip data.", steps: ["Create a run for the period.", "Process, review, and finalize."] },
+        { title: "Salary Register", url: "{% url 'payroll:payroll_summary' %}", text: "Summarizes payroll output for review and reporting.", steps: ["Select period.", "Review totals and employee-level salary data."] },
+        { title: "Assets", url: "{% url 'fixedassets:asset_list' %}", text: "Maintains fixed asset masters for depreciation and register reporting.", steps: ["Add assets with purchase and depreciation details.", "Review active and disposed assets."] },
+        { title: "Asset Register", url: "{% url 'fixedassets:asset_register' %}", text: "Reports fixed assets and depreciation in register format.", steps: ["Review asset balances.", "Use during close and audit review."] },
+        { title: "Asset Groups", url: "{% url 'fixedassets:asset_group_list' %}", text: "Groups assets for depreciation and reporting control.", steps: ["Maintain asset categories.", "Use consistent grouping before asset creation."] },
+        { title: "Return Workbench", url: "{% url 'tds:return_workbench' %}", text: "Runs TDS/TCS return preparation and review workflows.", steps: ["Review deductions and challans.", "Clear validation gaps before filing."] },
+        { title: "TDS Filing Pack", url: "{% url 'tds:filing_pack' %}", text: "Builds the TDS filing pack and supporting export data.", steps: ["Select period.", "Download pack after validation."] },
+        { title: "TDS Post-Filing", url: "{% url 'tds:post_filing_center' %}", text: "Tracks TDS acknowledgements, post-filing checks, and closure evidence.", steps: ["Record acknowledgement details.", "Close only after evidence is attached."] },
+        { title: "TDS Entries", url: "{% url 'tds:entry_list' %}", text: "Maintains TDS deduction entries and deposit status.", steps: ["Review deductions.", "Deposit or correct entries as needed."] },
+        { title: "TDS Register", url: "{% url 'tds:tds_register' %}", text: "Shows the TDS register for review, reconciliation, and reporting.", steps: ["Select period.", "Check deductee, section, and challan details."] },
+        { title: "Sections", url: "{% url 'tds:section_list' %}", text: "Maintains TDS/TCS section masters and rates.", steps: ["Review rates and thresholds.", "Update only with statutory basis."] },
+        { title: "Forex Position", url: "{% url 'forex:forex_position' %}", text: "Shows multi-currency exposure, balances, and gain or loss context.", steps: ["Review currency-wise positions.", "Check gain/loss postings during close."] },
+        { title: "Currencies", url: "{% url 'forex:currency_list' %}", text: "Maintains currency masters for multi-currency accounting.", steps: ["Create currencies as needed.", "Ensure only one base currency is active."] },
+        { title: "Exchange Rates", url: "{% url 'forex:exchange_rate_list' %}", text: "Maintains exchange rates used for currency conversion and settlement.", steps: ["Add rates for required dates.", "Check rates before settlement."] },
+        { title: "Scan Bill / OCR", url: "{% url 'ocr:upload' %}", text: "Uploads bills and documents for OCR-assisted voucher or master creation.", steps: ["Upload the document.", "Verify extracted data before confirmation."] },
+        { title: "OCR Submissions", url: "{% url 'ocr:list' %}", text: "Tracks OCR uploads, verification status, and conversion actions.", steps: ["Review pending submissions.", "Confirm or reject after checking extracted data."] }
+      ]
+    },
+    {
+      category: "Settings",
+      icon: "bi-gear",
+      items: [
+        { title: "Compliance Health", url: "{% url 'core:compliance_health' %}", text: "Shows audit and compliance health signals across the selected company.", steps: ["Review red flags.", "Fix missing data or evidence before close."] },
+        { title: "Bank Reconciliation", url: "{% url 'core:bank_statement_list' %}", text: "Imports bank statements and manages reconciliation batches.", steps: ["Upload statement.", "Review auto-match and unresolved rows."] },
+        { title: "Recon Summary", url: "{% url 'core:bank_reconciliation_report' %}", text: "Summarizes bank reconciliation status and outstanding differences.", steps: ["Review unmatched rows.", "Clear differences before closing the period."] },
+        { title: "Audit Trail", url: "{% url 'core:audit_log' %}", text: "Shows immutable audit activity for review, traceability, and compliance defence.", steps: ["Filter by action or user.", "Use entries to investigate critical changes."] },
+        { title: "Tally Exit Control", url: "{% url 'migration:exit_control' %}", text: "Manages the structured exit from Tally into the application with risk controls.", steps: ["Review exit readiness.", "Clear migration and sync risks before cutover."] },
+        { title: "Move from Tally", url: "{% url 'migration:sessions' %}", text: "Runs Tally import sessions, mapping, approvals, and migration review.", steps: ["Upload import file.", "Map, preview, approve, and confirm the import."] },
+        { title: "Setup Wizard", url: "{% url 'core:setup_wizard' %}", text: "Guides first-run setup for GSTIN, TAN, statutory rules, WhatsApp, invoice email, portal token, bank details, and production trust.", steps: ["Open the wizard after selecting a company.", "Complete every Needed item before client rollout."] },
+        { title: "Demo Mode", url: "{% url 'core:demo_workspace' %}", text: "Creates a polished sales workspace with sample CA clients, vouchers, filings, requests, pilot evidence, and market proof.", steps: ["Open Demo Mode from Settings.", "Create or refresh the workspace before partner demos."] },
+        { title: "App Settings", url: "{% url 'core:app_settings' %}", text: "Lets clients configure app-level options such as WhatsApp, email, and operating preferences.", steps: ["Open communication settings.", "Save verified WhatsApp and email details before client use."] },
+        { title: "Company Settings", url: "{% url 'core:company_settings' %}", text: "Controls company-level configuration for users with company admin access.", steps: ["Review statutory and operating fields.", "Keep settings aligned to the active company."] },
+        { title: "Switch Company", url: "{% url 'core:select_company' %}", text: "Changes the active company context used across dashboards, vouchers, and reports.", steps: ["Pick the company.", "Confirm the company name in the sidebar before working."] },
+        { title: "Security Control", url: "{% url 'core:security_control' %}", text: "Reviews security posture, roles, and access controls for authorized users.", steps: ["Review risky access.", "Tighten roles and permissions before production rollout."] },
+        { title: "Operations Monitor", url: "{% url 'core:operations_monitor' %}", text: "Monitors background operations and production readiness signals for staff users.", steps: ["Review failed jobs.", "Investigate repeated operational failures."] },
+        { title: "System Observability", url: "{% url 'core:system_observability' %}", text: "Shows application observability, health signals, and technical operating state.", steps: ["Check service and data health.", "Use evidence during production support review."] },
+        { title: "Go-Live Certificate", url: "{% url 'core:go_live_certificate' %}", text: "Creates a go-live readiness certificate based on production gates and evidence.", steps: ["Review readiness gates.", "Download evidence only when blockers are cleared."] },
+        { title: "Production Trust", url: "{% url 'core:production_trust_center' %}", text: "Collects production trust, backup, security, and reliability signals in one place.", steps: ["Review trust indicators.", "Close open operational gaps before scaling clients."] },
+        { title: "Admin Panel", url: "{% url 'admin:index' %}", text: "Provides staff-only Django administration for internal operational maintenance.", steps: ["Use only for staff maintenance.", "Prefer app settings for client-owned configuration."] }
+      ]
+    }
+  ];
+</script>
+
+<script>
+  (function() {
+    const AUDIT_RULES = [
+      { id: "R-001", cat: "Payments", name: "MSME Overdue Block", trigger: "Payment entry while MSME purchase is >44 days overdue", effect: "Blocks payment save", msg: "Payment Blocked! One or more MSME invoices are overdue (> 44 days).", res: "Pay overdue MSME invoices first.", file: "vouchers/models.py" },
+      { id: "R-002", cat: "Payments", name: "Negative Cash Prevention", trigger: "Credit amount > available Debit on 'Cash' ledger", effect: "Blocks save", msg: "Insufficient Cash! Proposed transaction results in negative balance.", res: "Ensure ledger name contains 'Cash' and has funds.", file: "vouchers/models.py" },
+      { id: "R-003", cat: "Invoicing", name: "Double-Entry Rule", trigger: "ΣDebit != ΣCredit", effect: "Blocks save", msg: "Voucher is not balanced.", res: "Verify and match total debits and credits.", file: "vouchers/models.py" },
+      { id: "R-004", cat: "Invoicing", name: "Zero-Line Item Block", trigger: "Voucher line amount <= 0", effect: "Blocks save", msg: "A voucher line must carry a positive amount.", res: "Remove blank or zero lines.", file: "vouchers/models.py" },
+      { id: "R-005", cat: "Stock", name: "Negative Stock Block", trigger: "Sales entry > current closing stock qty", effect: "Blocks save", msg: "Insufficient Stock for [Item]!", res: "Turn off 'Prevent Negative Stock' or add inventory.", file: "vouchers/models.py" },
+      { id: "R-006", cat: "Stock", name: "Expired Batch Lock", trigger: "Using a batch where expiry_date < today", effect: "Blocks save", msg: "Cannot sell expired batch [X] for [Y].", res: "Select a fresh batch or write-off expired goods.", file: "vouchers/models.py" },
+      { id: "R-007", cat: "Invoicing", name: "PO Price Warning", trigger: "Invoice rate > Purchase Order rate", effect: "Hard Block (ValidationError)", msg: "WARNING: Invoice price (X) is higher than PO price (Y).", res: "Update PO or reduce invoice price.", file: "purchase/models.py" },
+      { id: "R-008", cat: "Auto-actions", name: "Automatic GST", trigger: "Voucher Class = AUTO_GST", effect: "Silent field updates", msg: "Adds CGST/SGST/IGST automatically based on place of supply.", res: "Set Class to 'Manual' for custom tax.", file: "vouchers/models.py" },
+      { id: "R-009", cat: "Auto-actions", name: "Auto-TDS Deduction", trigger: "Purchase Voucher > Threshold for TDS-enabled ledger", effect: "Silent JV created", msg: "Net vendor payout reduced; TDS ledger credited.", res: "Adjust TDS threshold on Ledger profile.", file: "vouchers/models.py" },
+      { id: "R-010", cat: "Auto-actions", name: "Forex Gain/Loss Entry", trigger: "Exchange rate mismatch during settlement", effect: "Silent JV created", msg: "Instantly posts gain/loss to FX accounts.", res: "None. Audit trails require manual reversal if wrong.", file: "vouchers/models.py" },
+      { id: "R-011", cat: "Compliance", name: "Status Reversion", trigger: "Editing financial fields of an APPROVED voucher", effect: "Status -> PENDING", msg: "Voucher signature stripped; re-approval required.", res: "Re-verify and re-approve.", file: "vouchers/models.py" },
+      { id: "R-012", cat: "Users", name: "Period Locking", trigger: "Voucher date <= books_closed_until", effect: "Blocks save", msg: "Period Locked! Books are closed until [Date].", res: "Create a Lock Override Request.", file: "vouchers/models.py" },
+      { id: "R-013", cat: "Users", name: "Lock Validation Checklist", trigger: "Admin tries to lock period without full checklist", effect: "Blocks setting", msg: "Cannot lock period! Checklist items missing.", res: "Complete Bank Rec, GST, and Dep checklists.", file: "core/models.py" },
+      { id: "R-014", cat: "Compliance", name: "Immutable Audit Log", trigger: "Attempt to delete from AuditLog table", effect: "Hard crash", msg: "Audit logs cannot be deleted.", res: "This is a compliance requirement; logs are permanent.", file: "core/models.py" },
+      { id: "R-015", cat: "Compliance", name: "Statutory Threshold", trigger: "AccountGroup balance > limit", effect: "Console Warning", msg: "STATUTORY WARNING: Group threshold exceeded!", res: "Increase limit on Account Group profile.", file: "vouchers/models.py" },
+      { id: "R-016", cat: "Invoicing", name: "Order Identification", trigger: "Blank stock_item and blank description", effect: "Blocks save", msg: "Provide either a stock item or a description.", res: "Add text to description or pick an item.", file: "orders/models.py" },
+      { id: "R-017", cat: "Users", name: "Single Base Currency", trigger: "Setting is_base=True for multiple currencies", effect: "Blocks save", msg: "Only one base currency is allowed.", res: "Unset previous base currency first.", file: "forex/models.py" },
+      { id: "R-018", cat: "Compliance", name: "Audit Risk Alerts", trigger: "Missing GSTIN/Scan/TDS on high-value vouchers", effect: "Dashboard Flags", msg: "Highlighting audit risks on Compliance Health page.", res: "Fill missing data or attach documents.", file: "vouchers/compliance.py" }
+    ];
+
+    const USER_GUIDES = window.AKSHAYA_MENU_GUIDE || [
+      {
+        category: "Accounting",
+        icon: "bi-calculator",
+        items: [
+          { title: "Create Voucher", steps: ["Go to Accounting → New Voucher (Shortcut: N)", "Select Type (Sales, Purchase, etc.)", "Enter Ledger and Amount", "Ensure Dr = Cr", "Save"] },
+          { title: "Sales Entry", steps: ["New Voucher → Sales", "Pick Customer (Ledger)", "Pick Sales Ledger", "Ensure balanced", "Save"] }
+        ]
+      },
+      {
+        category: "Inventory",
+        icon: "bi-boxes",
+        items: [
+          { title: "Stock Setup", steps: ["Inventory → Stock Items → Add", "Fill HSN, Tax Rate", "Set valuation (FIFO/AVG)"] }
+        ]
+      }
+    ];
+
+    const escapeHtml = (value) => String(value || "").replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    }[char]));
+
+    const SECTION_CONTEXT = {
+      Dashboard: {
+        summary: "Use this as the daily starting point. It tells the user which company is active, what needs attention, and where to go next.",
+        bestFor: "Daily start",
+        when: "When a user first logs in or switches company.",
+        outcome: "Clear priorities before opening detailed work screens."
+      },
+      Practice: {
+        summary: "This is the CA office operating layer: partner review, approvals, filings, notices, and owned work queues.",
+        bestFor: "Partners and managers",
+        when: "When the firm needs to decide who owns what and what must be cleared today.",
+        outcome: "Work gets assigned, reviewed, approved, and closed with accountability."
+      },
+      Clients: {
+        summary: "This section tracks whether clients are ready, responsive, profitable, and using the portal properly.",
+        bestFor: "Client success and practice owners",
+        when: "When onboarding, chasing documents, checking engagement risk, or reviewing client profitability.",
+        outcome: "Client blockers become visible and follow-up actions are owned."
+      },
+      Pilot: {
+        summary: "Use this to run pilot clients like a controlled rollout, not as random feedback collection.",
+        bestFor: "Pilot rollout teams",
+        when: "When testing adoption with selected clients before broader market push.",
+        outcome: "Pilot progress, evidence, feedback, and improvement tasks stay connected."
+      },
+      "Market Proof": {
+        summary: "This turns real usage, external validation, and client outcomes into evidence that can support sales and positioning.",
+        bestFor: "Founders and sales leaders",
+        when: "When proving the app can compete against established accounting and CA practice tools.",
+        outcome: "Defensible proof packs, verified claims, and approved case studies."
+      },
+      GST: {
+        summary: "This is the statutory execution layer for GST, e-invoice, e-way bill, TRACES, filing review, and evidence.",
+        bestFor: "Tax and compliance teams",
+        when: "When preparing, reviewing, filing, or closing statutory work for a period.",
+        outcome: "Filing-ready data, reviewed exceptions, acknowledgements, and audit evidence."
+      },
+      Integrations: {
+        summary: "Use this to configure and monitor connector health before relying on automated imports or statutory provider actions.",
+        bestFor: "Operators and implementation teams",
+        when: "When bank feeds, statutory APIs, or connector jobs need setup or diagnosis.",
+        outcome: "Integration failures are visible before they affect filing or accounting work."
+      },
+      Accounting: {
+        summary: "This is the core bookkeeping layer: ledgers, vouchers, collections, reconciliation, close, and quality checks.",
+        bestFor: "Accountants and reviewers",
+        when: "When recording transactions, checking books, sending invoices, or closing the month.",
+        outcome: "Clean books with fewer audit, GST, receivable, and close exceptions."
+      },
+      Reports: {
+        summary: "Reports convert posted accounting data into financial, GST, cash-flow, and aging views for review and export.",
+        bestFor: "Owners, accountants, and reviewers",
+        when: "When someone needs a financial answer, export, or review pack from the books.",
+        outcome: "Readable statements, exports, and drilldowns for client or partner review."
+      },
+      Inventory: {
+        summary: "Inventory, orders, cost centers, and budgets track operational movement behind the accounting entries.",
+        bestFor: "Inventory and operations teams",
+        when: "When stock, orders, warehouses, batches, projects, or budgets affect accounting.",
+        outcome: "Stock and operating data stay aligned with vouchers and reports."
+      },
+      Compliance: {
+        summary: "This covers payroll, fixed assets, TDS/TCS, forex, and OCR-assisted compliance support areas.",
+        bestFor: "Specialist compliance users",
+        when: "When payroll, asset, TDS, forex, or document-processing work needs structured tracking.",
+        outcome: "Registers, filings, masters, and supporting documents are ready for review."
+      },
+      Settings: {
+        summary: "Settings hold company and app configuration that clients can manage without needing staff-only admin access.",
+        bestFor: "Client admins and implementation teams",
+        when: "When setting up WhatsApp intake, invoice email, security, company context, backup, or migration controls.",
+        outcome: "The client can operate communication, migration, and production settings safely."
+      }
+    };
+
+    const SPECIAL_ITEM_CONTEXT = {
+      "App Settings": {
+        when: "Use this when a client needs to configure WhatsApp intake, invoice sender email, reminder templates, or communication defaults by themselves.",
+        outcome: "Client-owned communication settings are ready without giving the client access to the staff admin area."
+      },
+      "Vouchers": {
+        when: "Use this when reviewing existing accounting entries, invoice PDFs, email actions, approvals, or edits.",
+        outcome: "The user can find the transaction, verify its status, and take the correct document or approval action."
+      },
+      "GST Workbench": {
+        when: "Use this when a filing period needs coordinated action across 2B, documents, exceptions, client requests, and signoff.",
+        outcome: "GST work moves from preparation to reviewed execution with visible blockers."
+      },
+      "Client Requests": {
+        when: "Use this when a CA needs documents or confirmations from a client instead of chasing manually on calls.",
+        outcome: "The client gets a structured request and the firm can see what is still pending."
+      },
+      "Market Proof": {
+        when: "Use this when checking whether the product has enough proof to support market claims.",
+        outcome: "A signed evidence pack shows strengths, warnings, and proof gaps."
+      },
+      "Tally Exit Control": {
+        when: "Use this when planning a clean client move away from Tally or another ERP/accounting system.",
+        outcome: "Migration risk, approval, cleanup, and cutover readiness are controlled."
+      }
+    };
+
+    const input = document.getElementById('helpSearchInput');
+    const container = document.getElementById('helpContentArea');
+
+    const getContext = (category) => SECTION_CONTEXT[category] || {
+      summary: "Use this section to complete the related workflow with the right records and review points in place.",
+      bestFor: "Daily users",
+      when: "When this menu matches the work being performed.",
+      outcome: "The right records are updated and ready for review."
+    };
+
+    const itemDetails = (category, item) => {
+      const context = getContext(category);
+      const special = SPECIAL_ITEM_CONTEXT[item.title] || {};
+      return {
+        when: special.when || context.when,
+        outcome: special.outcome || context.outcome
+      };
+    };
+
+    const searchableText = (category, item) => [
+      category,
+      item.title,
+      item.text,
+      ...(item.steps || [])
+    ].join(" ").toLowerCase();
+
+    const renderGuideHome = () => {
+      const totalTopics = USER_GUIDES.reduce((sum, cat) => sum + (cat.items || []).length, 0);
+      const workflows = [
+        ["New client setup", "Start with Settings, Operating Readiness, Portal Health, and Client Requests."],
+        ["Monthly accounting close", "Use Vouchers, Voucher Quality, Bank Autopilot, Close Workbench, and Reports."],
+        ["GST execution", "Use GST Workbench, Filing Readiness, Review Center, Filing Pack, and Post-Filing."],
+        ["Client adoption", "Use Pilot Launch, Pilot Evidence, Pilot Feedback, Client Success, and Case Studies."],
+        ["Market readiness", "Use Market Proof, External Evidence, Case Studies, Production Trust, and Go-Live Certificate."],
+        ["Migration from Tally", "Use Tally Exit Control, Move from Tally, Approval Inbox, and Audit Trail."]
+      ];
+
+      return `
+        <div class="guide-home">
+          <div class="d-flex align-items-start justify-content-between gap-3 mb-2">
+            <div>
+              <div class="guide-label">How to use this guide</div>
+              <h6 class="fw-bold mb-1">Pick the workflow first, then open the matching menu.</h6>
+              <p class="text-muted small mb-0">This guide explains what each menu is meant to do, when a user should use it, the typical next steps, and the expected output. System Controls are kept separate because they are guardrails, not navigation guidance.</p>
+            </div>
+            <span class="badge bg-primary-subtle text-primary">${totalTopics} topics</span>
+          </div>
+          <div class="guide-workflow-grid mt-3">
+            ${workflows.map(([title, text]) => `
+              <div class="guide-mini-card">
+                <div class="fw-semibold small mb-1">${escapeHtml(title)}</div>
+                <div class="text-muted" style="font-size:0.72rem;">${escapeHtml(text)}</div>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      `;
+    };
+
+    const renderGuideSection = (cat, filteredItems) => {
+      const context = getContext(cat.category);
+      return `
+        <section class="guide-section">
+          <div class="guide-section-summary">
+            <div class="d-flex align-items-start justify-content-between gap-2">
+              <div>
+                <div class="guide-label"><i class="bi ${escapeHtml(cat.icon || 'bi-book')} me-1"></i>${escapeHtml(cat.category)}</div>
+                <h6 class="fw-bold mb-1">${escapeHtml(cat.category)} Guide</h6>
+                <p class="text-muted small mb-0">${escapeHtml(context.summary)}</p>
+              </div>
+              <span class="badge bg-secondary-subtle text-secondary">${filteredItems.length} topic${filteredItems.length === 1 ? "" : "s"}</span>
+            </div>
+            <div class="guide-meta-grid">
+              <div class="guide-meta-box">
+                <div class="guide-label">Best for</div>
+                <div class="small fw-semibold">${escapeHtml(context.bestFor)}</div>
+              </div>
+              <div class="guide-meta-box">
+                <div class="guide-label">Use when</div>
+                <div class="small text-muted">${escapeHtml(context.when)}</div>
+              </div>
+              <div class="guide-meta-box">
+                <div class="guide-label">Expected output</div>
+                <div class="small text-muted">${escapeHtml(context.outcome)}</div>
+              </div>
+            </div>
+          </div>
+          <div class="guide-item-list">
+            ${filteredItems.map(item => {
+              const details = itemDetails(cat.category, item);
+              return `
+                <article class="guide-item">
+                  <div class="d-flex align-items-start justify-content-between gap-2">
+                    <div class="min-w-0">
+                      <h6 class="fw-bold mb-1 text-dark" style="font-size:0.82rem;">${escapeHtml(item.title)}</h6>
+                      <p class="mb-0 text-muted" style="font-size:0.74rem;">${escapeHtml(item.text || "Use this menu for the related workflow.")}</p>
+                    </div>
+                    ${item.url ? `<a class="btn btn-xs btn-outline-primary flex-shrink-0" href="${escapeHtml(item.url)}">Open</a>` : ""}
+                  </div>
+                  <div class="guide-item-grid">
+                    <div>
+                      <div class="guide-label">Use this when</div>
+                      <p class="mb-0 text-muted" style="font-size:0.72rem;">${escapeHtml(details.when)}</p>
+                    </div>
+                    <div>
+                      <div class="guide-label">Result</div>
+                      <p class="mb-0 text-muted" style="font-size:0.72rem;">${escapeHtml(details.outcome)}</p>
+                    </div>
+                  </div>
+                  ${(item.steps || []).length ? `
+                    <div class="mt-2">
+                      <div class="guide-label">Typical flow</div>
+                      <ol class="guide-steps">
+                        ${item.steps.map(step => `<li>${escapeHtml(step)}</li>`).join("")}
+                      </ol>
+                    </div>
+                  ` : ""}
+                </article>
+              `;
+            }).join("")}
+          </div>
+        </section>
+      `;
+    };
+
+    const ruleMatches = (rule, q) => [
+      rule.id,
+      rule.cat,
+      rule.name,
+      rule.trigger,
+      rule.effect,
+      rule.res
+    ].join(" ").toLowerCase().includes(q);
+
+    const shouldShowControls = (q, catFilter, matchedRules) => (
+      catFilter === "SYSTEM_RULES" ||
+      Boolean(q && matchedRules.length)
+    );
+
+    const renderControlSection = (rules) => `
+      <section class="guide-section">
+        <div class="guide-section-summary">
+          <div class="guide-label"><i class="bi bi-shield-lock me-1"></i>System Controls</div>
+          <h6 class="fw-bold mb-1">Guardrails the app applies automatically.</h6>
+          <p class="text-muted small mb-0">These are not training topics. They explain why the app may block, warn, reset approval, or ask for evidence so accounting and statutory records remain defensible.</p>
+        </div>
+        <div class="mt-2">
+          ${rules.map(rule => `
+            <div id="rule-${escapeHtml(rule.id)}" class="guide-control-card">
+              <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
+                <div>
+                  <div class="guide-label">${escapeHtml(rule.id)} - ${escapeHtml(rule.cat)}</div>
+                  <h6 class="fw-bold mb-0" style="font-size:0.82rem;">${escapeHtml(rule.name)}</h6>
+                </div>
+                <span class="badge bg-secondary-subtle text-secondary">${escapeHtml(rule.effect)}</span>
+              </div>
+              <div class="guide-item-grid">
+                <div>
+                  <div class="guide-label">When it appears</div>
+                  <p class="mb-0 text-muted" style="font-size:0.72rem;">${escapeHtml(rule.trigger)}</p>
+                </div>
+                <div>
+                  <div class="guide-label">How to fix it</div>
+                  <p class="mb-0 text-muted" style="font-size:0.72rem;">${escapeHtml(rule.res)}</p>
+                </div>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </section>
+    `;
+
+    window.renderHelp = (query = "", catFilter = "ALL") => {
+      let html = "";
+      const q = query.toLowerCase().trim();
+
+      if (catFilter === "ALL" && !q) html += renderGuideHome();
+
+      if (catFilter !== "SYSTEM_RULES") {
+        USER_GUIDES.forEach(cat => {
+          if (catFilter !== "ALL" && catFilter !== cat.category) return;
+
+          const filteredItems = (cat.items || []).filter(item => searchableText(cat.category, item).includes(q));
+
+          if (filteredItems.length > 0) {
+            html += renderGuideSection(cat, filteredItems);
+          }
+        });
+      }
+
+      const matchedRules = q ? AUDIT_RULES.filter(rule => ruleMatches(rule, q)) : AUDIT_RULES;
+      if (shouldShowControls(q, catFilter, matchedRules)) {
+        if (matchedRules.length > 0) html += renderControlSection(matchedRules);
+      }
+
+      container.innerHTML = html || `<div class="text-center p-4 text-muted small">No matching topics found.</div>`;
+    };
+
+    const setActiveHelpCategory = (category) => {
+      document.querySelectorAll('#helpCategoryList .list-group-item').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.category === category);
+      });
+    };
+
+    // Category Switching
+    document.querySelectorAll('#helpCategoryList .list-group-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        setActiveHelpCategory(btn.dataset.category);
+        renderHelp(input.value, btn.dataset.category);
+      });
+    });
+
+    input.addEventListener('input', (e) => renderHelp(e.target.value, document.querySelector('#helpCategoryList .active').dataset.category));
+    
+    document.getElementById('helpCenterModal').addEventListener('show.bs.modal', () => {
+      input.value = "";
+      setActiveHelpCategory("ALL");
+      renderHelp();
+    });
+
+    // ════════════════════════════════════════════
+    // FIELD-LEVEL HELP ICONS
+    // ════════════════════════════════════════════
+    function addFieldHelpIcons() {
+      const helpTexts = document.querySelectorAll('.form-text, .field-hint');
+      helpTexts.forEach(el => {
+        const label = el.parentElement.querySelector('label');
+        if (label && !label.querySelector('.help-icon')) {
+          const icon = document.createElement('i');
+          icon.className = 'bi bi-question-circle ms-1 text-primary help-icon';
+          icon.style.fontSize = '0.7rem';
+          icon.style.cursor = 'pointer';
+          icon.title = 'View Expert Rule';
+          icon.onclick = () => {
+            const modal = new bootstrap.Modal(document.getElementById('helpCenterModal'));
+            modal.show();
+            const q = el.innerText.split('.')[0]; 
+            document.getElementById('helpSearchInput').value = q;
+            renderHelp(q);
+          };
+          label.appendChild(icon);
+        }
+      });
+    };
+
+    document.addEventListener('DOMContentLoaded', addFieldHelpIcons);
+    const observer = new MutationObserver(addFieldHelpIcons);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    })();
+    </script>

@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Audit Trail – Akshaya Vistara{% endblock %}
+{% block page_title %}Audit Trail{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+    <div>
+      <h6 class="mb-0"><i class="bi bi-journal-check me-1 text-primary"></i> Audit Trail</h6>
+      <small class="text-muted">{{ total_count }} event{{ total_count|pluralize }} for {{ request.current_company.name }}</small>
+    </div>
+    <a href="{% url 'core:audit_log' %}?{{ export_query }}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-download me-1"></i>Export CSV
+    </a>
+  </div>
+
+  <!-- Filters -->
+  <div class="card-body border-bottom py-2">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label form-label-sm mb-1">Action</label>
+        <select name="action" class="form-select form-select-sm">
+          <option value="">All Actions</option>
+          {% for code, label in action_choices %}
+          <option value="{{ code }}" {% if action_filter == code %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label form-label-sm mb-1">Model / Type</label>
+        <select name="model" class="form-select form-select-sm">
+          <option value="">All Types</option>
+          {% for m in model_names %}
+          <option value="{{ m }}" {% if model_filter == m %}selected{% endif %}>{{ m }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label form-label-sm mb-1">User (email)</label>
+        <input type="text" name="user" class="form-control form-control-sm"
+               placeholder="e.g. user@example.com" value="{{ user_filter }}">
+      </div>
+      <div class="col-md-3 d-flex gap-2">
+        <button type="submit" class="btn btn-primary btn-sm">
+          <i class="bi bi-funnel me-1"></i> Filter
+        </button>
+        {% if action_filter or model_filter or user_filter %}
+        <a href="{% url 'core:audit_log' %}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-x-lg me-1"></i> Clear
+        </a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <!-- Table -->
+  <div class="card-body p-0">
+    {% if page_obj %}
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width:160px">When</th>
+            <th style="width:90px">Action</th>
+            <th style="width:110px">Type</th>
+            <th>Object</th>
+            <th style="width:180px">By</th>
+            <th style="width:140px">Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in page_obj %}
+          <tr>
+            <td class="text-muted small">{{ log.timestamp|date:"d M Y H:i" }}</td>
+            <td>
+              {% if log.action == "create" %}
+                <span class="badge bg-success-subtle text-success border border-success-subtle">Created</span>
+              {% elif log.action == "update" %}
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Updated</span>
+              {% else %}
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Deleted</span>
+              {% endif %}
+            </td>
+            <td><span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">{{ log.model_name }}</span></td>
+            <td>
+              <span class="fw-semibold">{{ log.object_repr }}</span>
+              <small class="text-muted ms-1">#{{ log.record_id }}</small>
+            </td>
+            <td class="small text-muted">
+              {% if log.user %}
+                <i class="bi bi-person-circle me-1"></i>{{ log.user.email }}
+              {% else %}
+                <span class="text-muted fst-italic">System</span>
+              {% endif %}
+            </td>
+            <td class="small text-muted">
+              {% if log.extra %}
+                {% for k, v in log.extra.items %}
+                  <span class="text-secondary">{{ k }}:</span> {{ v }}{% if not forloop.last %},{% endif %}
+                {% endfor %}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer bg-white py-2 d-flex justify-content-between align-items-center">
+      <small class="text-muted">
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        ({{ total_count }} total)
+      </small>
+      <nav>
+        <ul class="pagination pagination-sm mb-0">
+          {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}&action={{ action_filter }}&model={{ model_filter }}&user={{ user_filter }}">
+              &laquo;
+            </a>
+          </li>
+          {% endif %}
+          {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+            {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ num }}&action={{ action_filter }}&model={{ model_filter }}&user={{ user_filter }}">{{ num }}</a>
+            </li>
+            {% endif %}
+          {% endfor %}
+          {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}&action={{ action_filter }}&model={{ model_filter }}&user={{ user_filter }}">
+              &raquo;
+            </a>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-journal-x fs-1 d-block mb-2 opacity-25"></i>
+      No audit events found{% if action_filter or model_filter or user_filter %} matching the current filters{% endif %}.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

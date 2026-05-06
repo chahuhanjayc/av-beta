@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+{% block title %}Scan Bill – Akshaya Vistara{% endblock %}
+{% block page_title %}Scan / Upload Bill{% endblock %}
+
+{% block extra_head %}
+<style>
+  .drop-zone {
+    border: 2.5px dashed #c7d2fe;
+    border-radius: 1rem;
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    background: #f8f8ff;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: #4f46e5;
+    background: #eef2ff;
+  }
+  .drop-zone input[type=file] {
+    position: absolute;
+    width: 100%; height: 100%;
+    top: 0; left: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .drop-zone-wrap { position: relative; }
+  .file-preview { display: none; }
+  .how-it-works-step {
+    display: flex; align-items: flex-start; gap: .75rem; margin-bottom: 1rem;
+  }
+  .step-num {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: #4f46e5; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .8rem; font-weight: 700; flex-shrink: 0;
+  }
+  [data-bs-theme="dark"] .drop-zone h6 { color: var(--text-main); }
+  [data-bs-theme="dark"] .drop-zone p { color: var(--text-muted) !important; }
+  [data-bs-theme="dark"] #filePreview.alert-success {
+    background: rgba(52, 211, 153, 0.14);
+    border-color: rgba(52, 211, 153, 0.3);
+    color: #d1fae5;
+  }
+  [data-bs-theme="dark"] .how-it-works-step strong { color: var(--text-main); }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+
+  <!-- Upload card -->
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3">
+        <h6 class="mb-0">
+          <i class="bi bi-camera-fill me-2" style="color:#4f46e5;"></i>
+          Upload a Digital Bill or Invoice
+        </h6>
+      </div>
+      <div class="card-body">
+
+        <form method="post" enctype="multipart/form-data" id="uploadForm">
+          {% csrf_token %}
+
+          <!-- Drag-and-drop zone -->
+          <div class="drop-zone-wrap mb-3">
+            <div class="drop-zone" id="dropZone">
+              <i class="bi bi-cloud-upload-fill fs-1 text-indigo-400" style="color:#818cf8;"></i>
+              <h6 class="mt-2 mb-1">Drag &amp; drop here, or click to browse</h6>
+              <p class="text-muted small mb-0">
+                Supported: PDF, JPG, PNG, TIFF, ZIP &nbsp;·&nbsp; Max 20 MB
+              </p>
+              {{ form.file }}
+            </div>
+          </div>
+
+          <!-- File errors -->
+          {% if form.file.errors %}
+          <div class="alert alert-danger py-2 small">{{ form.file.errors.0 }}</div>
+          {% endif %}
+
+          <div class="alert alert-light border border-info-subtle small py-2 d-flex align-items-start gap-2 mb-3">
+             <i class="bi bi-info-circle-fill text-info mt-1"></i>
+             <div>
+               <strong>Bulk Upload?</strong> Upload a <strong>ZIP file</strong> of images or a <strong>multi-page PDF</strong>. We will automatically split them into individual vouchers.
+             </div>
+          </div>
+
+          <!-- Selected file preview -->
+          <div class="file-preview alert alert-success py-2 small d-flex align-items-center gap-2"
+               id="filePreview">
+            <i class="bi bi-file-earmark-check-fill text-success"></i>
+            <span id="filePreviewName"></span>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100 mt-2" id="submitBtn">
+            <i class="bi bi-lightning-charge-fill me-1"></i> Upload &amp; Extract Instantly
+          </button>
+
+          <!-- Loading state -->
+          <div class="text-center mt-3 d-none" id="loadingMsg">
+            <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+            <span class="text-muted small">Processing document... this is usually instant.</span>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div><!-- /col -->
+
+  <!-- How it works -->
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white py-3">
+        <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>How It Works</h6>
+      </div>
+      <div class="card-body">
+
+        <div class="how-it-works-step">
+          <div class="step-num">1</div>
+          <div>
+            <strong>Upload</strong><br>
+            <small class="text-muted">
+              Upload your digital PDF bill or invoice here. 
+              Only text-based PDFs are supported for instant extraction.
+            </small>
+          </div>
+        </div>
+
+        <div class="how-it-works-step">
+          <div class="step-num">2</div>
+          <div>
+            <strong>Instant Extraction</strong><br>
+            <small class="text-muted">
+              The system instantly reads the PDF text and extracts Vendor Name,
+              GSTIN, Date, and Total Amount using smart rules.
+            </small>
+          </div>
+        </div>
+
+        <div class="how-it-works-step">
+          <div class="step-num">3</div>
+          <div>
+            <strong>Verify &amp; Correct</strong><br>
+            <small class="text-muted">
+              Review the extracted data side-by-side with the original document.
+              Correct any mistakes and choose ledger accounts.
+            </small>
+          </div>
+        </div>
+
+        <div class="how-it-works-step">
+          <div class="step-num">4</div>
+          <div>
+            <strong>Auto Voucher</strong><br>
+            <small class="text-muted">
+              One click creates a balanced Purchase Voucher with correct
+              double-entry posting — completely automated.
+            </small>
+          </div>
+        </div>
+
+        <hr class="my-3">
+
+        <div class="d-flex align-items-start gap-2 small text-muted">
+          <i class="bi bi-shield-check text-success mt-1 flex-shrink-0"></i>
+          <span>
+            Duplicate bills are automatically detected by GSTIN + amount + date matching.
+          </span>
+        </div>
+        <div class="d-flex align-items-start gap-2 small text-muted mt-2">
+          <i class="bi bi-people text-primary mt-1 flex-shrink-0"></i>
+          <span>
+            Vendor ledgers are auto-matched to your existing accounts.
+          </span>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div><!-- /row -->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const dropZone   = document.getElementById('dropZone');
+  const fileInput  = document.querySelector('input[type=file]');
+  const preview    = document.getElementById('filePreview');
+  const previewName= document.getElementById('filePreviewName');
+  const submitBtn  = document.getElementById('submitBtn');
+  const loadingMsg = document.getElementById('loadingMsg');
+  const form       = document.getElementById('uploadForm');
+
+  function showFile(file) {
+    if (!file) return;
+    preview.classList.remove('d-none');
+    preview.style.display = 'flex';
+    previewName.textContent = `${file.name}  (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+    dropZone.style.borderColor = '#16a34a';
+  }
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) showFile(fileInput.files[0]);
+  });
+
+  // Drag and drop
+  ['dragenter','dragover'].forEach(evt =>
+    dropZone.addEventListener(evt, e => {
+      e.preventDefault();
+      dropZone.classList.add('drag-over');
+    })
+  );
+  ['dragleave','drop'].forEach(evt =>
+    dropZone.addEventListener(evt, e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+    })
+  );
+  dropZone.addEventListener('drop', e => {
+    const file = e.dataTransfer?.files[0];
+    if (file) {
+      // Set file on input (modern browsers)
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      fileInput.files = dt.files;
+      showFile(file);
+    }
+  });
+
+  // Show spinner on submit
+  form.addEventListener('submit', () => {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing…';
+    loadingMsg.classList.remove('d-none');
+  });
+</script>
+{% endblock %}

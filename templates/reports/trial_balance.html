@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Trial Balance – Akshaya Vistara{% endblock %}
+{% block page_title %}Trial Balance{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Sticky header inside scrollable table */
+  .tb-scroll { max-height: calc(100vh - 310px); overflow-y: auto; }
+  .tb-scroll thead th { position: sticky; top: 0; z-index: 2; background: #1f3864; color: #fff; }
+
+  @media print {
+    #sidebar, #topbar, .no-print { display: none !important; }
+    #main-content { margin-left: 0 !important; }
+    .page-body { padding: 0 !important; }
+    .card { border: 1px solid #dee2e6 !important; box-shadow: none !important; }
+    .tb-scroll { max-height: none; overflow: visible; }
+    thead th { background: #333 !important; -webkit-print-color-adjust: exact; }
+    body { background: white !important; font-size: 11pt; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Date range filter ──────────────────────────────────────── -->
+<div class="card border-0 shadow-sm mb-3 no-print">
+  <div class="card-body py-3">
+    <form method="get" class="row g-2 align-items-end ajax-filter-form" data-target="tb-results">
+      <div class="col-auto">
+        <label class="form-label small fw-semibold mb-1">From</label>
+        <input type="date" name="start_date" class="form-control form-control-sm"
+               value="{{ start_date|date:'Y-m-d' }}" />
+      </div>
+      <div class="col-auto">
+        <label class="form-label small fw-semibold mb-1">To</label>
+        <input type="date" name="end_date" class="form-control form-control-sm"
+               value="{{ end_date|date:'Y-m-d' }}" />
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-primary btn-sm" type="submit">
+          <i class="bi bi-funnel me-1"></i> Apply
+        </button>
+      </div>
+      <div class="col-auto ms-auto d-flex gap-2">
+        <a href="{% url 'reports:export_tb_excel' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}"
+           class="btn btn-outline-success btn-sm">
+          <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
+        </a>
+        <a href="{% url 'reports:trial_balance_pdf' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}"
+           class="btn btn-outline-danger btn-sm">
+          <i class="bi bi-file-earmark-pdf me-1"></i> Download PDF
+        </a>
+        <button class="btn btn-outline-secondary btn-sm" type="button" onclick="window.print()">
+          <i class="bi bi-printer me-1"></i> Print
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="tb-results">
+    {% include "reports/partials/trial_balance_content.html" %}
+</div>
+
+{% endblock %}

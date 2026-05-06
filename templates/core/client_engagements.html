@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+
+{% block title %}Client Engagements - Akshaya Vistara{% endblock %}
+{% block page_title %}Client Engagements{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h5 class="mb-0">Client Engagements</h5>
+    <small class="text-muted">Retainers, scope, owners, renewals, and commercial risk</small>
+  </div>
+  <div class="d-flex gap-2">
+    {% if totals.actionable_alerts %}
+    <form method="post" action="{% url 'core:client_engagement_alert_tasks' %}">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <button type="submit" class="btn btn-primary btn-sm">
+        <i class="bi bi-check2-square me-1"></i> Create Alert Tasks
+      </button>
+    </form>
+    {% endif %}
+    <a href="{% url 'core:client_engagements' %}?{{ export_query }}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-download me-1"></i> Export CSV
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-2">
+    <div class="p-3 rounded bg-light h-100">
+      <div class="text-muted small text-uppercase fw-semibold">Clients</div>
+      <div class="h4 mb-0 fw-bold">{{ totals.clients }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="p-3 rounded bg-light h-100">
+      <div class="text-muted small text-uppercase fw-semibold">Actionable</div>
+      <div class="h4 mb-0 fw-bold text-warning">{{ totals.actionable_alerts }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="p-3 rounded bg-light h-100">
+      <div class="text-muted small text-uppercase fw-semibold">Monthly Retainer</div>
+      <div class="h5 mb-0 fw-bold">Rs. {{ totals.monthly_retainer|floatformat:0 }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="p-3 rounded bg-light h-100">
+      <div class="text-muted small text-uppercase fw-semibold">Renewals</div>
+      <div class="h4 mb-0 fw-bold text-warning">{{ totals.renewals_due }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="p-3 rounded bg-light h-100">
+      <div class="text-muted small text-uppercase fw-semibold">Critical</div>
+      <div class="h4 mb-0 fw-bold text-danger">{{ totals.critical_alerts }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="p-3 rounded bg-light h-100">
+      <div class="text-muted small text-uppercase fw-semibold">Scope Creep</div>
+      <div class="h4 mb-0 fw-bold">{{ totals.scope_creep_alerts }}</div>
+    </div>
+  </div>
+</div>
+
+{% if priority_alerts %}
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-header bg-white d-flex justify-content-between align-items-center">
+    <h6 class="mb-0"><i class="bi bi-broadcast me-2"></i>Priority Engagement Alerts</h6>
+    <span class="badge bg-light text-dark">{{ totals.alerts }} total</span>
+  </div>
+  <div class="list-group list-group-flush">
+    {% for alert in priority_alerts %}
+    <a href="{{ alert.client_360_url }}" class="list-group-item list-group-item-action">
+      <div class="d-flex justify-content-between gap-3">
+        <div>
+          <div class="fw-semibold">{{ alert.company.name }} - {{ alert.title }}</div>
+          <div class="small text-muted">{{ alert.detail }}</div>
+        </div>
+        <span class="badge {{ alert.badge_class }} align-self-start">{{ alert.severity|title }}</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<form method="get" class="card border-0 shadow-sm mb-3">
+  <div class="card-body">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label small text-muted">Client / GSTIN</label>
+        <input type="search" name="q" value="{{ q }}" class="form-control" placeholder="Search client">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small text-muted">Status</label>
+        <select name="status" class="form-select">
+          {% for value, label in status_choices %}
+          <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small text-muted">Risk</label>
+        <select name="risk" class="form-select">
+          {% for value, label in risk_choices %}
+          <option value="{{ value }}" {% if risk_filter == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">
+          <i class="bi bi-funnel me-1"></i> Apply
+        </button>
+      </div>
+    </div>
+  </div>
+</form>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Client</th>
+            <th>Status</th>
+            <th>Package / Scope</th>
+            <th class="text-end">Retainer</th>
+            <th>Owners</th>
+            <th>Renewal</th>
+            <th>Risk</th>
+            <th>Alerts</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td>
+              <a href="{{ row.client_360_url }}" class="fw-semibold text-decoration-none">{{ row.company.name }}</a>
+              <div class="small text-muted">{{ row.company.gstin|default:"No GSTIN" }}</div>
+            </td>
+            <td>
+              {% if row.engagement %}
+              <span class="badge bg-success">{{ row.engagement.get_status_display }}</span>
+              {% else %}
+              <span class="badge bg-secondary">Missing</span>
+              {% endif %}
+            </td>
+            <td style="min-width: 240px;">
+              {% if row.engagement %}
+              <div class="fw-semibold">{{ row.engagement.get_service_package_display }}</div>
+              <div class="small text-muted">{{ row.engagement.scope_summary|default:"Scope not captured"|truncatechars:100 }}</div>
+              {% else %}
+              <div class="fw-semibold text-muted">Not configured</div>
+              <div class="small text-muted">No retainer or scope profile</div>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <div class="fw-semibold">Rs. {{ row.monthly_retainer|floatformat:0 }}</div>
+              {% if row.engagement %}<div class="small text-muted">{{ row.engagement.get_billing_cycle_display }}</div>{% endif %}
+            </td>
+            <td>
+              {% if row.engagement %}
+              <div class="small">Partner: {{ row.engagement.partner_owner.email|default:"-" }}</div>
+              <div class="small text-muted">Manager: {{ row.engagement.manager_owner.email|default:"-" }}</div>
+              {% else %}
+              <span class="text-muted">-</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if row.engagement and row.engagement.renewal_date %}
+              <div class="fw-semibold {% if row.renewal_due %}text-warning{% endif %}">{{ row.engagement.renewal_date|date:"d M Y" }}</div>
+              {% else %}
+              <span class="text-muted">-</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if row.engagement %}
+              <span class="badge {% if row.engagement.risk_rating == 'critical' %}bg-danger{% elif row.engagement.risk_rating == 'high' %}bg-warning text-dark{% elif row.engagement.risk_rating == 'low' %}bg-success{% else %}bg-info text-dark{% endif %}">
+                {{ row.engagement.get_risk_rating_display }}
+              </span>
+              {% else %}
+              <span class="badge bg-secondary">Missing</span>
+              {% endif %}
+            </td>
+            <td style="min-width: 240px;">
+              {% if row.top_alerts %}
+                {% for alert in row.top_alerts %}
+                <div class="d-flex align-items-start gap-2 mb-1">
+                  <span class="badge {{ alert.badge_class }}">{{ alert.severity|title }}</span>
+                  <div class="small">
+                    <div class="fw-semibold">{{ alert.title }}</div>
+                    {% if alert.task_exists %}<div class="text-success">Task open</div>{% endif %}
+                  </div>
+                </div>
+                {% endfor %}
+                {% if row.extra_alert_count %}
+                <div class="small text-muted">+{{ row.extra_alert_count }} more alert(s)</div>
+                {% endif %}
+              {% else %}
+              <span class="text-muted small">No alerts</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <a href="{{ row.client_360_url }}" class="btn btn-sm btn-outline-secondary">360</a>
+              {% if row.can_manage %}
+              <a href="{{ row.edit_url }}" class="btn btn-sm btn-outline-primary">Edit</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="9" class="text-center text-muted py-5">No clients match the current filters.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

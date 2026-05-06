@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - SpendSight{% endblock %}
+{% block page_title %}SpendSight Analytics{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <form method="get" class="row g-3 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Month</label>
+        <select name="month" class="form-select">
+          {% for month in month_options %}
+          <option value="{{ month|date:'Y-m' }}" {% if selected_month == month|date:'Y-m' %}selected{% endif %}>{{ month|date:"F Y" }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2"><button type="submit" class="btn btn-outline-secondary w-100">Load</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4"><div class="card shadow-sm border-0"><div class="card-body"><div class="small text-muted">Total Spend</div><div class="fs-4 fw-bold">{{ currency_symbol }}{{ total_spend|floatformat:2 }}</div></div></div></div>
+  <div class="col-md-4"><div class="card shadow-sm border-0"><div class="card-body"><div class="small text-muted">Average Expense</div><div class="fs-4 fw-bold">{{ currency_symbol }}{{ avg_ticket|floatformat:2 }}</div></div></div></div>
+  <div class="col-md-4"><div class="card shadow-sm border-0"><div class="card-body"><div class="small text-muted">Daily Average</div><div class="fs-4 fw-bold">{{ currency_symbol }}{{ daily_average|floatformat:2 }}</div></div></div></div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card shadow-sm border-0 h-100"><div class="card-body"><h6 class="fw-bold mb-3">Spending by Category</h6><canvas id="categoryChart" height="260"></canvas></div></div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card shadow-sm border-0 h-100"><div class="card-body"><h6 class="fw-bold mb-3">Payment Methods</h6><canvas id="paymentChart" height="260"></canvas></div></div>
+  </div>
+  <div class="col-12">
+    <div class="card shadow-sm border-0"><div class="card-body"><h6 class="fw-bold mb-3">6 Month Spending Trend</h6><canvas id="trendChart" height="120"></canvas></div></div>
+  </div>
+</div>
+
+{{ category_chart_data|json_script:"pf-analytics-categories" }}
+{{ payment_chart_data|json_script:"pf-analytics-payments" }}
+{{ trend_chart_data|json_script:"pf-analytics-trend" }}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const categoryData = JSON.parse(document.getElementById('pf-analytics-categories').textContent);
+    const paymentData = JSON.parse(document.getElementById('pf-analytics-payments').textContent);
+    const trendData = JSON.parse(document.getElementById('pf-analytics-trend').textContent);
+
+    new Chart(document.getElementById('categoryChart'), {
+      type: 'doughnut',
+      data: {
+        labels: categoryData.labels,
+        datasets: [{ data: categoryData.amounts, backgroundColor: categoryData.colors, borderWidth: 0 }]
+      },
+      options: { plugins: { legend: { position: 'bottom' } } }
+    });
+
+    new Chart(document.getElementById('paymentChart'), {
+      type: 'bar',
+      data: {
+        labels: paymentData.labels,
+        datasets: [{ data: paymentData.amounts, backgroundColor: '#4f46e5', borderRadius: 8 }]
+      },
+      options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    });
+
+    new Chart(document.getElementById('trendChart'), {
+      type: 'line',
+      data: {
+        labels: trendData.labels,
+        datasets: [{ data: trendData.amounts, borderColor: '#0ea5e9', backgroundColor: 'rgba(14,165,233,0.15)', fill: true, tension: 0.35 }]
+      },
+      options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    });
+  });
+</script>
+{% endblock %}

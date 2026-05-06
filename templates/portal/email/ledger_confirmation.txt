@@ -1,0 +1,11 @@
+Dear {{ user.name }},
+
+Thank you for confirming your account balance with Akshaya Vistara.
+
+As requested, we have attached your latest Ledger Statement (PDF) for your records. This statement includes your complete transaction history and the final outstanding balance as of today.
+
+Please find the attached document for more details.
+
+Best regards,
+Finance Team
+Akshaya Vistara

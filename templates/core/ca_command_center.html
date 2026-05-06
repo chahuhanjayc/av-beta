@@ -1,0 +1,555 @@
+{% extends "base.html" %}
+{% block title %}CA Command Center - Akshaya Vistara{% endblock %}
+{% block page_title %}CA Command Center{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end flex-wrap gap-2 mb-3">
+  <form method="post" action="{% url 'core:ca_command_center_autopilot' %}" class="d-flex align-items-center gap-1">
+    {% csrf_token %}
+    <input type="number" name="months" value="3" min="1" max="12" class="form-control form-control-sm" style="width: 4.5rem;" aria-label="Autopilot months">
+    <button type="submit" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-calendar2-plus me-1"></i>Run Autopilot
+    </button>
+  </form>
+  <a href="{% url 'core:statutory_exposure' %}" class="btn btn-outline-danger btn-sm">
+    <i class="bi bi-cash-coin me-1"></i>Statutory Exposure
+  </a>
+  <a href="{% url 'core:statutory_export_center' %}" class="btn btn-outline-success btn-sm">
+    <i class="bi bi-file-earmark-spreadsheet me-1"></i>Export Center
+  </a>
+  <a href="{% url 'core:client_operating_readiness' %}" class="btn btn-outline-warning btn-sm">
+    <i class="bi bi-clipboard2-check me-1"></i>Operating Readiness
+  </a>
+  <a href="{% url 'core:ca_approval_inbox' %}" class="btn btn-outline-success btn-sm">
+    <i class="bi bi-inboxes me-1"></i>Approval Inbox
+  </a>
+  <a href="{% url 'core:ca_command_center' %}?export=csv" class="btn btn-outline-primary btn-sm">
+    <i class="bi bi-download me-1"></i>Export Work Queue
+  </a>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Portfolio Health</div>
+        <div class="h4 mb-0 {% if totals.avg_health >= 80 %}text-success{% elif totals.avg_health >= 50 %}text-warning{% else %}text-danger{% endif %}">
+          {{ totals.avg_health }}%
+        </div>
+        <div class="small text-muted">Average client score</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Critical Clients</div>
+        <div class="h4 mb-0 text-danger">{{ totals.health_critical }}</div>
+        <div class="small text-muted">Health below 50%</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Watch Clients</div>
+        <div class="h4 mb-0 text-warning">{{ totals.health_watch }}</div>
+        <div class="small text-muted">Health 50-74%</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Stable/Clean</div>
+        <div class="h4 mb-0 text-success">{{ totals.health_stable|add:totals.health_clean }}</div>
+        <div class="small text-muted">{{ totals.health_clean }} clean</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Clients</div>
+        <div class="h4 mb-0">{{ totals.companies }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Critical Issues</div>
+        <div class="h4 mb-0 text-danger">{{ totals.critical }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">2B Missing</div>
+        <div class="h4 mb-0 text-warning">{{ totals.gstr2b_missing }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Open Tasks</div>
+        <div class="h4 mb-0 text-primary">{{ totals.open_tasks }}</div>
+        {% if totals.overdue_tasks %}
+          <div class="small text-danger">{{ totals.overdue_tasks }} overdue</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Open Filings</div>
+        <div class="h4 mb-0 text-primary">{{ totals.open_filings }}</div>
+        {% if totals.overdue_filings %}
+          <div class="small text-danger">{{ totals.overdue_filings }} overdue</div>
+        {% elif totals.filings_due_soon %}
+          <div class="small text-warning">{{ totals.filings_due_soon }} due soon</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Open Notices</div>
+        <div class="h4 mb-0 text-danger">{{ totals.open_notices }}</div>
+        {% if totals.overdue_notices %}
+          <div class="small text-danger">{{ totals.overdue_notices }} overdue</div>
+        {% elif totals.notices_due_soon %}
+          <div class="small text-warning">{{ totals.notices_due_soon }} due soon</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Client Chases</div>
+        <div class="h4 mb-0 text-info">{{ totals.client_requests }}</div>
+        {% if totals.client_uploads %}
+          <div class="small text-success">{{ totals.client_uploads }} uploaded for review</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">GST Sign-off Blockers</div>
+        <div class="h4 mb-0 text-warning">{{ totals.gst_signoff_blockers }}</div>
+        <div class="small text-muted">{{ period_value }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">E-Invoice IRN</div>
+        <div class="h4 mb-0 {% if totals.e_invoice_expired %}text-danger{% elif totals.e_invoice_due_soon %}text-warning{% else %}text-success{% endif %}">
+          {{ totals.e_invoice_missing_irn }}
+        </div>
+        <div class="small text-muted">{{ totals.e_invoice_expired }} expired, {{ totals.e_invoice_due_soon }} due soon</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">GSTR-1 Sales Flags</div>
+        <div class="h4 mb-0 {% if totals.sales_missing_pos or totals.sales_invalid_party_gstin or totals.sales_missing_hsn %}text-danger{% elif totals.sales_tax_pos_mismatch %}text-warning{% else %}text-success{% endif %}">
+          {{ totals.sales_missing_pos|add:totals.sales_invalid_party_gstin|add:totals.sales_tax_pos_mismatch|add:totals.sales_missing_hsn }}
+        </div>
+        <div class="small text-muted">{{ totals.sales_missing_pos }} POS, {{ totals.sales_invalid_party_gstin }} GSTIN, {{ totals.sales_missing_hsn }} HSN</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">ITC 180-Day</div>
+        <div class="h4 mb-0 {% if totals.itc_180_overdue %}text-danger{% elif totals.itc_180_due_soon %}text-warning{% else %}text-success{% endif %}">
+          {{ totals.itc_180_reversal_due }}
+        </div>
+        <div class="small text-muted">Rs.{{ totals.itc_180_reversal_itc|floatformat:2 }} reversal exposure</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">RCM Watch</div>
+        <div class="h4 mb-0 {% if totals.rcm_missing_tax %}text-danger{% elif totals.rcm_purchase_count %}text-warning{% else %}text-success{% endif %}">
+          {{ totals.rcm_missing_tax }}
+        </div>
+        <div class="small text-muted">Rs.{{ totals.rcm_tax_amount|floatformat:2 }} RCM tax</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">E-Way Bill</div>
+        <div class="h4 mb-0 {% if totals.eway_missing or totals.eway_expired %}text-danger{% elif totals.eway_due_soon %}text-warning{% else %}text-success{% endif %}">
+          {{ totals.eway_missing|add:totals.eway_expired }}
+        </div>
+        <div class="small text-muted">{{ totals.eway_due_soon }} expiring soon</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">TDS Deposit Watch</div>
+        <div class="h4 mb-0 {% if totals.tds_deposit_overdue or totals.tds_deposit_due_today %}text-danger{% elif totals.tds_deposit_due_soon %}text-warning{% else %}text-success{% endif %}">
+          Rs.{{ totals.tds_deposit_pending_amount|floatformat:2 }}
+        </div>
+        <div class="small text-muted">{{ totals.tds_deposit_overdue }} overdue, {{ totals.tds_deposit_due_today }} due today</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">TDS Return Readiness</div>
+        <div class="h4 mb-0 {% if totals.tds_return_critical %}text-danger{% elif totals.tds_return_warnings %}text-warning{% else %}text-success{% endif %}">
+          {{ totals.tds_return_critical }}
+        </div>
+        <div class="small text-muted">{{ totals.tds_return_warnings }} warnings</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">MSME Payables</div>
+        <div class="h4 mb-0 {% if totals.msme_overdue %}text-danger{% elif totals.msme_due_soon %}text-warning{% else %}text-success{% endif %}">
+          {{ totals.msme_overdue }}
+        </div>
+        <div class="small text-muted">Rs.{{ totals.msme_overdue_amount|floatformat:2 }} overdue</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h6 class="mb-0"><i class="bi bi-compass me-2"></i>Next Best Actions</h6>
+    <span class="small text-muted">Ranked by urgency across all clients</span>
+  </div>
+  <div class="list-group list-group-flush">
+    {% for item in next_actions %}
+      <a href="{{ item.action_url }}" class="list-group-item list-group-item-action">
+        <div class="d-flex justify-content-between align-items-start gap-3">
+          <div>
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge {% if item.severity == 'critical' %}bg-danger{% elif item.severity == 'warning' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %}">
+                {{ item.count }}
+              </span>
+              <span class="fw-semibold">{{ item.title }}</span>
+            </div>
+            <div class="small text-muted mt-1">{{ item.company.name }} - {{ item.description }}</div>
+          </div>
+          <div class="text-end">
+            {% if item.due_date %}
+              <div class="small text-danger">{{ item.due_date|date:"d M Y" }}</div>
+            {% endif %}
+            <div class="small text-primary">{{ item.action_label }}</div>
+          </div>
+        </div>
+      </a>
+    {% empty %}
+      <div class="list-group-item text-center text-muted py-4">No urgent cross-client actions right now.</div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-9">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-kanban me-2"></i>Client Work Queue</h6>
+        <span class="small text-muted">Sorted by lowest health score</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover table-compact mb-0">
+          <thead>
+            <tr>
+              <th>Client</th>
+              <th class="text-end">Health</th>
+              <th>Why / Next</th>
+              <th class="text-end">OCR</th>
+              <th class="text-end">2B</th>
+              <th class="text-end">ITC</th>
+              <th class="text-end">Bank</th>
+              <th class="text-end">Vouchers</th>
+              <th class="text-end">Tasks</th>
+              <th class="text-end">Filings</th>
+              <th class="text-end">Notices</th>
+              <th class="text-end">E-Invoice</th>
+              <th class="text-end">GSTR-1</th>
+              <th class="text-end">ITC 180</th>
+              <th class="text-end">RCM</th>
+              <th class="text-end">E-Way</th>
+              <th class="text-end">MSME</th>
+              <th class="text-end">TDS Payable</th>
+              <th class="text-end">TDS Return</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+              <tr>
+                <td>
+                  <a href="{% url 'core:client_360' row.company.id %}" class="fw-semibold text-decoration-none">{{ row.company.name }}</a>
+                  <div class="small text-muted">{{ row.company.gstin|default:"No GSTIN" }}</div>
+                </td>
+                <td class="text-end">
+                  <span class="badge {{ row.health_badge_class }}">
+                    {{ row.health_score }}% {{ row.health_band }}
+                  </span>
+                  {% if row.danger_count or row.warning_count %}
+                    <div class="small text-muted">{{ row.danger_count }} critical, {{ row.warning_count }} warnings</div>
+                  {% endif %}
+                  {% if row.operational_penalty %}
+                    <div class="small text-danger">-{{ row.operational_penalty }} ops</div>
+                  {% endif %}
+                </td>
+                <td style="min-width: 240px;">
+                  <a href="{{ row.primary_action_url }}" class="fw-semibold text-decoration-none">
+                    {{ row.primary_action_title }}
+                  </a>
+                  <div class="small text-muted">{{ row.primary_action_detail }}</div>
+                  {% if row.risk_drivers %}
+                    <div class="mt-1">
+                      {% for driver in row.risk_drivers|slice:":3" %}
+                        <span class="badge {% if driver.severity == 'critical' %}bg-danger{% elif driver.severity == 'warning' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %} me-1">
+                          {{ driver.label }}
+                        </span>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                  <a href="{{ row.primary_action_url }}" class="small text-primary">{{ row.primary_action_label }}</a>
+                </td>
+                <td class="text-end">{{ row.ocr_pending }}</td>
+                <td class="text-end">{{ row.gstr2b_missing }}</td>
+                <td class="text-end">{{ row.unclaimed_itc }}</td>
+                <td class="text-end">{{ row.bank_unreconciled }}</td>
+                <td class="text-end">{{ row.pending_vouchers }}</td>
+                <td class="text-end">
+                  {{ row.open_tasks }}
+                  {% if row.overdue_tasks %}
+                    <div class="small text-danger">{{ row.overdue_tasks }} overdue</div>
+                  {% endif %}
+                </td>
+                <td class="text-end">
+                  {{ row.open_filings }}
+                  {% if row.overdue_filings %}
+                    <div class="small text-danger">{{ row.overdue_filings }} overdue</div>
+                  {% elif row.filings_due_soon %}
+                    <div class="small text-warning">{{ row.filings_due_soon }} due soon</div>
+                  {% endif %}
+                </td>
+                <td class="text-end">
+                  {{ row.open_notices }}
+                  {% if row.overdue_notices %}
+                    <div class="small text-danger">{{ row.overdue_notices }} overdue</div>
+                  {% elif row.notices_due_soon %}
+                    <div class="small text-warning">{{ row.notices_due_soon }} due soon</div>
+                  {% endif %}
+                </td>
+                <td class="text-end">
+                  {{ row.e_invoice_missing_irn }}
+                  {% if row.e_invoice_expired %}
+                    <div class="small text-danger">{{ row.e_invoice_expired }} expired</div>
+                  {% elif row.e_invoice_due_soon %}
+                    <div class="small text-warning">{{ row.e_invoice_due_soon }} due soon</div>
+                  {% endif %}
+                </td>
+                <td class="text-end">
+                  {{ row.sales_missing_pos|add:row.sales_invalid_party_gstin|add:row.sales_tax_pos_mismatch|add:row.sales_missing_hsn }}
+                  {% if row.sales_missing_pos or row.sales_invalid_party_gstin or row.sales_missing_hsn %}
+                    <div class="small text-danger">POS/GSTIN/HSN</div>
+                  {% elif row.sales_tax_pos_mismatch %}
+                    <div class="small text-warning">Tax split</div>
+                  {% endif %}
+                </td>
+                <td class="text-end">
+                  {{ row.itc_180_reversal_due }}
+                  {% if row.itc_180_overdue %}
+                    <div class="small text-danger">Rs.{{ row.itc_180_reversal_itc|floatformat:2 }}</div>
+                  {% elif row.itc_180_due_soon %}
+                    <div class="small text-warning">{{ row.itc_180_due_soon }} due soon</div>
+                  {% endif %}
+                </td>
+                <td class="text-end">
+                  {{ row.rcm_missing_tax }}
+                  {% if row.rcm_missing_tax %}
+                    <div class="small text-danger">Missing tax</div>
+                  {% elif row.rcm_purchase_count %}
+                    <div class="small text-muted">Rs.{{ row.rcm_tax_amount|floatformat:2 }}</div>
+                  {% endif %}
+                </td>
+                <td class="text-end">
+                  {{ row.eway_missing|add:row.eway_expired }}
+                  {% if row.eway_missing or row.eway_expired %}
+                    <div class="small text-danger">missing/expired</div>
+                  {% elif row.eway_due_soon %}
+                    <div class="small text-warning">{{ row.eway_due_soon }} expiring</div>
+                  {% endif %}
+                </td>
+                <td class="text-end">
+                  {{ row.msme_overdue }}
+                  {% if row.msme_overdue %}
+                    <div class="small text-danger">Rs.{{ row.msme_overdue_amount|floatformat:2 }}</div>
+                  {% elif row.msme_due_soon %}
+                    <div class="small text-warning">{{ row.msme_due_soon }} due soon</div>
+                  {% endif %}
+                </td>
+                <td class="text-end">
+                  Rs.{{ row.tds_payable|floatformat:2 }}
+                  {% if row.tds_deposit_overdue or row.tds_deposit_due_today %}
+                    <div class="small text-danger">{{ row.tds_deposit_overdue|add:row.tds_deposit_due_today }} due now</div>
+                  {% elif row.tds_deposit_due_soon %}
+                    <div class="small text-warning">{{ row.tds_deposit_due_soon }} due soon</div>
+                  {% endif %}
+                </td>
+                <td class="text-end">
+                  {{ row.tds_return_critical }}
+                  {% if row.tds_return_critical %}
+                    <div class="small text-danger">critical</div>
+                  {% elif row.tds_return_warnings %}
+                    <div class="small text-warning">{{ row.tds_return_warnings }} warnings</div>
+                  {% elif row.tds_return_has_work %}
+                    <div class="small text-success">{{ row.tds_return_readiness_score }} ready</div>
+                  {% endif %}
+                </td>
+                <td class="text-end">
+                  <a class="btn btn-sm btn-outline-secondary" href="{% url 'core:practice_task_create' %}?company={{ row.company.id }}">
+                    Task
+                  </a>
+                  <a class="btn btn-sm btn-outline-secondary" href="{% url 'core:compliance_filing_create' %}?company={{ row.company.id }}">
+                    Filing
+                  </a>
+                  <a class="btn btn-sm btn-outline-secondary" href="{% url 'core:client_360' row.company.id %}">
+                    360
+                  </a>
+                  <a class="btn btn-sm btn-outline-primary" href="{% url 'core:switch_company' row.company.id %}?next={% url 'core:dashboard' %}">
+                    Open
+                  </a>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="20" class="text-center text-muted py-5">
+                  No client workspaces are assigned to this user.
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3">
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-calendar2-check me-2"></i>Monthly Due Dates</h6>
+        <a href="{% url 'core:compliance_calendar' %}" class="btn btn-xs btn-outline-primary">Generate</a>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for item in monthly_due_dates %}
+          <div class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+              <div class="fw-semibold">{{ item.label }}</div>
+              <div class="small text-muted">{{ item.owner }}</div>
+            </div>
+            <span class="badge bg-secondary-subtle text-secondary">{{ item.date|date:"d M" }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-lightning-charge me-2"></i>Action Focus</h6>
+      </div>
+      <div class="card-body small">
+        <div class="d-flex justify-content-between mb-2">
+          <span>Unreconciled bank rows</span>
+          <strong>{{ totals.bank_unreconciled }}</strong>
+        </div>
+        <div class="d-flex justify-content-between mb-2">
+          <span>Draft or pending vouchers</span>
+          <strong>{{ totals.pending_vouchers }}</strong>
+        </div>
+        <div class="d-flex justify-content-between mb-2">
+          <span>Overdue receivables</span>
+          <strong>{{ totals.receivables_overdue }}</strong>
+        </div>
+        <div class="d-flex justify-content-between">
+          <span>Warnings</span>
+          <strong>{{ totals.warnings }}</strong>
+        </div>
+        <div class="d-flex justify-content-between mt-2">
+          <span>Open practice tasks</span>
+          <strong>{{ totals.open_tasks }}</strong>
+        </div>
+        <div class="d-flex justify-content-between mt-2">
+          <span>Open filings</span>
+          <strong>{{ totals.open_filings }}</strong>
+        </div>
+        <div class="d-flex justify-content-between mt-2">
+          <span>Open notices</span>
+          <strong>{{ totals.open_notices }}</strong>
+        </div>
+        <div class="d-flex justify-content-between mt-2">
+          <span>E-invoice IRN missing</span>
+          <strong>{{ totals.e_invoice_missing_irn }}</strong>
+        </div>
+        <div class="d-flex justify-content-between mt-2">
+          <span>GSTR-1 sales flags</span>
+          <strong>{{ totals.sales_missing_pos|add:totals.sales_invalid_party_gstin|add:totals.sales_tax_pos_mismatch|add:totals.sales_missing_hsn }}</strong>
+        </div>
+        <div class="d-flex justify-content-between mt-2">
+          <span>ITC 180-day reversal due</span>
+          <strong>{{ totals.itc_180_reversal_due }}</strong>
+        </div>
+        <div class="d-flex justify-content-between mt-2">
+          <span>RCM missing tax</span>
+          <strong>{{ totals.rcm_missing_tax }}</strong>
+        </div>
+        <div class="d-flex justify-content-between mt-2">
+          <span>E-way bill issues</span>
+          <strong>{{ totals.eway_missing|add:totals.eway_expired }}</strong>
+        </div>
+        <div class="d-flex justify-content-between mt-2">
+          <span>TDS deposit due now</span>
+          <strong>{{ totals.tds_deposit_overdue|add:totals.tds_deposit_due_today }}</strong>
+        </div>
+        <div class="d-flex justify-content-between mt-2">
+          <span>TDS return blockers</span>
+          <strong>{{ totals.tds_return_critical }}</strong>
+        </div>
+        <div class="d-flex justify-content-between mt-2">
+          <span>MSME overdue payables</span>
+          <strong>{{ totals.msme_overdue }}</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

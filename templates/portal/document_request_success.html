@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document Uploaded - Akshaya Vistara</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <style>
+    .success-shell {
+      max-width: 760px;
+    }
+    .panel {
+      border-radius: 0.5rem;
+    }
+    .metric {
+      background: #f1f5f9;
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+      min-height: 4.5rem;
+    }
+    @media (max-width: 575.98px) {
+      .success-shell {
+        padding: 1rem;
+      }
+      .success-actions .btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body class="bg-light">
+  <div class="container py-4 py-md-5 success-shell">
+    <div class="card shadow-sm border-0 text-center panel mb-3">
+      <div class="card-body p-5">
+        <div class="display-6 text-success mb-3"><i class="bi bi-check2-circle"></i></div>
+        <h4 class="fw-bold">{{ doc_request.title }}</h4>
+        <p class="text-muted mb-4">Your document has been sent to {{ doc_request.company.name }} for review.</p>
+        <div class="row g-2 text-start mb-4">
+          <div class="col-4">
+            <div class="metric">
+              <div class="small text-muted">Open</div>
+              <div class="h5 mb-0">{{ request_pack.summary.open }}</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="metric">
+              <div class="small text-muted">Review</div>
+              <div class="h5 mb-0 text-success">{{ request_pack.summary.uploaded }}</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="metric">
+              <div class="small text-muted">Score</div>
+              <div class="h5 mb-0">{{ request_pack.summary.completion_score }}%</div>
+            </div>
+          </div>
+        </div>
+        <div class="d-flex flex-wrap justify-content-center gap-2 success-actions">
+          {% if request_pack.next_request %}
+            <a href="{% url 'portal:document_request_upload' request_pack.next_request.token %}" class="btn btn-primary">
+              <i class="bi bi-arrow-right-circle me-1"></i> Next Upload
+            </a>
+          {% endif %}
+          <a href="{% url 'portal:document_request_upload' doc_request.token %}" class="btn btn-outline-secondary">
+            <i class="bi bi-receipt me-1"></i> View Request
+          </a>
+        </div>
+      </div>
+    </div>
+
+    {% if request_pack.open_requests %}
+      <div class="card border-0 shadow-sm panel">
+        <div class="card-header bg-white">
+          <h6 class="mb-0"><i class="bi bi-inbox me-2"></i>Still Pending</h6>
+        </div>
+        <div class="list-group list-group-flush">
+          {% for req in request_pack.open_requests %}
+            <a href="{% url 'portal:document_request_upload' req.token %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-start gap-2">
+              <span>
+                <span class="fw-semibold">{{ req.title }}</span>
+                <span class="d-block small text-muted">{{ req.get_document_type_display }}{% if req.due_date %} | Due {{ req.due_date|date:"d M Y" }}{% endif %}</span>
+              </span>
+              <i class="bi bi-chevron-right"></i>
+            </a>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</body>
+</html>

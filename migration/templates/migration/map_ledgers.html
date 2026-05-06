@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Ledger Mapping – Akshaya Vistara{% endblock %}
+{% block page_title %}Step 2: Ledger Mapping{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h5 class="mb-0">Step 2: Ledger Mapping</h5>
+        <small class="text-muted">{{ session.ledger_mapping|length }} Ledgers found in file</small>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="alert bg-info bg-opacity-10 text-info border-0 rounded-0 mb-0 py-2 small fw-medium">
+                <i class="bi bi-info-circle me-1"></i> We found these ledgers in your file. Match them to existing ones or create new ones automatically.
+            </div>
+            <div class="table-responsive" style="max-height: 60vh; overflow-y: auto;">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th style="width: 40%">Ledger Name in File</th>
+                            <th style="width: 20%">Action</th>
+                            <th style="width: 40%">Destination Account</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for l_name, decision in session.ledger_mapping.items %}
+                        <tr>
+                            <td class="align-middle fw-medium">{{ l_name }}</td>
+                            <td class="align-middle">
+                                <select name="action_{{ l_name }}" class="form-select form-select-sm action-selector" data-ledger="{{ l_name }}">
+                                    <option value="map" {% if decision.action == 'map' %}selected{% endif %}>Map to Existing</option>
+                                    <option value="create" {% if decision.action == 'create' %}selected{% endif %}>Create New</option>
+                                    <option value="ignore" {% if decision.action == 'ignore' %}selected{% endif %}>Ignore</option>
+                                </select>
+                            </td>
+                            <td class="align-middle">
+                                <select name="target_{{ l_name }}" class="form-select form-select-sm target-selector" id="target_{{ l_name }}" {% if decision.action != 'map' %}disabled{% endif %}>
+                                    <option value="">— Select Account —</option>
+                                    {% for ledger in existing_ledgers %}
+                                    <option value="{{ ledger.id }}" {% if decision.id == ledger.id|stringformat:"s" or decision.id == ledger.id %}selected{% endif %}>
+                                        {{ ledger.name }} ({{ ledger.account_group.name }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-white border-top py-3 text-end">
+            <a href="{% url 'migration:upload' %}" class="btn btn-outline-secondary">Back to Upload</a>
+            <button type="submit" class="btn btn-primary px-4">Save Mapping & Preview</button>
+        </div>
+    </div>
+</form>
+
+<script>
+document.addEventListener('change', (e) => {
+    if (e.target.classList.contains('action-selector')) {
+        const ledger = e.target.dataset.ledger;
+        const targetSel = document.getElementById(`target_${ledger}`);
+        if (e.target.value === 'map') {
+            targetSel.disabled = false;
+            targetSel.required = true;
+        } else {
+            targetSel.disabled = true;
+            targetSel.required = false;
+            targetSel.value = '';
+        }
+    }
+});
+</script>
+{% endblock %}

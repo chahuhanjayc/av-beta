@@ -1,0 +1,358 @@
+{% extends "base.html" %}
+{% block title %}Bank Reconciliation - {{ statement }} - Akshaya Vistara{% endblock %}
+{% block page_title %}Bank Reconciliation{% endblock %}
+
+{% block extra_head %}
+<style>
+  .row-reconciled { background: #f0fdf4; }
+  .row-pending { background: #fffbeb; }
+  .recon-badge { font-size: .7rem; }
+  .confidence-pill { min-width: 44px; display: inline-block; text-align: center; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <div class="row g-3 align-items-center">
+      <div class="col-md-4">
+        <div class="text-muted small">Bank Account</div>
+        <div class="fw-semibold">{{ statement.account_ledger.name|default:"-" }}</div>
+      </div>
+      <div class="col-md-2">
+        <div class="text-muted small">Statement Date</div>
+        <div class="fw-semibold">{{ statement.statement_date }}</div>
+      </div>
+      <div class="col-md-2">
+        <div class="text-muted small">Total Rows</div>
+        <div class="fw-semibold">{{ rows|length }}</div>
+      </div>
+      <div class="col-md-2">
+        <div class="text-muted small">Reconciled</div>
+        <div class="fw-semibold text-success">{{ reconciled }}</div>
+      </div>
+      <div class="col-md-2 text-md-end">
+        <form method="post" action="{% url 'core:bank_statement_auto_match' statement.pk %}" class="d-inline">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-outline-primary" title="Re-run auto-match">
+            <i class="bi bi-lightning me-1"></i> Auto-Match
+          </button>
+        </form>
+        <a href="{% url 'core:bank_statement_detail' statement.pk %}?export=csv" class="btn btn-sm btn-outline-success ms-1">
+          <i class="bi bi-download"></i> CSV
+        </a>
+        <a href="{% url 'core:bank_statement_list' %}" class="btn btn-sm btn-outline-secondary ms-1">
+          <i class="bi bi-arrow-left"></i> Back
+        </a>
+      </div>
+    </div>
+
+    <div class="row g-3 mt-1 border-top pt-3">
+      <div class="col-md-2">
+        <div class="text-muted small">Debits</div>
+        <div class="fw-bold text-danger">Rs.{{ total_debit|floatformat:2 }}</div>
+      </div>
+      <div class="col-md-2">
+        <div class="text-muted small">Credits</div>
+        <div class="fw-bold text-success">Rs.{{ total_credit|floatformat:2 }}</div>
+      </div>
+      <div class="col-md-2">
+        <div class="text-muted small">Pending</div>
+        <div class="fw-bold {% if unreconciled > 0 %}text-warning{% else %}text-success{% endif %}">
+          {{ unreconciled }}
+        </div>
+      </div>
+      <div class="col-md-2">
+        <div class="text-muted small">Suggestions</div>
+        <div class="fw-bold text-primary">{{ suggested }}</div>
+      </div>
+      <div class="col-md-2">
+        <div class="text-muted small">Duplicates</div>
+        <div class="fw-bold {% if duplicates %}text-danger{% else %}text-success{% endif %}">{{ duplicates }}</div>
+      </div>
+      <div class="col-md-2">
+        <div class="text-muted small">Bulk Eligible</div>
+        <div class="fw-bold">{{ bulk_eligible }}</div>
+      </div>
+    </div>
+    {% if statement.notes %}
+      <div class="small text-muted mt-2">{{ statement.notes }}</div>
+    {% endif %}
+  </div>
+</div>
+
+<form method="post" action="{% url 'core:bank_statement_bulk_action' statement.pk %}" id="bulkBankActionForm">
+  {% csrf_token %}
+  <input type="hidden" name="action" value="create_selected_vouchers">
+  <div class="card border-0 shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h6 class="mb-0"><i class="bi bi-bank me-2"></i>Statement Rows</h6>
+      <div class="d-flex gap-2 align-items-center">
+        <span class="small text-muted">{{ high_confidence }} high-confidence pending</span>
+        <button type="submit" class="btn btn-sm btn-outline-primary" {% if not bulk_eligible %}disabled{% endif %}>
+          <i class="bi bi-check2-square"></i> Create Selected Vouchers
+        </button>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead class="table-light">
+            <tr>
+              <th style="width:34px" class="text-center">
+                <input type="checkbox" class="form-check-input" onclick="toggleBulkRows(this)">
+              </th>
+              <th style="width:90px">Date</th>
+              <th>Description</th>
+              <th style="width:110px" class="text-end">Debit</th>
+              <th style="width:110px" class="text-end">Credit</th>
+              <th style="width:110px" class="text-end">Balance</th>
+              <th style="width:210px">Match / Suggestion</th>
+              <th style="width:110px" class="text-center">Confidence</th>
+              <th style="width:120px" class="text-center">Status</th>
+              <th style="width:60px" class="text-center">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+            <tr class="{% if row.is_reconciled %}row-reconciled{% else %}row-pending{% endif %}" id="brow-{{ row.pk }}">
+              <td class="text-center">
+                {% if row.bulk_create_eligible %}
+                  <input type="checkbox" class="form-check-input bulk-row-check" name="row_ids" value="{{ row.pk }}">
+                {% endif %}
+              </td>
+              <td class="small">{{ row.date }}</td>
+              <td class="small">
+                {{ row.description }}
+                {% if row.potential_duplicate %}
+                  <div class="mt-1">
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                      <i class="bi bi-files me-1"></i>Possible duplicate
+                    </span>
+                  </div>
+                {% endif %}
+              </td>
+              <td class="text-end small {% if row.debit > 0 %}text-danger{% endif %}">
+                {% if row.debit > 0 %}{{ row.debit|floatformat:2 }}{% else %}-{% endif %}
+              </td>
+              <td class="text-end small {% if row.credit > 0 %}text-success{% endif %}">
+                {% if row.credit > 0 %}{{ row.credit|floatformat:2 }}{% else %}-{% endif %}
+              </td>
+              <td class="text-end small text-muted">
+                {% if row.balance is not None %}{{ row.balance|floatformat:2 }}{% else %}-{% endif %}
+              </td>
+              <td class="small" id="brow-voucher-{{ row.pk }}">
+                {% if row.matched_voucher %}
+                  <a href="{% url 'vouchers:detail' row.matched_voucher.pk %}" target="_blank" class="text-decoration-none">
+                    <span class="badge bg-primary-subtle text-primary">
+                      {{ row.matched_voucher.number }} - {{ row.matched_voucher.voucher_type }}
+                    </span>
+                  </a>
+                {% elif row.suggested_ledger %}
+                  <div class="d-flex align-items-center gap-1">
+                    <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle" title="Smart match suggestion">
+                      <i class="bi bi-magic me-1"></i>{{ row.suggested_ledger.name }}
+                    </span>
+                    <button type="button" class="btn btn-xs btn-primary p-0 px-1" style="font-size: .65rem;"
+                            onclick="createVoucherFromSuggestion({{ row.pk }}, {{ row.suggested_ledger.pk }}, '{{ row.suggested_ledger.name|escapejs }}')"
+                            title="Create voucher and reconcile">
+                      <i class="bi bi-plus-lg"></i>
+                    </button>
+                  </div>
+                {% else %}
+                  <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td class="text-center small">
+                {% if row.match_confidence %}
+                  <span class="badge confidence-pill {% if row.match_confidence >= 90 %}bg-success{% elif row.match_confidence >= 70 %}bg-primary{% else %}bg-secondary{% endif %}" title="{{ row.match_reason }}">
+                    {{ row.match_confidence }}%
+                  </span>
+                  {% if row.match_reason %}
+                    <div class="text-muted" style="font-size:.65rem;">{{ row.match_reason }}</div>
+                  {% endif %}
+                {% else %}
+                  <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td class="text-center" id="brow-status-{{ row.pk }}">
+                {% if row.is_reconciled %}
+                  <span class="badge bg-success recon-badge">Reconciled</span>
+                {% else %}
+                  <span class="badge bg-warning text-dark recon-badge">Pending</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                {% if row.is_reconciled %}
+                  <button type="button" class="btn btn-xs btn-outline-secondary" style="font-size:.7rem;padding:2px 6px;"
+                          onclick="unmatchRow({{ row.pk }})" title="Remove match">
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                {% else %}
+                  <button type="button" class="btn btn-xs btn-outline-success" style="font-size:.7rem;padding:2px 6px;"
+                          onclick="openMatchModal({{ row.pk }}, {{ row.debit|floatformat:2 }}, {{ row.credit|floatformat:2 }})"
+                          title="Match to voucher">
+                    <i class="bi bi-link-45deg"></i>
+                  </button>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</form>
+
+<div class="modal fade" id="matchModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">Match to Voucher</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="small text-muted mb-2">Row amount: <span id="modalRowAmt" class="fw-bold"></span></p>
+        <label class="form-label">Select Voucher</label>
+        <select id="matchVoucherSelect" class="form-select">
+          <option value="">Choose voucher</option>
+          {% for v in vouchers_qs %}
+          <option value="{{ v.pk }}">{{ v.number }} | {{ v.voucher_type }} | {{ v.date }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="confirmMatch()">
+          <i class="bi bi-check-lg me-1"></i> Confirm Match
+        </button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let _activeRowPk = null;
+const _matchModal = new bootstrap.Modal(document.getElementById("matchModal"));
+
+function toggleBulkRows(source) {
+  document.querySelectorAll(".bulk-row-check").forEach((checkbox) => {
+    checkbox.checked = source.checked;
+  });
+}
+
+function openMatchModal(rowPk, debit, credit) {
+  _activeRowPk = rowPk;
+  document.getElementById("modalRowAmt").textContent =
+    debit > 0 ? `Dr Rs.${debit}` : `Cr Rs.${credit}`;
+  _matchModal.show();
+}
+
+async function confirmMatch() {
+  const voucherId = document.getElementById("matchVoucherSelect").value;
+  if (!voucherId) { alert("Please select a voucher."); return; }
+  await postReconcile(_activeRowPk, "match", parseInt(voucherId));
+  _matchModal.hide();
+}
+
+async function unmatchRow(rowPk) {
+  if (!confirm("Remove this match?")) return;
+  await postReconcile(rowPk, "unmatch", null);
+}
+
+async function postReconcile(rowPk, action, voucherId) {
+  const url = `/core/bank-reconciliation/row/${rowPk}/reconcile/`;
+  const body = { action };
+  if (voucherId) body.voucher_id = voucherId;
+
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": getCookie("csrftoken"),
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await resp.json();
+  if (!data.ok) {
+    alert(data.error || "Reconciliation failed.");
+    return;
+  }
+
+  const row = document.getElementById(`brow-${rowPk}`);
+  const status = document.getElementById(`brow-status-${rowPk}`);
+  const vchEl = document.getElementById(`brow-voucher-${rowPk}`);
+  const btn = row.querySelector("td:last-child button");
+
+  if (action === "match") {
+    row.className = "row-reconciled";
+    status.innerHTML = `<span class="badge bg-success recon-badge">Reconciled</span>`;
+    vchEl.innerHTML = `<span class="badge bg-primary-subtle text-primary">${data.voucher}</span>`;
+    btn.className = "btn btn-xs btn-outline-secondary";
+    btn.style = "font-size:.7rem;padding:2px 6px;";
+    btn.innerHTML = '<i class="bi bi-x-lg"></i>';
+    btn.title = "Remove match";
+    btn.onclick = () => unmatchRow(rowPk);
+  } else {
+    row.className = "row-pending";
+    status.innerHTML = `<span class="badge bg-warning text-dark recon-badge">Pending</span>`;
+    vchEl.innerHTML = `<span class="text-muted">-</span>`;
+    btn.className = "btn btn-xs btn-outline-success";
+    btn.style = "font-size:.7rem;padding:2px 6px;";
+    btn.innerHTML = '<i class="bi bi-link-45deg"></i>';
+    btn.title = "Match to voucher";
+    btn.onclick = () => openMatchModal(rowPk, 0, 0);
+  }
+}
+
+async function createVoucherFromSuggestion(rowPk, ledgerId, ledgerName) {
+  if (!confirm(`Create a new voucher for ${ledgerName} and reconcile?`)) return;
+
+  const url = `/core/bank-reconciliation/row/${rowPk}/create-voucher/`;
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": getCookie("csrftoken"),
+    },
+    body: JSON.stringify({ ledger_id: ledgerId }),
+  });
+
+  const data = await resp.json();
+  if (!data.ok) {
+    alert("Error creating voucher: " + (data.error || "Unknown error"));
+    return;
+  }
+
+  const row = document.getElementById(`brow-${rowPk}`);
+  const status = document.getElementById(`brow-status-${rowPk}`);
+  const vchEl = document.getElementById(`brow-voucher-${rowPk}`);
+  const btn = row.querySelector("td:last-child button");
+
+  row.className = "row-reconciled";
+  status.innerHTML = `<span class="badge bg-success recon-badge">Reconciled</span>`;
+  vchEl.innerHTML = `<span class="badge bg-primary-subtle text-primary">${data.voucher}</span>`;
+  btn.className = "btn btn-xs btn-outline-secondary";
+  btn.style = "font-size:.7rem;padding:2px 6px;";
+  btn.innerHTML = '<i class="bi bi-x-lg"></i>';
+  btn.title = "Remove match";
+  btn.onclick = () => unmatchRow(rowPk);
+}
+
+function getCookie(name) {
+  let value = null;
+  if (document.cookie && document.cookie !== "") {
+    document.cookie.split(";").forEach((cookie) => {
+      const item = cookie.trim();
+      if (item.startsWith(name + "=")) {
+        value = decodeURIComponent(item.slice(name.length + 1));
+      }
+    });
+  }
+  return value;
+}
+</script>
+{% endblock %}

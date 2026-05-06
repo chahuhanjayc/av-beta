@@ -1,0 +1,390 @@
+{% extends "base.html" %}
+
+{% block title %}Filing Review Center - Akshaya Vistara{% endblock %}
+{% block page_title %}Filing Review Center{% endblock %}
+
+{% block extra_head %}
+<style>
+  .review-score {
+    font-size: 1.9rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .review-filter {
+    background: var(--surface-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 0.85rem 1rem;
+  }
+  .review-filter label {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+  .review-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 0.72rem;
+  }
+  .review-note-input {
+    min-width: 14rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h5 class="mb-0">Filing Review Center</h5>
+    <small class="text-muted">{{ period_start|date:"M Y" }} approval queue</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'core:filing_readiness' %}{% if selected_company %}?period={{ period_value }}&company={{ selected_company.pk }}{% endif %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-clipboard2-check"></i> Readiness
+    </a>
+    <a href="{% url 'core:gst_filing_pack' %}{% if selected_company %}?period={{ period_value }}&company={{ selected_company.pk }}{% endif %}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-file-earmark-spreadsheet"></i> Filing Pack
+    </a>
+    <a href="{% url 'core:gst_workbench' %}?period={{ period_value }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-shield-check"></i> GST Workbench
+    </a>
+  </div>
+</div>
+
+<form method="get" class="review-filter mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-4 col-lg-3">
+      <label for="company">Company</label>
+      <select id="company" name="company" class="form-select form-select-sm">
+        {% for company in companies %}
+        <option value="{{ company.pk }}" {% if selected_company and company.pk == selected_company.pk %}selected{% endif %}>{{ company.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3 col-lg-2">
+      <label for="period">Period</label>
+      <input type="month" id="period" name="period" value="{{ period_value }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-md-3 col-lg-2">
+      <label for="review_type">Review Type</label>
+      <select id="review_type" name="review_type" class="form-select form-select-sm">
+        {% for value, label in review_type_choices %}
+        <option value="{{ value }}" {% if review_type == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-primary btn-sm w-100">
+        <i class="bi bi-funnel"></i> Apply
+      </button>
+    </div>
+  </div>
+</form>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Clients</div>
+        <div class="review-score">{{ totals.companies }}</div>
+        <div class="small text-danger">{{ totals.blocked }} blocked</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Ready</div>
+        <div class="review-score text-success">{{ totals.ready }}</div>
+        <div class="small text-muted">{{ totals.approved }} approved</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Open Blockers</div>
+        <div class="review-score text-danger">{{ totals.critical }}</div>
+        <div class="small text-warning">{{ totals.warnings }} review items</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Waived</div>
+        <div class="review-score text-primary">{{ totals.waived }}</div>
+        <div class="small text-muted">with notes</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-7">
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-list-check me-2"></i>Approval Queue</h6>
+        <span class="small text-muted">Highest risk first</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Client</th>
+              <th class="text-end">Score</th>
+              <th class="text-end">Blockers</th>
+              <th>Review</th>
+              <th class="text-end pe-3">Open</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+            <tr {% if selected_company and row.company.pk == selected_company.pk %}class="table-primary"{% endif %}>
+              <td class="ps-3">
+                <div class="fw-semibold">{{ row.company.name }}</div>
+                <div class="small text-muted">{{ row.company.gstin|default:"No GSTIN" }}</div>
+              </td>
+              <td class="text-end">
+                <span class="badge {% if row.readiness_score >= 90 %}bg-success{% elif row.readiness_score >= 70 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                  {{ row.readiness_score }}%
+                </span>
+              </td>
+              <td class="text-end">
+                <div class="{% if row.unwaived_critical_count %}text-danger{% else %}text-success{% endif %}">
+                  {{ row.unwaived_critical_count }} critical
+                </div>
+                <div class="small text-muted">{{ row.unwaived_warning_count }} review, {{ row.waived_count }} waived</div>
+              </td>
+              <td>
+                {% if row.review %}
+                  <span class="badge {% if row.review.status == 'approved_for_filing' %}bg-success{% elif row.review.status == 'sent_back' %}bg-warning text-dark{% elif row.review.status == 'reviewed' %}bg-info text-dark{% else %}bg-secondary{% endif %}">
+                    {{ row.review.get_status_display }}
+                  </span>
+                  {% if row.review.approved_by %}
+                  <div class="small text-muted">{{ row.review.approved_by.email }}</div>
+                  {% endif %}
+                {% else %}
+                  <span class="badge bg-secondary-subtle text-secondary">Not started</span>
+                {% endif %}
+              </td>
+              <td class="text-end pe-3">
+                <a class="btn btn-xs btn-outline-primary" href="{% url 'core:filing_review_center' %}?period={{ period_value }}&company={{ row.company.pk }}&review_type={{ review_type }}">
+                  Open
+                </a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="text-center text-muted py-4">No client workspaces are assigned to this user.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {% if selected %}
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Review Checks</h6>
+        <span class="badge {% if selected.ready_to_file %}bg-success{% else %}bg-danger{% endif %}">{{ selected.approval_label }}</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Area</th>
+              <th>Status</th>
+              <th class="text-end">Count</th>
+              <th class="text-end">Amount</th>
+              <th class="text-end pe-3">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in selected.checks %}
+            <tr>
+              <td class="ps-3">
+                <div class="fw-semibold">{{ item.title }}</div>
+                <div class="small text-muted">{{ item.description }}</div>
+                {% if item.is_waived %}
+                <div class="small text-primary">Waived: {{ item.waiver.note }}</div>
+                {% endif %}
+                <div class="text-muted review-code">{{ item.code }}</div>
+              </td>
+              <td>
+                {% if item.is_waived %}
+                  <span class="badge bg-primary">Waived</span>
+                {% elif item.severity == "critical" %}
+                  <span class="badge bg-danger">Critical</span>
+                {% elif item.severity == "warning" %}
+                  <span class="badge bg-warning text-dark">Review</span>
+                {% else %}
+                  <span class="badge bg-success-subtle text-success">Clear</span>
+                {% endif %}
+              </td>
+              <td class="text-end">{{ item.count }}</td>
+              <td class="text-end">{% if item.amount %}Rs.{{ item.amount|floatformat:2 }}{% else %}-{% endif %}</td>
+              <td class="text-end pe-3">
+                <a href="{{ item.action_url }}" class="btn btn-xs btn-outline-secondary">{{ item.action_label }}</a>
+                {% if item.is_issue and can_manage %}
+                  {% if item.is_waived %}
+                  <form method="post" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="period" value="{{ period_value }}">
+                    <input type="hidden" name="company_id" value="{{ selected.company.pk }}">
+                    <input type="hidden" name="review_type" value="{{ review_type }}">
+                    <input type="hidden" name="code" value="{{ item.code }}">
+                    <button type="submit" name="action" value="unwaive" class="btn btn-xs btn-outline-warning">Unwaive</button>
+                  </form>
+                  {% else %}
+                  <form method="post" class="d-inline-flex gap-1 mt-1">
+                    {% csrf_token %}
+                    <input type="hidden" name="period" value="{{ period_value }}">
+                    <input type="hidden" name="company_id" value="{{ selected.company.pk }}">
+                    <input type="hidden" name="review_type" value="{{ review_type }}">
+                    <input type="hidden" name="code" value="{{ item.code }}">
+                    <input type="text" name="waiver_note" class="form-control form-control-sm review-note-input" placeholder="Waiver note" required>
+                    <button type="submit" name="action" value="waive" class="btn btn-xs btn-outline-primary">Waive</button>
+                  </form>
+                  {% endif %}
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-xl-5">
+    {% if selected %}
+    <div class="card mb-3">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-shield-check me-2"></i>{{ selected.company.name }}</h6>
+      </div>
+      <div class="card-body">
+        <div class="row g-3 mb-3">
+          <div class="col-6">
+            <div class="text-muted small text-uppercase fw-semibold">Readiness</div>
+            <div class="review-score {% if selected.readiness_score >= 90 %}text-success{% elif selected.readiness_score >= 70 %}text-warning{% else %}text-danger{% endif %}">
+              {{ selected.readiness_score }}%
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="text-muted small text-uppercase fw-semibold">Status</div>
+            {% if selected.review %}
+              <span class="badge {% if selected.review.status == 'approved_for_filing' %}bg-success{% elif selected.review.status == 'sent_back' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                {{ selected.review.get_status_display }}
+              </span>
+            {% else %}
+              <span class="badge bg-secondary-subtle text-secondary">Not started</span>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if can_manage %}
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="period" value="{{ period_value }}">
+          <input type="hidden" name="company_id" value="{{ selected.company.pk }}">
+          <input type="hidden" name="review_type" value="{{ review_type }}">
+          <div class="mb-3">
+            <label for="review-notes" class="form-label small fw-semibold">Review Notes</label>
+            <textarea id="review-notes" name="notes" rows="4" class="form-control form-control-sm">{% if selected.review %}{{ selected.review.notes }}{% endif %}</textarea>
+          </div>
+          {% if selected.unwaived_critical_count %}
+          <div class="alert alert-danger py-2 small">
+            Critical blockers must be cleared or waived before approval.
+          </div>
+          {% endif %}
+          <div class="d-flex flex-wrap gap-2">
+            <button type="submit" name="action" value="start_review" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-play-circle"></i> Start
+            </button>
+            <button type="submit" name="action" value="mark_reviewed" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-check2-square"></i> Reviewed
+            </button>
+            <button type="submit" name="action" value="send_back" class="btn btn-sm btn-outline-warning">
+              <i class="bi bi-arrow-counterclockwise"></i> Send Back
+            </button>
+            <button type="submit" name="action" value="approve" class="btn btn-sm btn-success" {% if not selected.ready_to_file %}disabled{% endif %}>
+              <i class="bi bi-patch-check"></i> Approve
+            </button>
+            {% if selected.review and selected.review.is_approved %}
+            <button type="submit" name="action" value="reopen" class="btn btn-sm btn-outline-danger">
+              <i class="bi bi-unlock"></i> Reopen
+            </button>
+            {% endif %}
+            {% if selected.issue_checks %}
+            <button type="submit" name="action" value="create_tasks" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-list-check"></i> Tasks
+            </button>
+            {% endif %}
+          </div>
+        </form>
+        {% else %}
+        <p class="text-muted mb-0">You can view this review, but your role cannot update approval.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-receipt me-2"></i>Evidence Snapshot</h6>
+      </div>
+      <div class="list-group list-group-flush">
+        <div class="list-group-item d-flex justify-content-between">
+          <span>GST net tax payable</span><strong>Rs.{{ selected.report.gst.net_tax_payable|floatformat:2 }}</strong>
+        </div>
+        <div class="list-group-item d-flex justify-content-between">
+          <span>Voucher quality</span><strong>{{ selected.report.voucher_quality.score }}%</strong>
+        </div>
+        <div class="list-group-item d-flex justify-content-between">
+          <span>Open client documents</span><strong>{{ selected.report.documents.open }}</strong>
+        </div>
+        <div class="list-group-item d-flex justify-content-between">
+          <span>Uploaded for review</span><strong>{{ selected.report.documents.uploaded }}</strong>
+        </div>
+        <div class="list-group-item d-flex justify-content-between">
+          <span>Open period tasks</span><strong>{{ selected.report.tasks.open }}</strong>
+        </div>
+        <div class="list-group-item d-flex justify-content-between">
+          <span>Bank unreconciled</span><strong>Rs.{{ selected.report.bank.unreconciled_amount|floatformat:2 }}</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-person-check me-2"></i>Review Trail</h6>
+      </div>
+      <div class="list-group list-group-flush">
+        <div class="list-group-item d-flex justify-content-between">
+          <span>Prepared by</span>
+          <strong>{% if selected.review.prepared_by %}{{ selected.review.prepared_by.email }}{% else %}-{% endif %}</strong>
+        </div>
+        <div class="list-group-item d-flex justify-content-between">
+          <span>Reviewed by</span>
+          <strong>{% if selected.review.reviewed_by %}{{ selected.review.reviewed_by.email }}{% else %}-{% endif %}</strong>
+        </div>
+        <div class="list-group-item d-flex justify-content-between">
+          <span>Approved by</span>
+          <strong>{% if selected.review.approved_by %}{{ selected.review.approved_by.email }}{% else %}-{% endif %}</strong>
+        </div>
+        <div class="list-group-item d-flex justify-content-between">
+          <span>Approved at</span>
+          <strong>{% if selected.review.approved_at %}{{ selected.review.approved_at|date:"d M Y H:i" }}{% else %}-{% endif %}</strong>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="card">
+      <div class="card-body text-muted">No review selected.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

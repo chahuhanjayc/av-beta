@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Ledger History: {{ ledger.name }} | Akshaya Vistara{% endblock %}
+{% block page_title %}Ledger History: {{ ledger.name }}{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 bg-primary text-white p-3">
+            <h6 class="text-uppercase small fw-bold opacity-75">Opening Balance</h6>
+            <h4 class="mb-0 fw-bold">₹{{ opening_balance|floatformat:2 }}</h4>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 bg-success text-white p-3">
+            <h6 class="text-uppercase small fw-bold opacity-75">Closing Balance</h6>
+            <h4 class="mb-0 fw-bold">₹{{ closing_balance|floatformat:2 }} ({{ closing_type }})</h4>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 bg-light p-3">
+            <h6 class="text-uppercase small fw-bold text-muted">Ledger Group</h6>
+            <h4 class="mb-0 fw-bold text-dark">{{ ledger.account_group.name }}</h4>
+        </div>
+    </div>
+</div>
+
+<!-- ── Date range filter ──────────────────────────────────────── -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3">
+    <form method="get" class="row g-2 align-items-end ajax-filter-form" data-target="ledger-results">
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold mb-1">From</label>
+        <input type="date" name="start_date" class="form-control form-control-sm"
+               value="{{ start_date|date:'Y-m-d' }}" />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold mb-1">To</label>
+        <input type="date" name="end_date" class="form-control form-control-sm"
+               value="{{ end_date|date:'Y-m-d' }}" />
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-primary btn-sm" type="submit">
+          <i class="bi bi-funnel me-1"></i> Apply
+        </button>
+      </div>
+      <div class="col-auto ms-auto">
+        <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Back
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="ledger-results">
+    {% include "reports/partials/ledger_detail_content.html" %}
+</div>
+{% endblock %}

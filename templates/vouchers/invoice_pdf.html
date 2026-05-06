@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Invoice {{ voucher.number }}</title>
+<style>
+  /* ── Base ── */
+  @page {
+    size: A4;
+    margin: 15mm 18mm 18mm 18mm;
+    @bottom-right {
+      content: "Page " counter(page) " of " counter(pages);
+      font-size: 8pt;
+      color: #888;
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "DejaVu Sans", "Helvetica Neue", Arial, sans-serif;
+    font-size: 9.5pt;
+    color: #212529;
+    line-height: 1.4;
+  }
+
+  /* ── Header bar ── */
+  .invoice-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 3px solid #0d6efd;
+    padding-bottom: 10px;
+    margin-bottom: 14px;
+  }
+  .company-block .company-name {
+    font-size: 16pt;
+    font-weight: 700;
+    color: #0d1117;
+    line-height: 1.2;
+  }
+  .company-block .company-sub {
+    font-size: 8pt;
+    color: #6c757d;
+    margin-top: 2px;
+  }
+  .invoice-meta {
+    text-align: right;
+  }
+  .invoice-type {
+    font-size: 14pt;
+    font-weight: 800;
+    color: #0d6efd;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+  .invoice-number {
+    font-family: "Courier New", monospace;
+    font-size: 10pt;
+    color: #343a40;
+    margin-top: 2px;
+  }
+  .invoice-date {
+    font-size: 8pt;
+    color: #6c757d;
+    margin-top: 2px;
+  }
+
+  /* ── Two-col info row ── */
+  .info-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 14px;
+  }
+  .info-box {
+    flex: 1;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 8px 10px;
+  }
+  .info-box .box-label {
+    font-size: 7pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: #6c757d;
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 3px;
+    margin-bottom: 4px;
+  }
+  .info-box p {
+    font-size: 8.5pt;
+    line-height: 1.5;
+    color: #343a40;
+  }
+
+  /* ── Items table ── */
+  .items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 14px;
+  }
+  .items-table thead tr {
+    background: #0d6efd;
+    color: #fff;
+  }
+  .items-table th {
+    padding: 6px 8px;
+    font-size: 8pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .items-table th.right { text-align: right; }
+  .items-table tbody tr:nth-child(even) { background: #f8f9fa; }
+  .items-table td {
+    padding: 6px 8px;
+    font-size: 9pt;
+    border-bottom: 1px solid #e9ecef;
+  }
+  .items-table td.right {
+    text-align: right;
+    font-family: "Courier New", monospace;
+    font-size: 8.5pt;
+  }
+  .items-table td.muted { color: #6c757d; font-size: 8pt; }
+  .items-table tfoot tr {
+    background: #e9f0ff;
+    font-weight: 700;
+  }
+  .items-table tfoot td {
+    padding: 7px 8px;
+    border-top: 2px solid #0d6efd;
+    font-size: 9.5pt;
+  }
+
+  /* ── Balance badge ── */
+  .balance-badge {
+    display: inline-block;
+    font-size: 8pt;
+    border-radius: 3px;
+    padding: 2px 7px;
+    font-weight: 700;
+  }
+  .balance-ok   { background: #d1e7dd; color: #0a3622; }
+  .balance-fail { background: #f8d7da; color: #58151c; }
+
+  /* ── Footer strip ── */
+  .invoice-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-top: 14px;
+    border-top: 1px dashed #adb5bd;
+    padding-top: 10px;
+    gap: 16px;
+  }
+  .footer-notes {
+    flex: 2;
+    font-size: 8pt;
+    color: #6c757d;
+    line-height: 1.5;
+  }
+  .footer-qr {
+    flex: 1;
+    text-align: center;
+  }
+  .footer-qr img {
+    width: 90px;
+    height: 90px;
+    display: block;
+    margin: 0 auto 3px;
+  }
+  .footer-qr .qr-label {
+    font-size: 7.5pt;
+    color: #495057;
+    font-weight: 600;
+  }
+  .footer-qr .qr-upi {
+    font-size: 7pt;
+    color: #6c757d;
+    word-break: break-all;
+  }
+  .footer-bank {
+    flex: 1;
+    font-size: 8pt;
+    line-height: 1.7;
+    color: #343a40;
+  }
+  .footer-bank .bank-label {
+    font-size: 7pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #6c757d;
+    margin-bottom: 2px;
+  }
+
+  /* ── Watermark for drafts ── */
+  .watermark {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-35deg);
+    font-size: 72pt;
+    font-weight: 900;
+    color: rgba(0, 0, 0, 0.04);
+    text-transform: uppercase;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+
+<div class="watermark">{{ voucher.voucher_type }}</div>
+
+{# ── Header ── #}
+<div class="invoice-header">
+  <div class="company-block">
+    <div class="company-name">{{ company.name }}</div>
+    <div class="company-sub">
+      {% if company.address %}{{ company.address }}{% endif %}
+      {% if company.gstin %}<br>GSTIN: {{ company.gstin }}{% endif %}
+    </div>
+  </div>
+  <div class="invoice-meta">
+    <div class="invoice-type">{{ voucher.voucher_type }}</div>
+    <div class="invoice-number">{{ voucher.number }}</div>
+    <div class="invoice-date">Date: {{ voucher.date|date:"d M Y" }}</div>
+    {% if voucher.due_date %}
+    <div class="invoice-date">Due: {{ voucher.due_date|date:"d M Y" }}</div>
+    {% endif %}
+    <span class="balance-badge {% if voucher.is_balanced %}balance-ok{% else %}balance-fail{% endif %}">
+      {% if voucher.is_balanced %}✓ Balanced{% else %}! Unbalanced{% endif %}
+    </span>
+  </div>
+</div>
+
+{# ── Narration / memo ── #}
+{% if voucher.narration %}
+<div class="info-row">
+  <div class="info-box" style="flex:1;">
+    <div class="box-label">Narration / Memo</div>
+    <p>{{ voucher.narration }}</p>
+  </div>
+</div>
+{% endif %}
+
+{# ── Line items ── #}
+<table class="items-table">
+  <thead>
+    <tr>
+      <th style="width:5%">#</th>
+      <th style="width:40%">Ledger Account</th>
+      <th style="width:25%">Particulars</th>
+      <th style="width:10%; text-align: center;">Type</th>
+      <th class="right" style="width:20%">Amount (₹)</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in voucher.items.all %}
+    <tr>
+      <td class="muted">{{ forloop.counter }}</td>
+      <td><strong>{{ item.ledger.name }}</strong>
+        <br><span style="font-size:7.5pt;color:#888;">{{ item.ledger.account_group.name }}</span>
+      </td>
+      <td class="muted">{{ item.narration }}</td>
+      <td style="text-align: center;">{{ item.entry_type }}</td>
+      <td class="right">{{ item.amount|floatformat:2 }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr>
+      <td colspan="3">Total</td>
+      <td class="right" colspan="2">
+        Dr {{ voucher.total_debit|floatformat:2 }} | Cr {{ voucher.total_credit|floatformat:2 }}
+      </td>
+    </tr>
+  </tfoot>
+</table>
+
+{# ── Footer: notes + QR + bank ── #}
+<div class="invoice-footer">
+
+  <div class="footer-notes">
+    <strong>Terms &amp; Notes</strong><br>
+    {% if voucher.narration %}{{ voucher.narration }}<br>{% endif %}
+    This is a computer-generated document. No physical signature required.
+    <br>Generated on {{ today|date:"d M Y" }} by Akshaya Vistara.
+  </div>
+
+  {% if qr_code %}
+  <div class="footer-qr">
+    <img src="data:image/png;base64,{{ qr_code }}" alt="UPI QR">
+    <div class="qr-label">Pay via UPI</div>
+    <div class="qr-upi">{{ company.upi_id }}</div>
+  </div>
+  {% endif %}
+
+  {% if company.bank_name or company.account_number %}
+  <div class="footer-bank">
+    <div class="bank-label">Bank Details</div>
+    {% if company.bank_name %}<div>{{ company.bank_name }}</div>{% endif %}
+    {% if company.account_number %}<div>A/C: {{ company.account_number }}</div>{% endif %}
+    {% if company.ifsc_code %}<div>IFSC: {{ company.ifsc_code }}</div>{% endif %}
+  </div>
+  {% endif %}
+
+</div>
+
+</body>
+</html>

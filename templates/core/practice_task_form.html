@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ title }} - Akshaya Vistara{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="row g-3">
+        <div class="col-md-6">{{ form.company|as_crispy_field }}</div>
+        <div class="col-md-6">{{ form.assigned_to|as_crispy_field }}</div>
+        <div class="col-12">{{ form.title|as_crispy_field }}</div>
+        <div class="col-md-3">{{ form.task_type|as_crispy_field }}</div>
+        <div class="col-md-3">{{ form.priority|as_crispy_field }}</div>
+        <div class="col-md-3">{{ form.status|as_crispy_field }}</div>
+        <div class="col-md-3">{{ form.due_date|as_crispy_field }}</div>
+        <div class="col-md-4">{{ form.period_start|as_crispy_field }}</div>
+        <div class="col-md-4">{{ form.period_end|as_crispy_field }}</div>
+        <div class="col-md-4">{{ form.reference|as_crispy_field }}</div>
+        <div class="col-12">{{ form.description|as_crispy_field }}</div>
+      </div>
+      <div class="mt-4 border-top pt-3">
+        <button type="submit" class="btn btn-primary">Save Task</button>
+        <a href="{% url 'core:practice_tasks' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

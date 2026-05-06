@@ -1,0 +1,2786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Akshaya Vistara{% endblock %}</title>
+
+  <!-- Favicon -->
+  {% load static %}
+  <link rel="icon" type="image/png" sizes="16x16" href="{% static 'icons/icon-16.png' %}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'icons/icon-32.png' %}">
+  <link rel="apple-touch-icon" sizes="192x192" href="{% static 'icons/icon-192.png' %}">
+
+  <!-- Bootstrap 5 CSS (no SRI — avoids hash-mismatch blocking) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+        rel="stylesheet" />
+
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+        rel="stylesheet" />
+
+  <!-- Bootstrap Bundle JS (includes Popper) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="{% static 'manifest.json' %}" />
+  <meta name="theme-color" content="#4f46e5" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
+  <link rel="stylesheet" href="{% static 'css/sidebar.css' %}" />
+
+  <!-- Theme Detection (No-Flash Script) -->
+  <script>
+    (function() {
+      const theme = localStorage.getItem('theme') || 'light';
+      document.documentElement.setAttribute('data-bs-theme', theme);
+    })();
+  </script>
+
+  <style>
+    :root {
+      /* ── Layout ── */
+      --sidebar-width: 260px;
+      --radius-interactive: 0.5rem;
+      --radius-surface: 0.75rem;
+      --radius-pill: 999px;
+
+      /* ── Light Theme Variables ── */
+      --body-bg: #f8fafc;
+      --card-bg: #ffffff;
+      --surface-bg: #ffffff;
+      --surface-muted: #f8fafc;
+      --surface-subtle: #f1f5f9;
+      --topbar-bg: rgba(255, 255, 255, 0.8);
+      --border-color: #e2e8f0;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --text-soft: #94a3b8;
+
+      --sidebar-bg: #ffffff;
+      --sidebar-hover: #eef2ff;
+      --sidebar-active-bg: #e0e7ff;
+      --sidebar-active-text: #4f46e5;
+      --sidebar-text: #334155;
+      --sidebar-text-muted: #64748b;
+      --sidebar-border: #e2e8f0;
+      --menu-hover-border: rgba(79, 70, 229, 0.2);
+
+      --accent: #4f46e5;
+      --input-bg: #ffffff;
+      --input-border: #cbd5e1;
+      --input-placeholder: #94a3b8;
+      --table-head-bg: #f8fafc;
+      --table-success-bg: #ecfdf5;
+      --modal-backdrop: rgba(15, 23, 42, 0.45);
+      --success-soft-bg: #dcfce7;
+      --success-soft-text: #166534;
+      --warning-soft-bg: #fef3c7;
+      --warning-soft-text: #a16207;
+      --danger-soft-bg: #fee2e2;
+      --danger-soft-text: #b91c1c;
+      --secondary-soft-bg: #e2e8f0;
+      --secondary-soft-text: #475569;
+      --stock-section-bg: #f0fdf4;
+      --stock-section-border: #bbf7d0;
+      --stock-section-text: #065f46;
+    }
+
+    [data-bs-theme="dark"] {
+      --body-bg: #1b1b1b;
+      --card-bg: #242424;
+      --surface-bg: #242424;
+      --surface-muted: #1b1b1b;
+      --surface-subtle: #2d2d2d;
+      --topbar-bg: rgba(36, 36, 36, 0.96);
+      --border-color: #3b3b3b;
+      --text-main: #f5f5f5;
+      --text-muted: #b5b5b5;
+      --text-soft: #8d8d8d;
+
+      --sidebar-bg: #171717;
+      --sidebar-hover: #2f343b;
+      --sidebar-active-bg: #2c2c2c;
+      --sidebar-active-text: #79aec8;
+      --sidebar-text: #f5f5f5;
+      --sidebar-text-muted: #9d9d9d;
+      --sidebar-border: #343434;
+      --menu-hover-border: rgba(121, 174, 200, 0.3);
+
+      --accent: #79aec8;
+      --input-bg: #1a1a1a;
+      --input-border: #4a4a4a;
+      --input-placeholder: #7c7c7c;
+      --table-head-bg: #2f5868;
+      --table-success-bg: #1d3a2c;
+      --modal-backdrop: rgba(0, 0, 0, 0.78);
+      --success-soft-bg: rgba(52, 211, 153, 0.16);
+      --success-soft-text: #86efac;
+      --warning-soft-bg: rgba(245, 158, 11, 0.16);
+      --warning-soft-text: #fcd34d;
+      --danger-soft-bg: rgba(239, 68, 68, 0.16);
+      --danger-soft-text: #fda4af;
+      --secondary-soft-bg: rgba(121, 174, 200, 0.18);
+      --secondary-soft-text: #c5e4f2;
+      --stock-section-bg: #1d2b26;
+      --stock-section-border: #37594b;
+      --stock-section-text: #bbf7d0;
+      --header-band-bg: #2f5868;
+      --header-band-text: #f5f5f5;
+      --header-band-border: #446e80;
+    }
+
+    html { color-scheme: light; }
+    html[data-bs-theme="dark"] { color-scheme: dark; }
+
+    body {
+      background: var(--body-bg);
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      font-size: 0.875rem; /* Standard 14px for professional UX */
+      line-height: 1.5;
+      color: var(--text-main);
+      transition: background 0.3s ease, color 0.3s ease;
+      --bs-body-bg: var(--body-bg);
+      --bs-body-color: var(--text-main);
+      --bs-border-color: var(--border-color);
+      --bs-secondary-color: var(--text-muted);
+      --bs-secondary-bg: var(--surface-muted);
+      --bs-tertiary-bg: var(--surface-subtle);
+      --bs-card-bg: var(--card-bg);
+      --bs-card-cap-bg: var(--surface-bg);
+      --bs-emphasis-color: var(--text-main);
+      --bs-border-radius: var(--radius-interactive);
+      --bs-border-radius-sm: var(--radius-interactive);
+      --bs-border-radius-lg: var(--radius-surface);
+      --bs-btn-border-radius: var(--radius-interactive);
+      --bs-input-border-radius: var(--radius-interactive);
+      --bs-dropdown-border-radius: var(--radius-surface);
+      --bs-dropdown-link-border-radius: var(--radius-interactive);
+      --bs-nav-pills-border-radius: var(--radius-interactive);
+      --bs-list-group-border-radius: var(--radius-interactive);
+      --bs-modal-border-radius: var(--radius-surface);
+    }
+
+    /* ── Typography Normalization ── */
+    h1, .h1 { font-size: 1.4rem !important; font-weight: 700; letter-spacing: -0.02em; }
+    h2, .h2 { font-size: 1.25rem !important; font-weight: 600; letter-spacing: -0.01em; }
+    h3, .h3 { font-size: 1.1rem !important; font-weight: 600; }
+    h4, .h4 { font-size: 1rem !important; font-weight: 600; }
+    h5, .h5 { font-size: 0.9rem !important; font-weight: 600; }
+    h6, .h6 { font-size: 0.85rem !important; font-weight: 600; }
+
+    /* Override Bootstrap "huge" display classes */
+    .display-1 { font-size: 2.2rem; font-weight: 800; }
+    .display-2 { font-size: 2rem; font-weight: 700; }
+    .display-3 { font-size: 1.75rem; font-weight: 700; }
+    .display-4 { font-size: 1.5rem; font-weight: 600; }
+
+    .btn { font-size: 0.875rem; font-weight: 500; border-radius: var(--radius-interactive); }
+    .btn-sm { font-size: 0.75rem; }
+    .form-control, .form-select, .input-group-text { font-size: 0.875rem; border-radius: var(--radius-interactive); }
+    .badge { font-weight: 600; font-size: 0.75rem; }
+    .table { font-size: 0.875rem; }
+    
+    /* Small text consistency */
+    small, .small { font-size: 0.785rem !important; }
+    .text-muted { font-size: 0.85em; }
+
+    /* ── Main content ── */
+    #main-content {
+      margin-left: var(--sidebar-width);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: var(--body-bg);
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Top navbar ── */
+    #topbar {
+      background: var(--topbar-bg);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border-color);
+      padding: .75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 99;
+    }
+
+    .page-body {
+      padding: 1.25rem 1.5rem;
+      flex: 1;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-surface);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .card:hover { transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+
+    /* ── Compact UI ── */
+    .table-compact { font-size: 0.875rem; }
+    .table-compact th, .table-compact td { padding: 0.4rem 0.6rem !important; vertical-align: middle; }
+    .table-compact thead th { font-weight: 600; background: var(--table-head-bg); }
+
+    /* ── Micro UX ── */
+    .btn, .nav-link, .form-control { transition: all 0.15s ease-in-out; }
+    .form-control:focus { box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15); }
+    .nav-link:active { transform: scale(0.98); }
+
+    .card-header,
+    .card-footer {
+      background: var(--surface-bg);
+      border-color: var(--border-color);
+      color: var(--text-main);
+    }
+    [data-bs-theme="dark"] .card-header {
+      background: var(--header-band-bg);
+      color: var(--header-band-text);
+      border-bottom-color: var(--header-band-border);
+    }
+    [data-bs-theme="dark"] .card-header .text-muted,
+    [data-bs-theme="dark"] .card-header small,
+    [data-bs-theme="dark"] .card-header .small {
+      color: rgba(245,245,245,0.78) !important;
+    }
+    [data-bs-theme="dark"] .card-footer {
+      background: #202020;
+    }
+    [data-bs-theme="dark"] .card,
+    [data-bs-theme="dark"] .modal-content,
+    [data-bs-theme="dark"] .dropdown-menu {
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.03), 0 18px 50px rgba(0,0,0,0.45);
+    }
+    .stat-card {
+      border: none;
+      border-radius: var(--radius-surface);
+      box-shadow: 0 1px 4px rgba(0,0,0,.07);
+    }
+    [data-bs-theme="dark"] .stat-card {
+      box-shadow: 0 1px 4px rgba(0,0,0,.3);
+    }
+
+    /* ── Tables ── */
+    .table { color: var(--text-main); }
+    .table > :not(caption) > * > * {
+      background-color: transparent;
+      border-color: var(--border-color);
+      color: inherit;
+      box-shadow: none;
+    }
+    .table-light {
+      --bs-table-bg: var(--table-head-bg);
+      --bs-table-color: var(--text-main);
+      --bs-table-border-color: var(--border-color);
+    }
+    [data-bs-theme="dark"] .table-light {
+      --bs-table-color: #f5f5f5;
+    }
+    .table-success {
+      --bs-table-bg: var(--table-success-bg);
+      --bs-table-color: var(--text-main);
+      --bs-table-border-color: var(--border-color);
+    }
+    .table-bordered { border-color: var(--border-color); }
+    [data-bs-theme="dark"] .table tbody tr + tr td,
+    [data-bs-theme="dark"] .table tbody tr + tr th {
+      border-top-color: rgba(255,255,255,0.08);
+    }
+    .table-hover tbody tr:hover { background-color: var(--sidebar-hover); }
+
+    /* ── Forms (Deep Fixes) ── */
+    .form-control, .form-select {
+      background-color: var(--input-bg);
+      border-color: var(--input-border);
+      color: var(--text-main);
+    }
+    .form-control:focus, .form-select:focus {
+      background-color: var(--input-bg);
+      color: var(--text-main);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 0.25rem rgba(79, 70, 229, 0.25);
+    }
+    .form-control::placeholder,
+    textarea.form-control::placeholder {
+      color: var(--input-placeholder);
+      opacity: 1;
+    }
+    .form-select[multiple],
+    .form-select[size]:not([size="1"]) {
+      min-height: 9.5rem;
+      padding: 0.45rem;
+      overflow-y: auto;
+      background-color: var(--input-bg);
+      border-color: var(--input-border);
+      color: var(--text-main);
+    }
+    .form-select[multiple] option,
+    .form-select[size]:not([size="1"]) option {
+      padding: 0.42rem 0.55rem;
+      margin: 0.06rem 0;
+      border-radius: var(--radius-interactive);
+      background-color: var(--input-bg);
+      color: var(--text-main);
+    }
+    .form-select[multiple] option:checked,
+    .form-select[size]:not([size="1"]) option:checked {
+      background-color: var(--sidebar-active-bg);
+      color: var(--sidebar-active-text);
+    }
+    .multi-client-picker {
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius-interactive);
+      background: var(--surface-subtle);
+      padding: 0.35rem;
+    }
+    .multi-client-picker .form-select {
+      width: 100%;
+      border: 0;
+      box-shadow: none;
+      background-color: transparent;
+    }
+    .multi-client-picker .form-select:focus {
+      box-shadow: none;
+    }
+    .multi-client-picker:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 0.25rem rgba(79, 70, 229, 0.18);
+    }
+    .multi-client-picker .form-select option {
+      background-color: var(--surface-bg);
+      color: var(--text-main);
+    }
+    .multi-client-picker .form-select option:hover {
+      background-color: var(--sidebar-hover);
+      color: var(--text-main);
+    }
+    .multi-client-picker .form-select option:checked {
+      background-color: var(--sidebar-active-bg);
+      color: var(--sidebar-active-text);
+      font-weight: 600;
+    }
+    form[class*="-filter"] {
+      background: var(--surface-bg) !important;
+      border: 1px solid var(--border-color) !important;
+      border-radius: var(--radius-interactive);
+      padding: 0.75rem;
+      color: var(--text-main);
+    }
+    form[class*="-filter"] label {
+      margin-bottom: 0.25rem;
+      color: var(--text-muted) !important;
+      font-weight: 600;
+    }
+    form[class*="-filter"] .form-control,
+    form[class*="-filter"] .form-select {
+      width: 100%;
+      min-height: calc(1.5em + 0.5rem + 2px);
+    }
+    form[class*="-filter"] input[type="search"] {
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    form[class*="-filter"] [class*="col-"].d-flex {
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+    form[class*="-filter"] .btn {
+      white-space: nowrap;
+    }
+    @media (max-width: 767.98px) {
+      form[class*="-filter"] [class*="col-"].d-flex .btn {
+        flex: 1 1 auto;
+      }
+    }
+    .form-check-input {
+      background-color: var(--input-bg);
+      border-color: var(--input-border);
+    }
+    [data-bs-theme="dark"] .form-control,
+    [data-bs-theme="dark"] .form-select,
+    [data-bs-theme="dark"] .btn-outline-secondary,
+    [data-bs-theme="dark"] .btn-light {
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
+    }
+    
+    /* Calendar Icon Color Fix */
+    [data-bs-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(1);
+    }
+    /* Select Arrow Fix */
+    [data-bs-theme="dark"] .form-select {
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23f1f5f9' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    }
+
+    /* ── Misc ── */
+    .text-muted,
+    .form-text,
+    .dropdown-item-text,
+    .text-body-secondary {
+      color: var(--text-muted) !important;
+    }
+    .bg-white,
+    .bg-body,
+    .bg-light {
+      background-color: var(--surface-bg) !important;
+      color: var(--text-main) !important;
+    }
+    .border,
+    .border-top,
+    .border-bottom,
+    .border-start,
+    .border-end,
+    .dropdown-divider,
+    hr {
+      border-color: var(--border-color) !important;
+    }
+    .dropdown-menu,
+    .modal-content {
+      background: var(--surface-bg);
+      color: var(--text-main);
+      border-color: var(--border-color);
+      border-radius: var(--radius-surface);
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+    }
+    .dropdown-menu {
+      padding: 0.4rem;
+    }
+    .modal {
+      --bs-modal-zindex: 2700;
+    }
+    .modal-header,
+    .modal-footer {
+      border-color: var(--border-color);
+      background: var(--surface-bg);
+    }
+    .modal-backdrop {
+      --bs-backdrop-zindex: 2600;
+      --bs-backdrop-bg: var(--modal-backdrop);
+      --bs-backdrop-opacity: 1;
+    }
+    .dropdown-item {
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      padding: 0.6rem 1rem;
+      font-size: 0.95rem;
+      gap: 0.75rem;
+      border-radius: var(--radius-interactive);
+      margin: 0.05rem 0;
+      transition: background-color 0.15s ease;
+    }
+    .dropdown-item i {
+      font-size: 1.1rem;
+      width: 20px;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .dropdown-item:hover,
+    .dropdown-item:focus,
+    .dropdown-item.active,
+    .dropdown-item:active {
+      background: var(--sidebar-hover);
+      color: var(--text-main);
+      box-shadow: inset 0 0 0 1px var(--menu-hover-border);
+      transform: none !important;
+    }
+    .dropdown-item-danger {
+      color: var(--danger-soft-text) !important;
+    }
+    .dropdown-item-danger i {
+      color: inherit !important;
+    }
+    .dropdown-item-danger:hover,
+    .dropdown-item-danger:focus,
+    .dropdown-item-danger:active {
+      background: var(--sidebar-hover) !important;
+      color: var(--danger-soft-text) !important;
+    }
+    .profile-menu {
+      min-width: 210px;
+    }
+    .profile-menu .dropdown-item {
+      min-height: 38px;
+    }
+    .btn-light {
+      background: var(--surface-bg);
+      color: var(--text-main);
+      border-color: var(--border-color);
+    }
+    .btn-light:hover,
+    .btn-light:focus {
+      background: var(--surface-subtle);
+      color: var(--text-main);
+      border-color: var(--border-color);
+    }
+    .btn-outline-secondary {
+      color: var(--text-muted);
+      border-color: var(--input-border);
+    }
+    .btn-outline-secondary:hover,
+    .btn-outline-secondary:focus {
+      background: var(--surface-subtle);
+      color: var(--text-main);
+      border-color: var(--border-color);
+    }
+    .bg-success-subtle {
+      background-color: var(--success-soft-bg) !important;
+      color: var(--success-soft-text) !important;
+    }
+    .bg-warning-subtle {
+      background-color: var(--warning-soft-bg) !important;
+      color: var(--warning-soft-text) !important;
+    }
+    .bg-danger-subtle {
+      background-color: var(--danger-soft-bg) !important;
+      color: var(--danger-soft-text) !important;
+    }
+    .bg-secondary.bg-opacity-10,
+    .bg-secondary-subtle {
+      background-color: var(--secondary-soft-bg) !important;
+      color: var(--secondary-soft-text) !important;
+    }
+    .text-success { color: var(--success-soft-text) !important; }
+    .text-warning { color: var(--warning-soft-text) !important; }
+    [data-bs-theme="dark"] .filter-panel,
+    [data-bs-theme="dark"] .filter-bar {
+      background: var(--surface-bg) !important;
+      border: 1px solid var(--border-color) !important;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.03);
+    }
+    [data-bs-theme="dark"] .filter-panel label,
+    [data-bs-theme="dark"] .filter-bar label {
+      color: var(--text-muted) !important;
+    }
+    [data-bs-theme="dark"] .filter-bar .btn {
+      border-color: var(--input-border);
+    }
+    [data-bs-theme="dark"] .drop-zone {
+      background: #20252b !important;
+      border-color: #6f98ae !important;
+      color: var(--text-main);
+    }
+    [data-bs-theme="dark"] .drop-zone:hover,
+    [data-bs-theme="dark"] .drop-zone.drag-over {
+      background: #273844 !important;
+      border-color: var(--accent) !important;
+    }
+    [data-bs-theme="dark"] .step-num {
+      background: var(--accent) !important;
+      color: #13212a !important;
+    }
+    [data-bs-theme="dark"] .progress {
+      background-color: #1f1f1f;
+    }
+    [data-bs-theme="dark"] .table-danger {
+      --bs-table-bg: rgba(239, 68, 68, 0.12);
+      --bs-table-color: var(--text-main);
+      --bs-table-border-color: var(--border-color);
+    }
+    [data-bs-theme="dark"] .bg-success.bg-opacity-10 {
+      background-color: rgba(34, 197, 94, 0.14) !important;
+    }
+    [data-bs-theme="dark"] .bg-danger.bg-opacity-10 {
+      background-color: rgba(239, 68, 68, 0.14) !important;
+    }
+    [data-bs-theme="dark"] .card-header[style*="background:#f0fdf4"],
+    [data-bs-theme="dark"] .card-header[style*="background:#fef2f2"],
+    [data-bs-theme="dark"] .card-header[style*="background:#dbeafe"],
+    [data-bs-theme="dark"] .card-header[style*="background:#ede9fe"],
+    [data-bs-theme="dark"] .card-header[style*="background:#dcfce7"],
+    [data-bs-theme="dark"] .card-header[style*="background:#fef3c7"] {
+      background: var(--header-band-bg) !important;
+      color: var(--header-band-text) !important;
+    }
+    [data-bs-theme="dark"] [style*="border-bottom:2px solid #86efac"] {
+      border-bottom-color: rgba(134, 239, 172, 0.32) !important;
+    }
+    [data-bs-theme="dark"] [style*="border-bottom:2px solid #fca5a5"] {
+      border-bottom-color: rgba(252, 165, 165, 0.32) !important;
+    }
+    [data-bs-theme="dark"] [style*="border-bottom:2px solid #93c5fd"] {
+      border-bottom-color: rgba(147, 197, 253, 0.32) !important;
+    }
+    [data-bs-theme="dark"] [style*="border-bottom:2px solid #c4b5fd"] {
+      border-bottom-color: rgba(196, 181, 253, 0.32) !important;
+    }
+    [data-bs-theme="dark"] .card-header[style*="background:#f0fdf4"] .text-success,
+    [data-bs-theme="dark"] .card-header[style*="background:#fef2f2"] .text-danger,
+    [data-bs-theme="dark"] .card-header[style*="background:#dbeafe"],
+    [data-bs-theme="dark"] .card-header[style*="background:#ede9fe"] .text-purple,
+    [data-bs-theme="dark"] .card-header i {
+      color: var(--header-band-text) !important;
+    }
+    code,
+    pre,
+    .font-monospace {
+      color: var(--text-main);
+    }
+    .badge-balanced { background:#d1fae5; color:#065f46; font-size:.75rem; }
+    .badge-unbalanced { background:#fee2e2; color:#991b1b; font-size:.75rem; }
+    [data-bs-theme="dark"] .badge-balanced { background:#065f46; color:#d1fae5; }
+    [data-bs-theme="dark"] .badge-unbalanced { background:#991b1b; color:#fee2e2; }
+
+    /* Theme Toggle Button */
+    #themeToggle {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-interactive);
+      border: 1px solid var(--border-color);
+      background: var(--card-bg);
+      color: var(--text-main);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    #themeToggle:hover {
+      background: var(--sidebar-hover);
+      border-color: var(--menu-hover-border);
+      box-shadow: inset 0 0 0 1px var(--menu-hover-border);
+      transform: rotate(15deg);
+    }
+    
+    /* ── Command Palette ── */
+    #commandPalette {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--modal-backdrop);
+      z-index: 2000; display: none;
+      align-items: flex-start; justify-content: center;
+      padding-top: 10vh;
+    }
+    #commandPalette.show { display: flex; }
+    .cp-container {
+      width: 100%; max-width: 600px;
+      background: var(--card-bg);
+      border-radius: var(--radius-surface);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      overflow: hidden; border: 1px solid var(--border-color);
+    }
+    .cp-input-wrapper {
+      padding: 1rem; border-bottom: 1px solid var(--border-color);
+      display: flex; align-items: center; gap: 0.75rem;
+    }
+    .cp-input {
+      border: none; background: transparent; width: 100%;
+      font-size: 1.1rem; color: var(--text-main); outline: none;
+    }
+    .cp-results { max-height: 400px; overflow-y: auto; padding: 0.5rem; }
+    .cp-category {
+      padding: 0.75rem 1rem 0.25rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-soft);
+      letter-spacing: 0.05em;
+      border-top: 1px solid var(--border-color);
+    }
+    .cp-category:first-child { border-top: none; padding-top: 0.25rem; }
+    .cp-item {
+      padding: 0.75rem 1rem; border-radius: var(--radius-interactive);
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; color: var(--text-main); transition: all 0.2s ease;
+    }
+    .cp-item:hover, .cp-item.active {
+      background: var(--sidebar-active-bg); color: var(--sidebar-active-text);
+      box-shadow: inset 0 0 0 1px var(--menu-hover-border);
+      transform: translateX(4px);
+    }
+    .cp-item .badge { font-size: 0.7rem; opacity: 0.8; }
+    .cp-match {
+      background: rgba(79, 70, 229, 0.15);
+      color: var(--accent);
+      font-weight: 600;
+      padding: 0 1px;
+      border-radius: calc(var(--radius-interactive) / 2);
+    }
+    .cp-hint {
+      padding: 0.5rem 1rem; background: var(--surface-muted);
+      font-size: 0.75rem; color: var(--text-muted);
+      border-top: 1px solid var(--border-color);
+      display: flex; gap: 1rem;
+    }
+    .cp-hint kbd {
+      background: var(--surface-subtle); color: var(--text-main);
+      padding: 2px 4px; border-radius: calc(var(--radius-interactive) / 2); border: 1px solid var(--border-color);
+    }
+
+    #topbar-search-trigger {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 0.5rem 1.25rem;
+      border-radius: var(--radius-interactive);
+      width: 100%;
+      max-width: 450px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    #topbar-search-trigger:hover {
+      background: var(--sidebar-hover);
+      border-color: var(--menu-hover-border);
+      box-shadow: inset 0 0 0 1px var(--menu-hover-border);
+      color: var(--text-main);
+    }
+    #topbar-search-trigger kbd {
+      background: var(--surface-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+
+    .notification-button {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-interactive);
+      position: relative;
+    }
+
+    .notification-badge {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      min-width: 18px;
+      height: 18px;
+      border-radius: var(--radius-pill);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      font-weight: 800;
+      border: 2px solid var(--topbar-bg);
+    }
+
+    .notification-menu {
+      width: min(360px, calc(100vw - 1.5rem));
+      max-height: min(520px, calc(100vh - 5rem));
+      overflow-y: auto;
+    }
+
+    .notification-item {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr) auto;
+      gap: 0.65rem;
+      align-items: start;
+      padding: 0.72rem 0.85rem;
+      color: var(--text-main);
+      border-radius: var(--radius-interactive);
+      text-decoration: none;
+    }
+
+    .notification-item:hover {
+      background: var(--sidebar-hover);
+      box-shadow: inset 0 0 0 1px var(--menu-hover-border);
+      color: var(--text-main);
+    }
+
+    .notification-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-interactive);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .notification-title {
+      font-weight: 700;
+      font-size: 0.83rem;
+      line-height: 1.2;
+    }
+
+    .notification-detail {
+      color: var(--text-muted);
+      font-size: 0.74rem;
+      line-height: 1.35;
+      margin-top: 0.15rem;
+    }
+  </style>
+
+  {% block extra_head %}{% endblock %}
+
+  <style>
+    /*
+      Dark theme final pass.
+      Page templates add local styles in extra_head and a few include styles in
+      the body, so these rules intentionally run late and use narrow important
+      overrides for hard-coded light surfaces.
+    */
+    [data-bs-theme="dark"] {
+      --bs-body-bg: var(--body-bg);
+      --bs-body-color: var(--text-main);
+      --bs-border-color: var(--border-color);
+      --bs-secondary-color: var(--text-muted);
+      --bs-secondary-bg: var(--surface-muted);
+      --bs-tertiary-bg: var(--surface-subtle);
+      --bs-emphasis-color: var(--text-main);
+      --bs-card-bg: var(--card-bg);
+      --bs-card-cap-bg: var(--header-band-bg);
+      --bs-modal-bg: var(--surface-bg);
+      --bs-modal-color: var(--text-main);
+      --bs-dropdown-bg: var(--surface-bg);
+      --bs-dropdown-color: var(--text-main);
+      --bs-list-group-bg: var(--surface-bg);
+      --bs-list-group-color: var(--text-main);
+      --bs-heading-color: var(--text-main);
+      --bs-link-color: #93c5fd;
+      --bs-link-hover-color: #bfdbfe;
+    }
+
+    [data-bs-theme="dark"] body,
+    [data-bs-theme="dark"] #main-content,
+    [data-bs-theme="dark"] .page-body {
+      background: var(--body-bg) !important;
+      color: var(--text-main) !important;
+    }
+
+    [data-bs-theme="dark"] .card:not(.bg-primary):not(.bg-success):not(.bg-danger):not(.bg-warning):not(.bg-info):not(.bg-secondary):not(.bg-dark),
+    [data-bs-theme="dark"] .modal-content,
+    [data-bs-theme="dark"] .dropdown-menu,
+    [data-bs-theme="dark"] .offcanvas,
+    [data-bs-theme="dark"] .toast,
+    [data-bs-theme="dark"] .popover,
+    [data-bs-theme="dark"] .accordion-item,
+    [data-bs-theme="dark"] .list-group-item {
+      background-color: var(--surface-bg) !important;
+      color: var(--text-main) !important;
+      border-color: var(--border-color) !important;
+    }
+
+    [data-bs-theme="dark"] .card-header:not(.bg-primary):not(.bg-success):not(.bg-danger):not(.bg-warning):not(.bg-info):not(.bg-secondary):not(.bg-dark),
+    [data-bs-theme="dark"] .card-footer:not(.bg-primary):not(.bg-success):not(.bg-danger):not(.bg-warning):not(.bg-info):not(.bg-secondary):not(.bg-dark) {
+      background-color: var(--header-band-bg) !important;
+      color: var(--header-band-text) !important;
+      border-color: var(--header-band-border) !important;
+    }
+
+    [data-bs-theme="dark"] .modal-header:not(.bg-primary):not(.bg-success):not(.bg-danger):not(.bg-warning):not(.bg-info):not(.bg-secondary):not(.bg-dark),
+    [data-bs-theme="dark"] .modal-body,
+    [data-bs-theme="dark"] .modal-footer:not(.bg-primary):not(.bg-success):not(.bg-danger):not(.bg-warning):not(.bg-info):not(.bg-secondary):not(.bg-dark) {
+      background-color: var(--surface-bg) !important;
+      color: var(--text-main) !important;
+      border-color: var(--border-color) !important;
+    }
+
+    [data-bs-theme="dark"] .bg-white,
+    [data-bs-theme="dark"] .bg-light,
+    [data-bs-theme="dark"] .bg-body,
+    [data-bs-theme="dark"] .bg-body-tertiary,
+    [data-bs-theme="dark"] .bg-body-secondary {
+      background-color: var(--surface-bg) !important;
+      color: var(--text-main) !important;
+    }
+
+    [data-bs-theme="dark"] .text-dark:not(.badge):not(.btn):not(.alert):not(.bg-warning):not(.bg-info),
+    [data-bs-theme="dark"] .card-header .text-dark,
+    [data-bs-theme="dark"] .modal-body .text-dark,
+    [data-bs-theme="dark"] .list-group-item .text-dark {
+      color: var(--text-main) !important;
+    }
+
+    [data-bs-theme="dark"] .text-muted,
+    [data-bs-theme="dark"] .form-text,
+    [data-bs-theme="dark"] .dropdown-item-text,
+    [data-bs-theme="dark"] .text-body-secondary {
+      color: var(--text-muted) !important;
+    }
+
+    [data-bs-theme="dark"] .border,
+    [data-bs-theme="dark"] .border-top,
+    [data-bs-theme="dark"] .border-bottom,
+    [data-bs-theme="dark"] .border-start,
+    [data-bs-theme="dark"] .border-end,
+    [data-bs-theme="dark"] .dropdown-divider,
+    [data-bs-theme="dark"] hr {
+      border-color: var(--border-color) !important;
+    }
+
+    [data-bs-theme="dark"] .table,
+    [data-bs-theme="dark"] table {
+      --bs-table-color: var(--text-main);
+      --bs-table-bg: transparent;
+      --bs-table-border-color: var(--border-color);
+      --bs-table-striped-bg: rgba(255, 255, 255, 0.025);
+      --bs-table-hover-bg: var(--sidebar-hover);
+      color: var(--text-main) !important;
+      border-color: var(--border-color) !important;
+    }
+
+    [data-bs-theme="dark"] .table > :not(caption) > * > * {
+      background-color: transparent !important;
+      border-color: var(--border-color) !important;
+      color: inherit;
+      box-shadow: none !important;
+    }
+
+    [data-bs-theme="dark"] .table-light,
+    [data-bs-theme="dark"] thead.table-light,
+    [data-bs-theme="dark"] tfoot.table-light,
+    [data-bs-theme="dark"] tr.table-light,
+    [data-bs-theme="dark"] thead.bg-light {
+      --bs-table-bg: var(--table-head-bg);
+      --bs-table-color: var(--text-main);
+      --bs-table-border-color: var(--border-color);
+      background-color: var(--table-head-bg) !important;
+      color: var(--text-main) !important;
+    }
+
+    [data-bs-theme="dark"] thead.table-light > tr > *,
+    [data-bs-theme="dark"] tfoot.table-light > tr > *,
+    [data-bs-theme="dark"] tr.table-light > *,
+    [data-bs-theme="dark"] thead.bg-light > tr > * {
+      background-color: var(--table-head-bg) !important;
+      color: var(--text-main) !important;
+      border-color: var(--border-color) !important;
+    }
+
+    [data-bs-theme="dark"] .voucher-grid-head > tr > * {
+      background-color: var(--surface-bg) !important;
+      color: var(--text-muted) !important;
+      border-color: var(--border-color) !important;
+    }
+
+    [data-bs-theme="dark"] .table-hover > tbody > tr:hover > * {
+      background-color: var(--sidebar-hover) !important;
+      color: var(--text-main) !important;
+    }
+
+    [data-bs-theme="dark"] .form-control,
+    [data-bs-theme="dark"] .form-select,
+    [data-bs-theme="dark"] .input-group-text,
+    [data-bs-theme="dark"] .form-control:disabled,
+    [data-bs-theme="dark"] .form-control[readonly],
+    [data-bs-theme="dark"] .form-select:disabled {
+      background-color: var(--input-bg) !important;
+      color: var(--text-main) !important;
+      border-color: var(--input-border) !important;
+    }
+
+    [data-bs-theme="dark"] .form-control::placeholder,
+    [data-bs-theme="dark"] textarea.form-control::placeholder {
+      color: var(--input-placeholder) !important;
+      opacity: 1;
+    }
+
+    [data-bs-theme="dark"] .nav-tabs {
+      background-color: var(--surface-bg) !important;
+      border-color: var(--border-color) !important;
+    }
+
+    [data-bs-theme="dark"] .nav-tabs .nav-link {
+      color: var(--text-muted) !important;
+      border-color: transparent !important;
+    }
+
+    [data-bs-theme="dark"] .nav-tabs .nav-link.active,
+    [data-bs-theme="dark"] .nav-tabs .nav-item.show .nav-link {
+      background-color: var(--surface-subtle) !important;
+      color: var(--text-main) !important;
+      border-color: var(--border-color) !important;
+    }
+
+    [data-bs-theme="dark"] .pagination .page-link {
+      background-color: var(--surface-bg) !important;
+      color: var(--text-main) !important;
+      border-color: var(--border-color) !important;
+    }
+
+    [data-bs-theme="dark"] .pagination .page-item.active .page-link {
+      background-color: var(--accent) !important;
+      border-color: var(--accent) !important;
+      color: #0f172a !important;
+    }
+
+    [data-bs-theme="dark"] .pagination .page-item.disabled .page-link {
+      background-color: var(--surface-muted) !important;
+      color: var(--text-soft) !important;
+    }
+
+    [data-bs-theme="dark"] .alert:not(.alert-primary):not(.alert-success):not(.alert-danger):not(.alert-warning):not(.alert-info) {
+      background-color: var(--surface-subtle) !important;
+      color: var(--text-main) !important;
+      border-color: var(--border-color) !important;
+    }
+
+    [data-bs-theme="dark"] .alert-info,
+    [data-bs-theme="dark"] .bg-info-subtle {
+      background-color: rgba(14, 165, 233, 0.14) !important;
+      color: #bae6fd !important;
+      border-color: rgba(14, 165, 233, 0.28) !important;
+    }
+
+    [data-bs-theme="dark"] .bg-primary-subtle {
+      background-color: rgba(96, 165, 250, 0.16) !important;
+      color: #bfdbfe !important;
+    }
+
+    [data-bs-theme="dark"] .badge.bg-light,
+    [data-bs-theme="dark"] .badge.bg-white,
+    [data-bs-theme="dark"] .badge.bg-secondary.bg-opacity-10 {
+      background-color: var(--secondary-soft-bg) !important;
+      color: var(--secondary-soft-text) !important;
+      border-color: rgba(121, 174, 200, 0.28) !important;
+    }
+
+    [data-bs-theme="dark"] .badge.bg-white.text-danger {
+      background-color: var(--danger-soft-bg) !important;
+      color: var(--danger-soft-text) !important;
+    }
+
+    [data-bs-theme="dark"] .dropdown-item:hover,
+    [data-bs-theme="dark"] .dropdown-item:focus,
+    [data-bs-theme="dark"] .list-group-item-action:hover,
+    [data-bs-theme="dark"] .list-group-item-action:focus {
+      background-color: var(--sidebar-hover) !important;
+      color: var(--text-main) !important;
+      box-shadow: inset 0 0 0 1px var(--menu-hover-border);
+    }
+
+    [data-bs-theme="dark"] .dropdown-item-danger {
+      color: var(--danger-soft-text) !important;
+    }
+
+    [data-bs-theme="dark"] .dropdown-item-danger:hover,
+    [data-bs-theme="dark"] .dropdown-item-danger:focus,
+    [data-bs-theme="dark"] .dropdown-item-danger:active {
+      background-color: var(--sidebar-hover) !important;
+      color: var(--danger-soft-text) !important;
+      box-shadow: inset 0 0 0 1px var(--menu-hover-border);
+    }
+
+    [data-bs-theme="dark"] .list-group-item.active {
+      background-color: var(--accent) !important;
+      border-color: var(--accent) !important;
+      color: #0f172a !important;
+    }
+
+    [data-bs-theme="dark"] .btn-close:not(.btn-close-white) {
+      filter: invert(1) grayscale(100%) brightness(180%);
+    }
+
+    [data-bs-theme="dark"] .filter-panel,
+    [data-bs-theme="dark"] .filter-bar,
+    [data-bs-theme="dark"] .bill-preview-wrap,
+    [data-bs-theme="dark"] .stock-suggestion-list,
+    [data-bs-theme="dark"] #tallyAcceptBox,
+    [data-bs-theme="dark"] .progress-bg,
+    [data-bs-theme="dark"] .sticky-totals,
+    [data-bs-theme="dark"] .col-type,
+    [data-bs-theme="dark"] .drill-row,
+    [data-bs-theme="dark"] .totals-row td {
+      background: var(--surface-subtle) !important;
+      color: var(--text-main) !important;
+      border-color: var(--border-color) !important;
+    }
+
+    [data-bs-theme="dark"] .stock-suggestion-list .suggestion-item:hover,
+    [data-bs-theme="dark"] .item-row:focus-within,
+    [data-bs-theme="dark"] .stock-row:focus-within,
+    [data-bs-theme="dark"] .grid-input:focus {
+      background: var(--sidebar-hover) !important;
+      color: var(--text-main) !important;
+    }
+
+    [data-bs-theme="dark"] .row-reconciled,
+    [data-bs-theme="dark"] .under-budget {
+      background-color: rgba(34, 197, 94, 0.11) !important;
+    }
+
+    [data-bs-theme="dark"] .row-pending {
+      background-color: rgba(245, 158, 11, 0.11) !important;
+    }
+
+    [data-bs-theme="dark"] .over-budget,
+    [data-bs-theme="dark"] .overdue-row {
+      background-color: rgba(239, 68, 68, 0.11) !important;
+    }
+
+    [data-bs-theme="dark"] .payment-row.selected,
+    [data-bs-theme="dark"] .invoice-row.selected {
+      background-color: rgba(14, 165, 233, 0.14) !important;
+      border-left-color: #38bdf8 !important;
+    }
+
+    [data-bs-theme="dark"] .badge-purchase,
+    [data-bs-theme="dark"] .badge-medium,
+    [data-bs-theme="dark"] .badge-required,
+    [data-bs-theme="dark"] .gst-badge-b2c {
+      background: var(--warning-soft-bg) !important;
+      color: var(--warning-soft-text) !important;
+    }
+
+    [data-bs-theme="dark"] .badge-sale,
+    [data-bs-theme="dark"] .badge-high {
+      background: var(--success-soft-bg) !important;
+      color: var(--success-soft-text) !important;
+    }
+
+    [data-bs-theme="dark"] .badge-payment,
+    [data-bs-theme="dark"] .gst-badge-b2b {
+      background: rgba(96, 165, 250, 0.16) !important;
+      color: #bfdbfe !important;
+    }
+
+    [data-bs-theme="dark"] .badge-receipt {
+      background: rgba(167, 139, 250, 0.16) !important;
+      color: #ddd6fe !important;
+    }
+
+    [data-bs-theme="dark"] .badge-journal,
+    [data-bs-theme="dark"] .badge-low {
+      background: var(--danger-soft-bg) !important;
+      color: var(--danger-soft-text) !important;
+    }
+
+    [data-bs-theme="dark"] .badge-contra,
+    [data-bs-theme="dark"] .badge-default,
+    [data-bs-theme="dark"] .badge-no-due {
+      background: var(--secondary-soft-bg) !important;
+      color: var(--secondary-soft-text) !important;
+    }
+
+    [data-bs-theme="dark"] .audit-action-create {
+      background: var(--success-soft-bg) !important;
+      color: var(--success-soft-text) !important;
+    }
+
+    [data-bs-theme="dark"] .audit-action-update {
+      background: rgba(96, 165, 250, 0.16) !important;
+      color: #bfdbfe !important;
+    }
+
+    [data-bs-theme="dark"] .audit-action-delete {
+      background: var(--danger-soft-bg) !important;
+      color: var(--danger-soft-text) !important;
+    }
+
+    [data-bs-theme="dark"] [style*="background: white" i],
+    [data-bs-theme="dark"] [style*="background:white" i],
+    [data-bs-theme="dark"] [style*="background: #fff" i],
+    [data-bs-theme="dark"] [style*="background:#fff" i],
+    [data-bs-theme="dark"] [style*="background: #ffffff" i],
+    [data-bs-theme="dark"] [style*="background:#ffffff" i],
+    [data-bs-theme="dark"] [style*="background-color: white" i],
+    [data-bs-theme="dark"] [style*="background-color:white" i],
+    [data-bs-theme="dark"] [style*="background-color: #fff" i],
+    [data-bs-theme="dark"] [style*="background-color:#fff" i],
+    [data-bs-theme="dark"] [style*="background-color: #ffffff" i],
+    [data-bs-theme="dark"] [style*="background-color:#ffffff" i],
+    [data-bs-theme="dark"] [style*="background: #f8f9fa" i],
+    [data-bs-theme="dark"] [style*="background:#f8f9fa" i],
+    [data-bs-theme="dark"] [style*="background: #fafafa" i],
+    [data-bs-theme="dark"] [style*="background:#fafafa" i],
+    [data-bs-theme="dark"] [style*="background: #f9f9f9" i],
+    [data-bs-theme="dark"] [style*="background:#f9f9f9" i],
+    [data-bs-theme="dark"] [style*="background: #f1f3f5" i],
+    [data-bs-theme="dark"] [style*="background:#f1f3f5" i],
+    [data-bs-theme="dark"] [style*="background: #f2f2f2" i],
+    [data-bs-theme="dark"] [style*="background:#f2f2f2" i],
+    [data-bs-theme="dark"] [style*="background: #e9ecef" i],
+    [data-bs-theme="dark"] [style*="background:#e9ecef" i],
+    [data-bs-theme="dark"] [style*="background-color: #f8f9fa" i],
+    [data-bs-theme="dark"] [style*="background-color:#f8f9fa" i],
+    [data-bs-theme="dark"] [style*="background-color: #fafafa" i],
+    [data-bs-theme="dark"] [style*="background-color:#fafafa" i],
+    [data-bs-theme="dark"] [style*="background-color: #f9f9f9" i],
+    [data-bs-theme="dark"] [style*="background-color:#f9f9f9" i],
+    [data-bs-theme="dark"] [style*="background-color: #f1f3f5" i],
+    [data-bs-theme="dark"] [style*="background-color:#f1f3f5" i],
+    [data-bs-theme="dark"] [style*="background-color: #f2f2f2" i],
+    [data-bs-theme="dark"] [style*="background-color:#f2f2f2" i],
+    [data-bs-theme="dark"] [style*="background-color: #e9ecef" i],
+    [data-bs-theme="dark"] [style*="background-color:#e9ecef" i] {
+      background: var(--surface-bg) !important;
+      color: var(--text-main) !important;
+      border-color: var(--border-color) !important;
+    }
+
+    [data-bs-theme="dark"] [style*="background:#f0fdf4" i],
+    [data-bs-theme="dark"] [style*="background: #f0fdf4" i],
+    [data-bs-theme="dark"] [style*="background:#dcfce7" i],
+    [data-bs-theme="dark"] [style*="background: #dcfce7" i],
+    [data-bs-theme="dark"] [style*="background:#d1fae5" i],
+    [data-bs-theme="dark"] [style*="background: #d1fae5" i] {
+      background: var(--success-soft-bg) !important;
+      color: var(--success-soft-text) !important;
+    }
+
+    [data-bs-theme="dark"] [style*="background:#fef2f2" i],
+    [data-bs-theme="dark"] [style*="background: #fef2f2" i],
+    [data-bs-theme="dark"] [style*="background:#fee2e2" i],
+    [data-bs-theme="dark"] [style*="background: #fee2e2" i],
+    [data-bs-theme="dark"] [style*="background:#fff5f5" i],
+    [data-bs-theme="dark"] [style*="background: #fff5f5" i] {
+      background: var(--danger-soft-bg) !important;
+      color: var(--danger-soft-text) !important;
+    }
+
+    [data-bs-theme="dark"] [style*="background:#fef3c7" i],
+    [data-bs-theme="dark"] [style*="background: #fef3c7" i],
+    [data-bs-theme="dark"] [style*="background:#fef9c3" i],
+    [data-bs-theme="dark"] [style*="background: #fef9c3" i],
+    [data-bs-theme="dark"] [style*="background:#fffbeb" i],
+    [data-bs-theme="dark"] [style*="background: #fffbeb" i],
+    [data-bs-theme="dark"] [style*="background:#fff3cd" i],
+    [data-bs-theme="dark"] [style*="background: #fff3cd" i] {
+      background: var(--warning-soft-bg) !important;
+      color: var(--warning-soft-text) !important;
+    }
+
+    [data-bs-theme="dark"] [style*="background:#dbeafe" i],
+    [data-bs-theme="dark"] [style*="background: #dbeafe" i],
+    [data-bs-theme="dark"] [style*="background:#cfe2ff" i],
+    [data-bs-theme="dark"] [style*="background: #cfe2ff" i] {
+      background: rgba(96, 165, 250, 0.16) !important;
+      color: #bfdbfe !important;
+    }
+
+    [data-bs-theme="dark"] [style*="background:#ede9fe" i],
+    [data-bs-theme="dark"] [style*="background: #ede9fe" i],
+    [data-bs-theme="dark"] [style*="background:#e2d9f3" i],
+    [data-bs-theme="dark"] [style*="background: #e2d9f3" i] {
+      background: rgba(167, 139, 250, 0.16) !important;
+      color: #ddd6fe !important;
+    }
+
+    [data-bs-theme="dark"] #helpCenterModal .list-group-item {
+      border-bottom-color: var(--border-color) !important;
+    }
+
+    [data-bs-theme="dark"] #helpCenterModal .modal-header.bg-dark {
+      background-color: #111827 !important;
+    }
+  </style>
+</head>
+
+<body class="hybrid-nav">
+
+<!-- ════════════════════════════════════════════
+     SIDEBAR
+     ════════════════════════════════════════════ -->
+<nav id="sidebar">
+  <div class="brand">
+    <i class="bi bi-bar-chart-fill" style="color:var(--accent);"></i>
+    Akshaya Vistara
+  </div>
+
+  {% if current_company %}
+  <div class="nav-label">
+    <i class="bi bi-building me-1"></i> {{ current_company.name }}
+  </div>
+  {% endif %}
+
+  {# Shorthand variables — plain assignment, no expressions #}
+  {% with app=request.resolver_match.app_name url=request.resolver_match.url_name %}
+
+  {# Dashboard #}
+  <a href="{% url 'core:dashboard' %}"
+     class="nav-link {% if url == 'dashboard' %}active{% endif %}">
+    <i class="bi bi-speedometer2"></i> Dashboard
+  </a>
+
+  {# ── CA Practice (collapsible) ── #}
+  <button class="nav-section-btn"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#nav-ca-practice"
+          aria-controls="nav-ca-practice"
+          aria-expanded="{% if app == 'integrations' or url == 'ca_command_center' or url == 'ca_command_center_autopilot' or url == 'ca_approval_inbox' or url == 'statutory_exposure' or url == 'statutory_export_center' or url == 'client_operating_readiness' or url == 'client_pilot_launch' or url == 'client_success_cockpit' or url == 'client_portal_health' or url == 'pilot_adoption_evidence' or url == 'pilot_feedback_register' or url == 'market_proof_pack' or url == 'market_external_evidence' or url == 'market_case_studies' or url == 'partner_review_cockpit' or url == 'client_engagements' or url == 'client_engagement_alert_tasks' or url == 'client_engagement_update' or url == 'client_360' or url == 'ca_client_profitability' or url == 'filing_review_center' or url == 'gst_filing_pack' or url == 'gst_filing_pack_download' or url == 'gst_post_filing' or url == 'gst_post_filing_dashboard' or url == 'filing_readiness' or url == 'client_requests' or url == 'client_request_reminders' or url == 'client_request_campaign' or url == 'client_request_create' or url == 'compliance_calendar' or url == 'gst_workbench' or url == 'gst_workbench_detail' or url == 'gst_workbench_execution_pack' or url == 'practice_tasks' or url == 'practice_task_create' or url == 'practice_task_update' or url == 'compliance_filings' or url == 'compliance_filing_create' or url == 'compliance_filing_update' or url == 'compliance_notices' or url == 'compliance_notice_create' or url == 'compliance_notice_update' %}true{% else %}false{% endif %}">
+    <span class="nav-section-label">
+      <i class="bi bi-briefcase"></i> CA Practice
+    </span>
+    <i class="bi bi-chevron-down nav-chevron"></i>
+  </button>
+  <div class="collapse nav-collapse {% if app == 'integrations' or url == 'ca_command_center' or url == 'ca_command_center_autopilot' or url == 'ca_approval_inbox' or url == 'statutory_exposure' or url == 'statutory_export_center' or url == 'client_operating_readiness' or url == 'client_pilot_launch' or url == 'client_success_cockpit' or url == 'client_portal_health' or url == 'pilot_adoption_evidence' or url == 'pilot_feedback_register' or url == 'market_proof_pack' or url == 'market_external_evidence' or url == 'market_case_studies' or url == 'partner_review_cockpit' or url == 'client_engagements' or url == 'client_engagement_alert_tasks' or url == 'client_engagement_update' or url == 'client_360' or url == 'ca_client_profitability' or url == 'filing_review_center' or url == 'gst_filing_pack' or url == 'gst_filing_pack_download' or url == 'gst_post_filing' or url == 'gst_post_filing_dashboard' or url == 'filing_readiness' or url == 'client_requests' or url == 'client_request_reminders' or url == 'client_request_campaign' or url == 'client_request_create' or url == 'compliance_calendar' or url == 'gst_workbench' or url == 'gst_workbench_detail' or url == 'gst_workbench_execution_pack' or url == 'practice_tasks' or url == 'practice_task_create' or url == 'practice_task_update' or url == 'compliance_filings' or url == 'compliance_filing_create' or url == 'compliance_filing_update' or url == 'compliance_notices' or url == 'compliance_notice_create' or url == 'compliance_notice_update' %}show{% endif %}" id="nav-ca-practice">
+    <a href="{% url 'core:ca_command_center' %}" class="nav-link hybrid-sidebar-entry {% if url == 'ca_command_center' or url == 'ca_command_center_autopilot' or url == 'ca_approval_inbox' or url == 'partner_review_cockpit' or url == 'practice_tasks' or url == 'practice_task_create' or url == 'practice_task_update' or url == 'compliance_filings' or url == 'compliance_filing_create' or url == 'compliance_filing_update' or url == 'compliance_notices' or url == 'compliance_notice_create' or url == 'compliance_notice_update' %}active{% endif %}">
+      <i class="bi bi-kanban"></i> Practice
+    </a>
+    <a href="{% url 'core:client_operating_readiness' %}" class="nav-link hybrid-sidebar-entry {% if url == 'client_operating_readiness' or url == 'client_success_cockpit' or url == 'client_portal_health' or url == 'client_engagements' or url == 'client_engagement_alert_tasks' or url == 'client_engagement_update' or url == 'client_360' or url == 'ca_client_profitability' or url == 'client_requests' or url == 'client_request_reminders' or url == 'client_request_campaign' or url == 'client_request_create' %}active{% endif %}">
+      <i class="bi bi-people"></i> Clients
+    </a>
+    <a href="{% url 'core:client_pilot_launch' %}" class="nav-link hybrid-sidebar-entry {% if url == 'client_pilot_launch' or url == 'pilot_adoption_evidence' or url == 'pilot_feedback_register' %}active{% endif %}">
+      <i class="bi bi-rocket-takeoff"></i> Pilot
+    </a>
+    <a href="{% url 'core:market_proof_pack' %}" class="nav-link hybrid-sidebar-entry {% if url == 'market_proof_pack' or url == 'market_external_evidence' or url == 'market_case_studies' %}active{% endif %}">
+      <i class="bi bi-award"></i> Market Proof
+    </a>
+    <a href="{% url 'core:statutory_exposure' %}" class="nav-link hybrid-sidebar-entry {% if url == 'statutory_exposure' or url == 'statutory_export_center' or url == 'filing_review_center' or url == 'gst_filing_pack' or url == 'gst_filing_pack_download' or url == 'gst_post_filing' or url == 'gst_post_filing_dashboard' or url == 'filing_readiness' or url == 'compliance_calendar' or url == 'gst_workbench' or url == 'gst_workbench_detail' or url == 'gst_workbench_execution_pack' or app == 'integrations' and url == 'statutory_control' or app == 'integrations' and url == 'provider_readiness' or app == 'integrations' and url == 'provider_retry_job_update' or app == 'integrations' and url == 'e_invoice_cockpit' or app == 'integrations' and url == 'e_way_bill_cockpit' or app == 'integrations' and url == 'gst_result_import' or app == 'integrations' and url == 'traces_result_import' or app == 'integrations' and url == 'evidence_center' %}active{% endif %}">
+      <i class="bi bi-shield-check"></i> GST / Statutory
+    </a>
+    <a href="{% url 'integrations:bank_feed_import' %}" class="nav-link hybrid-sidebar-entry {% if app == 'integrations' and url == 'bank_feed_import' or app == 'integrations' and url != 'statutory_control' and url != 'provider_readiness' and url != 'provider_retry_job_update' and url != 'bank_feed_import' and url != 'e_invoice_cockpit' and url != 'e_way_bill_cockpit' and url != 'gst_result_import' and url != 'traces_result_import' and url != 'evidence_center' %}active{% endif %}">
+      <i class="bi bi-plug"></i> Integrations
+    </a>
+    <button class="nav-subsection-btn"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#nav-ca-practice-core"
+            aria-controls="nav-ca-practice-core"
+            aria-expanded="{% if url == 'ca_command_center' or url == 'ca_command_center_autopilot' or url == 'ca_approval_inbox' or url == 'partner_review_cockpit' or url == 'practice_tasks' or url == 'practice_task_create' or url == 'practice_task_update' or url == 'compliance_filings' or url == 'compliance_filing_create' or url == 'compliance_filing_update' or url == 'compliance_notices' or url == 'compliance_notice_create' or url == 'compliance_notice_update' %}true{% else %}false{% endif %}">
+      <span><i class="bi bi-kanban"></i> Practice</span>
+      <i class="bi bi-chevron-down nav-chevron"></i>
+    </button>
+    <div class="collapse nav-subcollapse {% if url == 'ca_command_center' or url == 'ca_command_center_autopilot' or url == 'ca_approval_inbox' or url == 'partner_review_cockpit' or url == 'practice_tasks' or url == 'practice_task_create' or url == 'practice_task_update' or url == 'compliance_filings' or url == 'compliance_filing_create' or url == 'compliance_filing_update' or url == 'compliance_notices' or url == 'compliance_notice_create' or url == 'compliance_notice_update' %}show{% endif %}" id="nav-ca-practice-core">
+      <a href="{% url 'core:ca_command_center' %}" class="nav-link {% if url == 'ca_command_center' %}active{% endif %}">
+        <i class="bi bi-kanban"></i> Command Center
+      </a>
+      <a href="{% url 'core:ca_approval_inbox' %}" class="nav-link {% if url == 'ca_approval_inbox' %}active{% endif %}">
+        <i class="bi bi-inboxes"></i> Approval Inbox
+      </a>
+      <a href="{% url 'core:partner_review_cockpit' %}" class="nav-link {% if url == 'partner_review_cockpit' %}active{% endif %}">
+        <i class="bi bi-person-check"></i> Partner Review
+      </a>
+      <a href="{% url 'core:practice_tasks' %}" class="nav-link {% if url == 'practice_tasks' or url == 'practice_task_create' or url == 'practice_task_update' %}active{% endif %}">
+        <i class="bi bi-list-check"></i> Work Queue
+      </a>
+      <a href="{% url 'core:compliance_filings' %}" class="nav-link {% if url == 'compliance_filings' or url == 'compliance_filing_create' or url == 'compliance_filing_update' %}active{% endif %}">
+        <i class="bi bi-calendar-check"></i> Filings
+      </a>
+      <a href="{% url 'core:compliance_notices' %}" class="nav-link {% if url == 'compliance_notices' or url == 'compliance_notice_create' or url == 'compliance_notice_update' %}active{% endif %}">
+        <i class="bi bi-exclamation-diamond"></i> Notices
+      </a>
+    </div>
+
+    <button class="nav-subsection-btn"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#nav-ca-clients"
+            aria-controls="nav-ca-clients"
+            aria-expanded="{% if url == 'client_operating_readiness' or url == 'client_success_cockpit' or url == 'client_portal_health' or url == 'client_engagements' or url == 'client_engagement_alert_tasks' or url == 'client_engagement_update' or url == 'client_360' or url == 'ca_client_profitability' or url == 'client_requests' or url == 'client_request_reminders' or url == 'client_request_campaign' or url == 'client_request_create' %}true{% else %}false{% endif %}">
+      <span><i class="bi bi-people"></i> Clients</span>
+      <i class="bi bi-chevron-down nav-chevron"></i>
+    </button>
+    <div class="collapse nav-subcollapse {% if url == 'client_operating_readiness' or url == 'client_success_cockpit' or url == 'client_portal_health' or url == 'client_engagements' or url == 'client_engagement_alert_tasks' or url == 'client_engagement_update' or url == 'client_360' or url == 'ca_client_profitability' or url == 'client_requests' or url == 'client_request_reminders' or url == 'client_request_campaign' or url == 'client_request_create' %}show{% endif %}" id="nav-ca-clients">
+      <a href="{% url 'core:client_operating_readiness' %}" class="nav-link {% if url == 'client_operating_readiness' %}active{% endif %}">
+        <i class="bi bi-clipboard2-check"></i> Operating Readiness
+      </a>
+      <a href="{% url 'core:client_success_cockpit' %}" class="nav-link {% if url == 'client_success_cockpit' %}active{% endif %}">
+        <i class="bi bi-heart-pulse"></i> Client Success
+      </a>
+      <a href="{% url 'core:client_portal_health' %}" class="nav-link {% if url == 'client_portal_health' %}active{% endif %}">
+        <i class="bi bi-person-lines-fill"></i> Portal Health
+      </a>
+      <a href="{% url 'core:client_engagements' %}" class="nav-link {% if url == 'client_engagements' or url == 'client_engagement_update' %}active{% endif %}">
+        <i class="bi bi-person-vcard"></i> Engagements
+      </a>
+      <a href="{% url 'core:ca_client_profitability' %}" class="nav-link {% if url == 'ca_client_profitability' or url == 'client_360' %}active{% endif %}">
+        <i class="bi bi-graph-up-arrow"></i> Client Profitability
+      </a>
+      <a href="{% url 'portal:client_requests' %}" class="nav-link {% if url == 'client_requests' or url == 'client_request_create' %}active{% endif %}">
+        <i class="bi bi-inbox"></i> Client Requests
+      </a>
+      <a href="{% url 'portal:client_request_campaign' %}" class="nav-link {% if url == 'client_request_campaign' %}active{% endif %}">
+        <i class="bi bi-megaphone"></i> Request Campaign
+      </a>
+      <a href="{% url 'portal:client_request_reminders' %}" class="nav-link {% if url == 'client_request_reminders' %}active{% endif %}">
+        <i class="bi bi-bell"></i> Request Reminders
+      </a>
+    </div>
+
+    <button class="nav-subsection-btn"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#nav-ca-pilot"
+            aria-controls="nav-ca-pilot"
+            aria-expanded="{% if url == 'client_pilot_launch' or url == 'pilot_adoption_evidence' or url == 'pilot_feedback_register' %}true{% else %}false{% endif %}">
+      <span><i class="bi bi-rocket-takeoff"></i> Pilot</span>
+      <i class="bi bi-chevron-down nav-chevron"></i>
+    </button>
+    <div class="collapse nav-subcollapse {% if url == 'client_pilot_launch' or url == 'pilot_adoption_evidence' or url == 'pilot_feedback_register' %}show{% endif %}" id="nav-ca-pilot">
+      <a href="{% url 'core:client_pilot_launch' %}" class="nav-link {% if url == 'client_pilot_launch' %}active{% endif %}">
+        <i class="bi bi-rocket-takeoff"></i> Pilot Launch
+      </a>
+      <a href="{% url 'core:pilot_adoption_evidence' %}" class="nav-link {% if url == 'pilot_adoption_evidence' %}active{% endif %}">
+        <i class="bi bi-clipboard2-pulse"></i> Pilot Evidence
+      </a>
+      <a href="{% url 'core:pilot_feedback_register' %}" class="nav-link {% if url == 'pilot_feedback_register' %}active{% endif %}">
+        <i class="bi bi-chat-square-text"></i> Pilot Feedback
+      </a>
+    </div>
+
+    <button class="nav-subsection-btn"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#nav-ca-market"
+            aria-controls="nav-ca-market"
+            aria-expanded="{% if url == 'market_proof_pack' or url == 'market_external_evidence' or url == 'market_case_studies' %}true{% else %}false{% endif %}">
+      <span><i class="bi bi-award"></i> Market Proof</span>
+      <i class="bi bi-chevron-down nav-chevron"></i>
+    </button>
+    <div class="collapse nav-subcollapse {% if url == 'market_proof_pack' or url == 'market_external_evidence' or url == 'market_case_studies' %}show{% endif %}" id="nav-ca-market">
+      <a href="{% url 'core:market_proof_pack' %}" class="nav-link {% if url == 'market_proof_pack' %}active{% endif %}">
+        <i class="bi bi-award"></i> Market Proof
+      </a>
+      <a href="{% url 'core:market_external_evidence' %}" class="nav-link {% if url == 'market_external_evidence' %}active{% endif %}">
+        <i class="bi bi-journal-check"></i> External Evidence
+      </a>
+      <a href="{% url 'core:market_case_studies' %}" class="nav-link {% if url == 'market_case_studies' %}active{% endif %}">
+        <i class="bi bi-megaphone"></i> Case Studies
+      </a>
+    </div>
+
+    <button class="nav-subsection-btn"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#nav-ca-gst"
+            aria-controls="nav-ca-gst"
+            aria-expanded="{% if url == 'statutory_exposure' or url == 'statutory_export_center' or url == 'filing_review_center' or url == 'gst_filing_pack' or url == 'gst_filing_pack_download' or url == 'gst_post_filing' or url == 'gst_post_filing_dashboard' or url == 'filing_readiness' or url == 'compliance_calendar' or url == 'gst_workbench' or url == 'gst_workbench_detail' or url == 'gst_workbench_execution_pack' or app == 'integrations' and url == 'statutory_control' or app == 'integrations' and url == 'provider_readiness' or app == 'integrations' and url == 'provider_retry_job_update' or app == 'integrations' and url == 'e_invoice_cockpit' or app == 'integrations' and url == 'e_way_bill_cockpit' or app == 'integrations' and url == 'gst_result_import' or app == 'integrations' and url == 'traces_result_import' or app == 'integrations' and url == 'evidence_center' %}true{% else %}false{% endif %}">
+      <span><i class="bi bi-shield-check"></i> GST / Statutory</span>
+      <i class="bi bi-chevron-down nav-chevron"></i>
+    </button>
+    <div class="collapse nav-subcollapse {% if url == 'statutory_exposure' or url == 'statutory_export_center' or url == 'filing_review_center' or url == 'gst_filing_pack' or url == 'gst_filing_pack_download' or url == 'gst_post_filing' or url == 'gst_post_filing_dashboard' or url == 'filing_readiness' or url == 'compliance_calendar' or url == 'gst_workbench' or url == 'gst_workbench_detail' or url == 'gst_workbench_execution_pack' or app == 'integrations' and url == 'statutory_control' or app == 'integrations' and url == 'provider_readiness' or app == 'integrations' and url == 'provider_retry_job_update' or app == 'integrations' and url == 'e_invoice_cockpit' or app == 'integrations' and url == 'e_way_bill_cockpit' or app == 'integrations' and url == 'gst_result_import' or app == 'integrations' and url == 'traces_result_import' or app == 'integrations' and url == 'evidence_center' %}show{% endif %}" id="nav-ca-gst">
+      <a href="{% url 'core:statutory_exposure' %}" class="nav-link {% if url == 'statutory_exposure' %}active{% endif %}">
+        <i class="bi bi-cash-coin"></i> Statutory Exposure
+      </a>
+      <a href="{% url 'core:statutory_export_center' %}" class="nav-link {% if url == 'statutory_export_center' %}active{% endif %}">
+        <i class="bi bi-file-earmark-spreadsheet"></i> Export Center
+      </a>
+      <a href="{% url 'core:filing_review_center' %}" class="nav-link {% if url == 'filing_review_center' %}active{% endif %}">
+        <i class="bi bi-patch-check"></i> Review Center
+      </a>
+      <a href="{% url 'core:gst_filing_pack' %}" class="nav-link {% if url == 'gst_filing_pack' or url == 'gst_filing_pack_download' %}active{% endif %}">
+        <i class="bi bi-file-earmark-spreadsheet"></i> GST Filing Pack
+      </a>
+      <a href="{% url 'core:gst_post_filing' %}" class="nav-link {% if url == 'gst_post_filing' %}active{% endif %}">
+        <i class="bi bi-archive"></i> GST Post-Filing
+      </a>
+      <a href="{% url 'core:gst_post_filing_dashboard' %}" class="nav-link {% if url == 'gst_post_filing_dashboard' %}active{% endif %}">
+        <i class="bi bi-columns-gap"></i> GST Closure Board
+      </a>
+      <a href="{% url 'core:filing_readiness' %}" class="nav-link {% if url == 'filing_readiness' %}active{% endif %}">
+        <i class="bi bi-clipboard2-check"></i> Filing Readiness
+      </a>
+      <a href="{% url 'core:compliance_calendar' %}" class="nav-link {% if url == 'compliance_calendar' %}active{% endif %}">
+        <i class="bi bi-calendar2-week"></i> Calendar
+      </a>
+      <a href="{% url 'core:gst_workbench' %}" class="nav-link {% if url == 'gst_workbench' or url == 'gst_workbench_detail' or url == 'gst_workbench_execution_pack' %}active{% endif %}">
+        <i class="bi bi-shield-check"></i> GST Workbench
+      </a>
+      <a href="{% url 'integrations:statutory_control' %}" class="nav-link {% if app == 'integrations' and url == 'statutory_control' %}active{% endif %}">
+        <i class="bi bi-router"></i> Integration Control
+      </a>
+      <a href="{% url 'integrations:provider_readiness' %}" class="nav-link {% if app == 'integrations' and url == 'provider_readiness' or app == 'integrations' and url == 'provider_retry_job_update' %}active{% endif %}">
+        <i class="bi bi-shield-lock"></i> Provider Go-Live
+      </a>
+      <a href="{% url 'integrations:e_invoice_cockpit' %}" class="nav-link {% if app == 'integrations' and url == 'e_invoice_cockpit' %}active{% endif %}">
+        <i class="bi bi-receipt"></i> E-Invoice Cockpit
+      </a>
+      <a href="{% url 'integrations:e_way_bill_cockpit' %}" class="nav-link {% if app == 'integrations' and url == 'e_way_bill_cockpit' %}active{% endif %}">
+        <i class="bi bi-truck"></i> E-Way Bill Cockpit
+      </a>
+      <a href="{% url 'integrations:gst_result_import' %}" class="nav-link {% if app == 'integrations' and url == 'gst_result_import' %}active{% endif %}">
+        <i class="bi bi-upload"></i> GST Results
+      </a>
+      <a href="{% url 'integrations:traces_result_import' %}" class="nav-link {% if app == 'integrations' and url == 'traces_result_import' %}active{% endif %}">
+        <i class="bi bi-upload"></i> TRACES Results
+      </a>
+      <a href="{% url 'integrations:evidence_center' %}" class="nav-link {% if app == 'integrations' and url == 'evidence_center' %}active{% endif %}">
+        <i class="bi bi-file-earmark-check"></i> Evidence Center
+      </a>
+    </div>
+
+    <button class="nav-subsection-btn"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#nav-ca-integrations"
+            aria-controls="nav-ca-integrations"
+            aria-expanded="{% if app == 'integrations' and url == 'bank_feed_import' or app == 'integrations' and url != 'statutory_control' and url != 'provider_readiness' and url != 'provider_retry_job_update' and url != 'bank_feed_import' and url != 'e_invoice_cockpit' and url != 'e_way_bill_cockpit' and url != 'gst_result_import' and url != 'traces_result_import' and url != 'evidence_center' %}true{% else %}false{% endif %}">
+      <span><i class="bi bi-plug"></i> Integrations</span>
+      <i class="bi bi-chevron-down nav-chevron"></i>
+    </button>
+    <div class="collapse nav-subcollapse {% if app == 'integrations' and url == 'bank_feed_import' or app == 'integrations' and url != 'statutory_control' and url != 'provider_readiness' and url != 'provider_retry_job_update' and url != 'bank_feed_import' and url != 'e_invoice_cockpit' and url != 'e_way_bill_cockpit' and url != 'gst_result_import' and url != 'traces_result_import' and url != 'evidence_center' %}show{% endif %}" id="nav-ca-integrations">
+      <a href="{% url 'integrations:bank_feed_import' %}" class="nav-link {% if app == 'integrations' and url == 'bank_feed_import' %}active{% endif %}">
+        <i class="bi bi-bank"></i> Bank Feed Import
+      </a>
+      <a href="{% url 'integrations:dashboard' %}" class="nav-link {% if app == 'integrations' and url != 'statutory_control' and url != 'provider_readiness' and url != 'provider_retry_job_update' and url != 'bank_feed_import' and url != 'e_invoice_cockpit' and url != 'e_way_bill_cockpit' and url != 'gst_result_import' and url != 'traces_result_import' and url != 'evidence_center' %}active{% endif %}">
+        <i class="bi bi-plug"></i> Integrations
+      </a>
+    </div>
+  </div>
+
+  {# ── Accounting (collapsible) ── #}
+  <button class="nav-section-btn"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#nav-accounting"
+          aria-controls="nav-accounting"
+          aria-expanded="{% if app == 'ledger' or app == 'vouchers' or app == 'receivables' or app == 'gstr2b' or url == 'accounting_close' or url == 'collections_command_center' or url == 'bank_reco_autopilot' %}true{% else %}false{% endif %}">
+    <span class="nav-section-label">
+      <i class="bi bi-calculator"></i> Accounting
+    </span>
+    <i class="bi bi-chevron-down nav-chevron"></i>
+  </button>
+  <div class="collapse nav-collapse {% if app == 'ledger' or app == 'vouchers' or app == 'receivables' or app == 'gstr2b' or url == 'accounting_close' or url == 'collections_command_center' or url == 'bank_reco_autopilot' %}show{% endif %}" id="nav-accounting">
+    <a href="{% url 'ledger:list' %}"
+       class="nav-link {% if app == 'ledger' %}active{% endif %}">
+      <i class="bi bi-journal-text"></i> Ledgers
+    </a>
+    <a href="{% url 'vouchers:list' %}"
+       class="nav-link {% if app == 'vouchers' and url == 'list' %}active{% endif %}">
+      <i class="bi bi-receipt"></i> Vouchers
+    </a>
+    <a href="{% url 'vouchers:quality' %}"
+       class="nav-link {% if app == 'vouchers' and url == 'quality' %}active{% endif %}">
+      <i class="bi bi-shield-exclamation"></i> Voucher Quality
+    </a>
+    <a href="{% url 'core:collections_command_center' %}"
+       class="nav-link {% if url == 'collections_command_center' %}active{% endif %}">
+      <i class="bi bi-cash-stack"></i> Collections
+    </a>
+    <a href="{% url 'core:bank_reco_autopilot' %}"
+       class="nav-link {% if url == 'bank_reco_autopilot' %}active{% endif %}">
+      <i class="bi bi-bank"></i> Bank Autopilot
+    </a>
+    <a href="{% url 'core:accounting_close' %}"
+       class="nav-link {% if url == 'accounting_close' %}active{% endif %}">
+      <i class="bi bi-clipboard-check"></i> Close Workbench
+    </a>
+    <a href="{% url 'vouchers:create' %}"
+       class="nav-link {% if app == 'vouchers' and url == 'create' %}active{% endif %}">
+      <i class="bi bi-plus-circle"></i> New Voucher
+    </a>
+    <a href="{% url 'vouchers:outstanding' %}"
+       class="nav-link {% if url == 'outstanding' %}active{% endif %}">
+      <i class="bi bi-hourglass-split"></i> Outstanding
+    </a>
+    <a href="{% url 'receivables:bulk_settlement' %}"
+       class="nav-link {% if url == 'bulk_settlement' %}active{% endif %}">
+      <i class="bi bi-arrow-left-right"></i> Bulk Settlement
+    </a>
+
+    <a href="{% url 'gstr2b:upload' %}"
+       class="nav-link {% if app == 'gstr2b' %}active{% endif %}">
+      <i class="bi bi-shield-check"></i> GSTR-2B Reconciliation
+    </a>
+  </div>
+
+
+  {# ── Reports (collapsible) ── #}
+  <button class="nav-section-btn"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#nav-reports"
+          aria-controls="nav-reports"
+          aria-expanded="{% if app == 'reports' %}true{% else %}false{% endif %}">
+    <span class="nav-section-label">
+      <i class="bi bi-bar-chart-line"></i> Reports
+    </span>
+    <i class="bi bi-chevron-down nav-chevron"></i>
+  </button>
+  <div class="collapse nav-collapse {% if app == 'reports' %}show{% endif %}" id="nav-reports">
+    <a href="{% url 'reports:dashboard_financials' %}" class="nav-link hybrid-sidebar-entry {% if url == 'home' or url == 'dashboard_financials' or url == 'day_book' %}active{% endif %}">
+      <i class="bi bi-grid-1x2"></i> Overview
+    </a>
+    <a href="{% url 'reports:profit_loss_simple' %}" class="nav-link hybrid-sidebar-entry {% if url == 'profit_loss_simple' or url == 'balance_sheet_simple' or url == 'trial_balance_simple' or url == 'group_detail' or url == 'ledger_detail' %}active{% endif %}">
+      <i class="bi bi-list-columns-reverse"></i> Core Financials
+    </a>
+    <a href="{% url 'reports:profit_loss' %}" class="nav-link hybrid-sidebar-entry {% if url == 'profit_loss' or url == 'balance_sheet' or url == 'trial_balance' or url == 'project_pnl' %}active{% endif %}">
+      <i class="bi bi-journal-bookmark"></i> Detailed Statements
+    </a>
+    <a href="{% url 'reports:receivables_aging' %}" class="nav-link hybrid-sidebar-entry {% if url == 'receivables_aging' or url == 'msme_overdue' or url == 'cash_flow' or url == 'cash_flow_forecast' %}active{% endif %}">
+      <i class="bi bi-cash-stack"></i> Cash &amp; Credit
+    </a>
+    <a href="{% url 'reports:gst_report' %}" class="nav-link hybrid-sidebar-entry {% if url == 'gst_report' or url == 'gstr1_export' or url == 'gstr3b_export' %}active{% endif %}">
+      <i class="bi bi-percent"></i> GST Reports
+    </a>
+
+    <button class="nav-subsection-btn"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#nav-reports-overview"
+            aria-controls="nav-reports-overview"
+            aria-expanded="{% if url == 'home' or url == 'dashboard_financials' or url == 'day_book' %}true{% else %}false{% endif %}">
+      <span><i class="bi bi-grid-1x2"></i> Overview</span>
+      <i class="bi bi-chevron-down nav-chevron"></i>
+    </button>
+    <div class="collapse nav-subcollapse {% if url == 'home' or url == 'dashboard_financials' or url == 'day_book' %}show{% endif %}" id="nav-reports-overview">
+      <a href="{% url 'reports:home' %}" class="nav-link {% if url == 'home' %}active{% endif %}">
+        <i class="bi bi-house"></i> Reports Home
+      </a>
+      <a href="{% url 'reports:dashboard_financials' %}" class="nav-link {% if url == 'dashboard_financials' %}active{% endif %}">
+        <i class="bi bi-grid-1x2"></i> Financial Dashboard
+      </a>
+      <a href="{% url 'reports:day_book' %}" class="nav-link {% if url == 'day_book' %}active{% endif %}">
+        <i class="bi bi-calendar-check"></i> Day Book
+      </a>
+    </div>
+
+    <button class="nav-subsection-btn"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#nav-reports-core"
+            aria-controls="nav-reports-core"
+            aria-expanded="{% if url == 'profit_loss_simple' or url == 'balance_sheet_simple' or url == 'trial_balance_simple' or url == 'group_detail' or url == 'ledger_detail' %}true{% else %}false{% endif %}">
+      <span><i class="bi bi-list-columns-reverse"></i> Core Financials</span>
+      <i class="bi bi-chevron-down nav-chevron"></i>
+    </button>
+    <div class="collapse nav-subcollapse {% if url == 'profit_loss_simple' or url == 'balance_sheet_simple' or url == 'trial_balance_simple' or url == 'group_detail' or url == 'ledger_detail' %}show{% endif %}" id="nav-reports-core">
+      <a href="{% url 'reports:profit_loss_simple' %}" class="nav-link {% if url == 'profit_loss_simple' %}active{% endif %}">
+        <i class="bi bi-bar-chart-line"></i> P&amp;L Simple
+      </a>
+      <a href="{% url 'reports:balance_sheet_simple' %}" class="nav-link {% if url == 'balance_sheet_simple' %}active{% endif %}">
+        <i class="bi bi-journal-bookmark"></i> Balance Sheet Simple
+      </a>
+      <a href="{% url 'reports:trial_balance_simple' %}" class="nav-link {% if url == 'trial_balance_simple' or url == 'group_detail' or url == 'ledger_detail' %}active{% endif %}">
+        <i class="bi bi-list-columns-reverse"></i> Trial Balance Simple
+      </a>
+    </div>
+
+    <button class="nav-subsection-btn"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#nav-reports-detailed"
+            aria-controls="nav-reports-detailed"
+            aria-expanded="{% if url == 'profit_loss' or url == 'balance_sheet' or url == 'trial_balance' or url == 'project_pnl' %}true{% else %}false{% endif %}">
+      <span><i class="bi bi-journal-bookmark"></i> Detailed Statements</span>
+      <i class="bi bi-chevron-down nav-chevron"></i>
+    </button>
+    <div class="collapse nav-subcollapse {% if url == 'profit_loss' or url == 'balance_sheet' or url == 'trial_balance' or url == 'project_pnl' %}show{% endif %}" id="nav-reports-detailed">
+      <a href="{% url 'reports:profit_loss' %}" class="nav-link {% if url == 'profit_loss' %}active{% endif %}">
+        <i class="bi bi-bar-chart-line"></i> Profit &amp; Loss
+      </a>
+      <a href="{% url 'reports:balance_sheet' %}" class="nav-link {% if url == 'balance_sheet' %}active{% endif %}">
+        <i class="bi bi-journal-bookmark"></i> Balance Sheet
+      </a>
+      <a href="{% url 'reports:trial_balance' %}" class="nav-link {% if url == 'trial_balance' %}active{% endif %}">
+        <i class="bi bi-list-columns-reverse"></i> Trial Balance
+      </a>
+    </div>
+
+    <button class="nav-subsection-btn"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#nav-reports-cash"
+            aria-controls="nav-reports-cash"
+            aria-expanded="{% if url == 'receivables_aging' or url == 'msme_overdue' or url == 'cash_flow' or url == 'cash_flow_forecast' %}true{% else %}false{% endif %}">
+      <span><i class="bi bi-cash-stack"></i> Cash &amp; Credit</span>
+      <i class="bi bi-chevron-down nav-chevron"></i>
+    </button>
+    <div class="collapse nav-subcollapse {% if url == 'receivables_aging' or url == 'msme_overdue' or url == 'cash_flow' or url == 'cash_flow_forecast' %}show{% endif %}" id="nav-reports-cash">
+      <a href="{% url 'reports:receivables_aging' %}" class="nav-link {% if url == 'receivables_aging' %}active{% endif %}">
+        <i class="bi bi-hourglass-split"></i> Receivables Aging
+      </a>
+      <a href="{% url 'reports:msme_overdue' %}" class="nav-link {% if url == 'msme_overdue' %}active{% endif %}">
+        <i class="bi bi-exclamation-diamond"></i> MSME Overdue
+      </a>
+      <a href="{% url 'reports:cash_flow' %}" class="nav-link {% if url == 'cash_flow' %}active{% endif %}">
+        <i class="bi bi-water"></i> Cash Flow
+      </a>
+      <a href="{% url 'reports:cash_flow_forecast' %}" class="nav-link {% if url == 'cash_flow_forecast' %}active{% endif %}">
+        <i class="bi bi-graph-up-arrow"></i> Cash Flow Forecast
+      </a>
+    </div>
+
+    <button class="nav-subsection-btn"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#nav-reports-gst"
+            aria-controls="nav-reports-gst"
+            aria-expanded="{% if url == 'gst_report' or url == 'gstr1_export' or url == 'gstr3b_export' %}true{% else %}false{% endif %}">
+      <span><i class="bi bi-percent"></i> GST Reports</span>
+      <i class="bi bi-chevron-down nav-chevron"></i>
+    </button>
+    <div class="collapse nav-subcollapse {% if url == 'gst_report' or url == 'gstr1_export' or url == 'gstr3b_export' %}show{% endif %}" id="nav-reports-gst">
+      <a href="{% url 'reports:gst_report' %}" class="nav-link {% if url == 'gst_report' %}active{% endif %}">
+        <i class="bi bi-percent"></i> GST Report
+      </a>
+      <a href="{% url 'reports:gstr1_export' %}" class="nav-link {% if url == 'gstr1_export' %}active{% endif %}">
+        <i class="bi bi-filetype-json"></i> GSTR-1 Export
+      </a>
+      <a href="{% url 'reports:gstr3b_export' %}" class="nav-link {% if url == 'gstr3b_export' %}active{% endif %}">
+        <i class="bi bi-filetype-json"></i> GSTR-3B Export
+      </a>
+    </div>
+  </div>
+
+  {# ── Cost Centers (collapsible) ── #}
+  <button class="nav-section-btn"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#nav-costcenter"
+          aria-controls="nav-costcenter"
+          aria-expanded="{% if app == 'costcenter' %}true{% else %}false{% endif %}">
+    <span class="nav-section-label">
+      <i class="bi bi-grid-3x3-gap"></i> Cost Centers
+    </span>
+    <i class="bi bi-chevron-down nav-chevron"></i>
+  </button>
+  <div class="collapse nav-collapse {% if app == 'costcenter' %}show{% endif %}" id="nav-costcenter">
+    <a href="{% url 'costcenter:cost_center_list' %}"
+       class="nav-link {% if app == 'costcenter' and url == 'cost_center_list' %}active{% endif %}">
+      <i class="bi bi-diagram-3"></i> Cost Centers
+    </a>
+    <a href="{% url 'costcenter:cost_center_create' %}"
+       class="nav-link {% if app == 'costcenter' and url == 'cost_center_create' %}active{% endif %}">
+      <i class="bi bi-plus-square"></i> Add Cost Center
+    </a>
+    <a href="{% url 'costcenter:budget_list' %}"
+       class="nav-link {% if app == 'costcenter' and url == 'budget_list' %}active{% endif %}">
+      <i class="bi bi-bar-chart-steps"></i> Budget Heads
+    </a>
+  </div>
+
+  {# ── Orders (collapsible) ── #}
+  <button class="nav-section-btn"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#nav-orders"
+          aria-controls="nav-orders"
+          aria-expanded="{% if app == 'orders' %}true{% else %}false{% endif %}">
+    <span class="nav-section-label">
+      <i class="bi bi-cart3"></i> Orders
+    </span>
+    <i class="bi bi-chevron-down nav-chevron"></i>
+  </button>
+  <div class="collapse nav-collapse {% if app == 'orders' %}show{% endif %}" id="nav-orders">
+    <a href="{% url 'orders:order_list' %}"
+       class="nav-link {% if app == 'orders' and url == 'order_list' %}active{% endif %}">
+      <i class="bi bi-list-ul"></i> All Orders
+    </a>
+    <a href="{% url 'orders:order_create' %}"
+       class="nav-link {% if app == 'orders' and url == 'order_create' %}active{% endif %}">
+      <i class="bi bi-plus-square"></i> New Order
+    </a>
+    <a href="{% url 'orders:open_orders' %}"
+       class="nav-link {% if app == 'orders' and url == 'open_orders' %}active{% endif %}">
+      <i class="bi bi-hourglass-split"></i> Open Orders
+    </a>
+  </div>
+
+  {# ── Inventory (collapsible) ── #}
+  <button class="nav-section-btn"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#nav-inventory"
+          aria-controls="nav-inventory"
+          aria-expanded="{% if app == 'inventory' %}true{% else %}false{% endif %}">
+    <span class="nav-section-label">
+      <i class="bi bi-boxes"></i> Inventory
+    </span>
+    <i class="bi bi-chevron-down nav-chevron"></i>
+  </button>
+  <div class="collapse nav-collapse {% if app == 'inventory' %}show{% endif %}" id="nav-inventory">
+    <a href="{% url 'inventory:list' %}"
+       class="nav-link {% if app == 'inventory' and url == 'list' %}active{% endif %}">
+      <i class="bi bi-boxes"></i> Stock Items
+    </a>
+    <a href="{% url 'inventory:create' %}"
+       class="nav-link {% if app == 'inventory' and url == 'create' %}active{% endif %}">
+      <i class="bi bi-plus-square"></i> Add Stock Item
+    </a>
+    <a href="{% url 'inventory:summary' %}"
+       class="nav-link {% if app == 'inventory' and url == 'summary' %}active{% endif %}">
+      <i class="bi bi-table"></i> Stock Summary
+    </a>
+    <a href="{% url 'inventory:valuation' %}"
+       class="nav-link {% if app == 'inventory' and url == 'valuation' %}active{% endif %}">
+      <i class="bi bi-currency-rupee"></i> Stock Valuation
+    </a>
+    <a href="{% url 'inventory:low_stock' %}"
+       class="nav-link {% if app == 'inventory' and url == 'low_stock' %}active{% endif %}">
+      <i class="bi bi-exclamation-triangle"></i> Low Stock Alerts
+    </a>
+    <a href="{% url 'inventory:godown_list' %}"
+       class="nav-link {% if app == 'inventory' and url == 'godown_list' %}active{% endif %}">
+      <i class="bi bi-building"></i> Godowns
+    </a>
+    <a href="{% url 'inventory:batch_list' %}"
+       class="nav-link {% if app == 'inventory' and url == 'batch_list' %}active{% endif %}">
+      <i class="bi bi-layers"></i> Batches
+    </a>
+  </div>
+
+  {# ── Payroll (collapsible) ── #}
+  <button class="nav-section-btn"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#nav-payroll"
+          aria-controls="nav-payroll"
+          aria-expanded="{% if app == 'payroll' %}true{% else %}false{% endif %}">
+    <span class="nav-section-label">
+      <i class="bi bi-cash-coin"></i> Payroll
+    </span>
+    <i class="bi bi-chevron-down nav-chevron"></i>
+  </button>
+  <div class="collapse nav-collapse {% if app == 'payroll' %}show{% endif %}" id="nav-payroll">
+    <a href="{% url 'payroll:employee_list' %}"
+       class="nav-link {% if app == 'payroll' and url == 'employee_list' %}active{% endif %}">
+      <i class="bi bi-people"></i> Employees
+    </a>
+    <a href="{% url 'payroll:salary_structure_list' %}"
+       class="nav-link {% if app == 'payroll' and url == 'salary_structure_list' %}active{% endif %}">
+      <i class="bi bi-sliders"></i> Salary Structures
+    </a>
+    <a href="{% url 'payroll:payroll_run_list' %}"
+       class="nav-link {% if app == 'payroll' and url == 'payroll_run_list' %}active{% endif %}">
+      <i class="bi bi-calendar-check"></i> Payroll Runs
+    </a>
+    <a href="{% url 'payroll:payroll_summary' %}"
+       class="nav-link {% if app == 'payroll' and url == 'payroll_summary' %}active{% endif %}">
+      <i class="bi bi-table"></i> Salary Register
+    </a>
+  </div>
+
+  {# ── Fixed Assets (collapsible) ── #}
+  <button class="nav-section-btn"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#nav-fixedassets"
+          aria-controls="nav-fixedassets"
+          aria-expanded="{% if app == 'fixedassets' %}true{% else %}false{% endif %}">
+    <span class="nav-section-label">
+      <i class="bi bi-buildings"></i> Fixed Assets
+    </span>
+    <i class="bi bi-chevron-down nav-chevron"></i>
+  </button>
+  <div class="collapse nav-collapse {% if app == 'fixedassets' %}show{% endif %}" id="nav-fixedassets">
+    <a href="{% url 'fixedassets:asset_list' %}"
+       class="nav-link {% if app == 'fixedassets' and url == 'asset_list' %}active{% endif %}">
+      <i class="bi bi-list-ul"></i> Assets
+    </a>
+    <a href="{% url 'fixedassets:asset_register' %}"
+       class="nav-link {% if app == 'fixedassets' and url == 'asset_register' %}active{% endif %}">
+      <i class="bi bi-table"></i> Asset Register
+    </a>
+    <a href="{% url 'fixedassets:asset_group_list' %}"
+       class="nav-link {% if app == 'fixedassets' and url == 'asset_group_list' %}active{% endif %}">
+      <i class="bi bi-folder2"></i> Asset Groups
+    </a>
+  </div>
+
+  {# ── TDS / TCS (collapsible) ── #}
+  <button class="nav-section-btn"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#nav-tds"
+          aria-controls="nav-tds"
+          aria-expanded="{% if app == 'tds' %}true{% else %}false{% endif %}">
+    <span class="nav-section-label">
+      <i class="bi bi-percent"></i> TDS / TCS
+    </span>
+    <i class="bi bi-chevron-down nav-chevron"></i>
+  </button>
+  <div class="collapse nav-collapse {% if app == 'tds' %}show{% endif %}" id="nav-tds">
+    <a href="{% url 'tds:return_workbench' %}"
+       class="nav-link {% if app == 'tds' and url == 'return_workbench' %}active{% endif %}">
+      <i class="bi bi-clipboard2-check"></i> Return Workbench
+    </a>
+    <a href="{% url 'tds:filing_pack' %}"
+       class="nav-link {% if app == 'tds' and url == 'filing_pack' or app == 'tds' and url == 'filing_pack_download' %}active{% endif %}">
+      <i class="bi bi-archive"></i> Filing Pack
+    </a>
+    <a href="{% url 'tds:post_filing_center' %}"
+       class="nav-link {% if app == 'tds' and url == 'post_filing_center' %}active{% endif %}">
+      <i class="bi bi-patch-check"></i> Post-Filing
+    </a>
+    <a href="{% url 'tds:entry_list' %}"
+       class="nav-link {% if app == 'tds' and url == 'entry_list' %}active{% endif %}">
+      <i class="bi bi-receipt-cutoff"></i> TDS Entries
+    </a>
+    <a href="{% url 'tds:tds_register' %}"
+       class="nav-link {% if app == 'tds' and url == 'tds_register' %}active{% endif %}">
+      <i class="bi bi-file-earmark-text"></i> TDS Register
+    </a>
+    <a href="{% url 'tds:section_list' %}"
+       class="nav-link {% if app == 'tds' and url == 'section_list' %}active{% endif %}">
+      <i class="bi bi-bookmarks"></i> Sections
+    </a>
+  </div>
+
+  {# ── Multi-currency (collapsible) ── #}
+  <button class="nav-section-btn"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#nav-forex"
+          aria-controls="nav-forex"
+          aria-expanded="{% if app == 'forex' %}true{% else %}false{% endif %}">
+    <span class="nav-section-label">
+      <i class="bi bi-currency-exchange"></i> Multi-currency
+    </span>
+    <i class="bi bi-chevron-down nav-chevron"></i>
+  </button>
+  <div class="collapse nav-collapse {% if app == 'forex' %}show{% endif %}" id="nav-forex">
+    <a href="{% url 'forex:forex_position' %}"
+       class="nav-link {% if app == 'forex' and url == 'forex_position' %}active{% endif %}">
+      <i class="bi bi-globe2"></i> Forex Position
+    </a>
+    <a href="{% url 'forex:currency_list' %}"
+       class="nav-link {% if app == 'forex' and url == 'currency_list' %}active{% endif %}">
+      <i class="bi bi-coin"></i> Currencies
+    </a>
+    <a href="{% url 'forex:exchange_rate_list' %}"
+       class="nav-link {% if app == 'forex' and url == 'exchange_rate_list' %}active{% endif %}">
+      <i class="bi bi-graph-up"></i> Exchange Rates
+    </a>
+  </div>
+
+  {# ── Automation (collapsible) ── #}
+  <button class="nav-section-btn"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#nav-automation"
+          aria-controls="nav-automation"
+          aria-expanded="{% if app == 'ocr' %}true{% else %}false{% endif %}">
+    <span class="nav-section-label">
+      <i class="bi bi-robot"></i> Document Inbox
+    </span>
+    <i class="bi bi-chevron-down nav-chevron"></i>
+  </button>
+  <div class="collapse nav-collapse {% if app == 'ocr' %}show{% endif %}" id="nav-automation">
+    <a href="{% url 'ocr:upload' %}"
+       class="nav-link {% if app == 'ocr' and url == 'upload' %}active{% endif %}">
+      <i class="bi bi-camera"></i> Scan Bill / OCR
+    </a>
+    <a href="{% url 'ocr:list' %}"
+       class="nav-link {% if app == 'ocr' and url == 'list' %}active{% endif %}">
+      <i class="bi bi-collection"></i> OCR Submissions
+    </a>
+  </div>
+
+  {# ── Settings (collapsible) ── #}
+  <button class="nav-section-btn"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#nav-settings"
+          aria-controls="nav-settings"
+          aria-expanded="{% if app == 'migration' or url == 'bank_statement_list' or url == 'bank_statement_upload' or url == 'bank_statement_detail' or url == 'bank_reconciliation_report' or url == 'audit_log' or url == 'setup_wizard' or url == 'demo_workspace' or url == 'app_settings' or url == 'company_settings' or url == 'select_company' or url == 'compliance_health' or url == 'security_control' or url == 'operations_monitor' or url == 'system_observability' or url == 'go_live_certificate' or url == 'production_trust_center' %}true{% else %}false{% endif %}">
+    <span class="nav-section-label">
+      <i class="bi bi-gear"></i> Settings
+    </span>
+    <i class="bi bi-chevron-down nav-chevron"></i>
+  </button>
+  <div class="collapse nav-collapse {% if app == 'migration' or url == 'bank_statement_list' or url == 'bank_statement_upload' or url == 'bank_statement_detail' or url == 'bank_reconciliation_report' or url == 'audit_log' or url == 'setup_wizard' or url == 'demo_workspace' or url == 'app_settings' or url == 'company_settings' or url == 'select_company' or url == 'compliance_health' or url == 'security_control' or url == 'operations_monitor' or url == 'system_observability' or url == 'go_live_certificate' or url == 'production_trust_center' %}show{% endif %}" id="nav-settings">
+    <a href="{% url 'core:setup_wizard' %}" class="nav-link hybrid-sidebar-entry {% if url == 'setup_wizard' or url == 'demo_workspace' or url == 'app_settings' or url == 'company_settings' or url == 'select_company' %}active{% endif %}">
+      <i class="bi bi-sliders"></i> Setup
+    </a>
+    <a href="{% url 'core:bank_statement_list' %}" class="nav-link hybrid-sidebar-entry {% if app == 'migration' or url == 'bank_statement_list' or url == 'bank_statement_upload' or url == 'bank_statement_detail' or url == 'bank_reconciliation_report' %}active{% endif %}">
+      <i class="bi bi-database"></i> Data &amp; Migration
+    </a>
+    <a href="{% url 'core:compliance_health' %}" class="nav-link hybrid-sidebar-entry {% if url == 'compliance_health' or url == 'audit_log' or url == 'security_control' %}active{% endif %}">
+      <i class="bi bi-shield-check"></i> Governance
+    </a>
+    {% if request.user.is_staff or request.user.is_superuser %}
+    <a href="{% url 'core:operations_monitor' %}" class="nav-link hybrid-sidebar-entry {% if url == 'operations_monitor' or url == 'system_observability' or url == 'go_live_certificate' or url == 'production_trust_center' %}active{% endif %}">
+      <i class="bi bi-activity"></i> Operations
+    </a>
+    {% endif %}
+    <button class="nav-subsection-btn"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#nav-settings-setup"
+            aria-controls="nav-settings-setup"
+            aria-expanded="{% if url == 'setup_wizard' or url == 'demo_workspace' or url == 'app_settings' or url == 'company_settings' or url == 'select_company' %}true{% else %}false{% endif %}">
+      <span><i class="bi bi-sliders"></i> Setup</span>
+      <i class="bi bi-chevron-down nav-chevron"></i>
+    </button>
+    <div class="collapse nav-subcollapse {% if url == 'setup_wizard' or url == 'demo_workspace' or url == 'app_settings' or url == 'company_settings' or url == 'select_company' %}show{% endif %}" id="nav-settings-setup">
+      <a href="{% url 'core:setup_wizard' %}"
+         class="nav-link {% if url == 'setup_wizard' %}active{% endif %}">
+        <i class="bi bi-ui-checks-grid"></i> Setup Wizard
+      </a>
+      <a href="{% url 'core:demo_workspace' %}"
+         class="nav-link {% if url == 'demo_workspace' %}active{% endif %}">
+        <i class="bi bi-play-circle"></i> Demo Mode
+      </a>
+      <a href="{% url 'core:app_settings' %}"
+         class="nav-link {% if url == 'app_settings' %}active{% endif %}">
+        <i class="bi bi-sliders"></i> App Settings
+      </a>
+      {% if current_company_role == "Admin" %}
+      <a href="{% url 'core:company_settings' %}"
+         class="nav-link {% if url == 'company_settings' %}active{% endif %}">
+        <i class="bi bi-building-gear"></i> Company Settings
+      </a>
+      {% endif %}
+      <a href="{% url 'core:select_company' %}" class="nav-link {% if url == 'select_company' %}active{% endif %}">
+        <i class="bi bi-arrow-repeat"></i> Switch Company
+      </a>
+    </div>
+
+    <button class="nav-subsection-btn"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#nav-settings-data"
+            aria-controls="nav-settings-data"
+            aria-expanded="{% if app == 'migration' or url == 'bank_statement_list' or url == 'bank_statement_upload' or url == 'bank_statement_detail' or url == 'bank_reconciliation_report' %}true{% else %}false{% endif %}">
+      <span><i class="bi bi-database"></i> Data &amp; Migration</span>
+      <i class="bi bi-chevron-down nav-chevron"></i>
+    </button>
+    <div class="collapse nav-subcollapse {% if app == 'migration' or url == 'bank_statement_list' or url == 'bank_statement_upload' or url == 'bank_statement_detail' or url == 'bank_reconciliation_report' %}show{% endif %}" id="nav-settings-data">
+      <a href="{% url 'core:bank_statement_list' %}"
+         class="nav-link {% if url == 'bank_statement_list' or url == 'bank_statement_upload' or url == 'bank_statement_detail' %}active{% endif %}">
+        <i class="bi bi-bank"></i> Bank Reconciliation
+      </a>
+      <a href="{% url 'core:bank_reconciliation_report' %}"
+         class="nav-link {% if url == 'bank_reconciliation_report' %}active{% endif %}">
+        <i class="bi bi-file-earmark-check"></i> Recon Summary
+      </a>
+      <a href="{% url 'migration:exit_control' %}"
+         class="nav-link {% if app == 'migration' and url == 'exit_control' %}active{% endif %}">
+        <i class="bi bi-box-arrow-right"></i> Tally Exit Control
+      </a>
+      <a href="{% url 'migration:sessions' %}"
+         class="nav-link {% if app == 'migration' and url != 'exit_control' %}active{% endif %}">
+        <i class="bi bi-box-arrow-in-right"></i> Move from Tally
+      </a>
+    </div>
+
+    <button class="nav-subsection-btn"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#nav-settings-governance"
+            aria-controls="nav-settings-governance"
+            aria-expanded="{% if url == 'compliance_health' or url == 'audit_log' or url == 'security_control' %}true{% else %}false{% endif %}">
+      <span><i class="bi bi-shield-check"></i> Governance</span>
+      <i class="bi bi-chevron-down nav-chevron"></i>
+    </button>
+    <div class="collapse nav-subcollapse {% if url == 'compliance_health' or url == 'audit_log' or url == 'security_control' %}show{% endif %}" id="nav-settings-governance">
+      <a href="{% url 'core:compliance_health' %}"
+         class="nav-link {% if url == 'compliance_health' %}active{% endif %}">
+        <i class="bi bi-shield-check"></i> Compliance Health
+      </a>
+      <a href="{% url 'core:audit_log' %}"
+         class="nav-link {% if url == 'audit_log' %}active{% endif %}">
+        <i class="bi bi-journal-check"></i> Audit Trail
+      </a>
+      {% if request.user.is_staff or request.user.is_superuser or current_company_role == "Admin" %}
+        <a href="{% url 'core:security_control' %}"
+           class="nav-link {% if url == 'security_control' %}active{% endif %}">
+          <i class="bi bi-person-lock"></i> Security Control
+        </a>
+      {% endif %}
+    </div>
+
+    {% if request.user.is_staff or request.user.is_superuser %}
+    <button class="nav-subsection-btn"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#nav-settings-ops"
+            aria-controls="nav-settings-ops"
+            aria-expanded="{% if url == 'operations_monitor' or url == 'system_observability' or url == 'go_live_certificate' or url == 'production_trust_center' %}true{% else %}false{% endif %}">
+      <span><i class="bi bi-activity"></i> Operations</span>
+      <i class="bi bi-chevron-down nav-chevron"></i>
+    </button>
+    <div class="collapse nav-subcollapse nav-subcollapse-scroll {% if url == 'operations_monitor' or url == 'system_observability' or url == 'go_live_certificate' or url == 'production_trust_center' %}show{% endif %}" id="nav-settings-ops">
+      <a href="{% url 'core:operations_monitor' %}"
+         class="nav-link {% if url == 'operations_monitor' %}active{% endif %}">
+        <i class="bi bi-activity"></i> Operations Monitor
+      </a>
+      <a href="{% url 'core:system_observability' %}"
+         class="nav-link {% if url == 'system_observability' %}active{% endif %}">
+        <i class="bi bi-cpu"></i> System Observability
+      </a>
+      <a href="{% url 'core:go_live_certificate' %}"
+         class="nav-link {% if url == 'go_live_certificate' %}active{% endif %}">
+        <i class="bi bi-patch-check"></i> Go-Live Certificate
+      </a>
+      <a href="{% url 'core:production_trust_center' %}"
+         class="nav-link {% if url == 'production_trust_center' %}active{% endif %}">
+        <i class="bi bi-shield-lock"></i> Production Trust
+      </a>
+      <a href="{% url 'admin:index' %}" class="nav-link">
+        <i class="bi bi-gear"></i> Admin Panel
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+  {% endwith %}
+</nav>
+
+<!-- ════════════════════════════════════════════
+     MAIN CONTENT
+     ════════════════════════════════════════════ -->
+<div id="main-content">
+
+  <!-- Topbar -->
+  <div id="topbar">
+    <!-- Left: Context -->
+    <div class="d-flex align-items-center gap-2" style="flex: 1; min-width: 0;">
+      <button class="btn btn-sm btn-light d-md-none" id="sidebarToggle">
+        <i class="bi bi-list fs-5"></i>
+      </button>
+      <h6 class="mb-0 text-muted fw-normal text-truncate">{% block page_title %}{% endblock %}</h6>
+    </div>
+
+    <!-- Center: Universal Search -->
+    <div class="d-none d-md-flex justify-content-center" style="flex: 2;">
+      <div id="topbar-search-trigger">
+        <span><i class="bi bi-search me-2"></i> Search (Ctrl+K)</span>
+      </div>
+    </div>
+
+    <!-- Right: Actions -->
+    <div class="d-flex align-items-center justify-content-end gap-2" style="flex: 1;">
+      <!-- Company Selector -->
+      {% if user_companies %}
+      <div class="dropdown">
+        <button class="btn btn-sm btn-light border dropdown-toggle d-flex align-items-center gap-2" data-bs-toggle="dropdown">
+          <i class="bi bi-building text-muted"></i>
+          <span class="d-none d-lg-inline">{{ current_company.name|default:"Select Company" }}</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2">
+          {% for access in user_companies %}
+          <li>
+            <a class="dropdown-item {% if access.company == current_company %}active{% endif %}"
+               href="{% url 'core:switch_company' access.company.pk %}">
+              {{ access.company.name }}
+              <small class="text-muted ms-1">({{ access.role }})</small>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      <!-- Notification Center -->
+      <div class="dropdown">
+        <button type="button"
+                class="btn btn-sm btn-light border d-flex align-items-center justify-content-center notification-button"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+                title="Notifications">
+          <i class="bi bi-bell"></i>
+          {% if notification_summary.count %}
+            <span class="notification-badge bg-danger text-white">{{ notification_summary.count|default:0 }}</span>
+          {% endif %}
+        </button>
+        <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-2 notification-menu">
+          <div class="px-3 py-2 border-bottom">
+            <div class="fw-bold">Notification Center</div>
+            <div class="small text-muted">{{ current_company.name|default:"No company selected" }}</div>
+          </div>
+          {% if notification_summary.has_items %}
+            {% for item in notification_summary.items %}
+              <a href="{{ item.url }}" class="notification-item">
+                <span class="notification-icon {% if item.level == 'danger' %}bg-danger-subtle text-danger{% elif item.level == 'warning' %}bg-warning-subtle text-warning{% else %}bg-info-subtle text-info{% endif %}">
+                  <i class="bi {{ item.icon }}"></i>
+                </span>
+                <span class="min-w-0">
+                  <span class="notification-title d-block text-truncate">{{ item.title }}</span>
+                  <span class="notification-detail d-block">{{ item.detail }}</span>
+                </span>
+                <span class="badge {% if item.level == 'danger' %}bg-danger{% elif item.level == 'warning' %}bg-warning text-dark{% else %}bg-info{% endif %}">
+                  {{ item.count }}
+                </span>
+              </a>
+            {% endfor %}
+          {% else %}
+            <div class="p-4 text-center">
+              <i class="bi bi-check2-circle fs-3 text-success d-block mb-2"></i>
+              <div class="fw-semibold">No urgent work</div>
+              <div class="small text-muted">Setup, deadlines, notices, and client requests are clear.</div>
+            </div>
+          {% endif %}
+          <div class="px-3 py-2 border-top d-flex gap-2">
+            <a href="{% url 'core:setup_wizard' %}" class="btn btn-sm btn-outline-secondary flex-fill">Setup</a>
+            <a href="{% url 'core:practice_tasks' %}" class="btn btn-sm btn-primary flex-fill">Work Queue</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- User Profile -->
+      <div class="dropdown">
+        <button type="button" class="btn btn-sm btn-light border dropdown-toggle d-flex align-items-center gap-2" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-person-circle fs-5 text-muted"></i>
+          <span class="d-none d-sm-inline">{{ request.user.get_short_name }}</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-2 profile-menu">
+          <li>
+            <div class="px-3 py-2">
+              <div class="fw-bold text-truncate">{{ request.user.get_full_name }}</div>
+              <div class="small text-muted text-truncate">{{ request.user.email }}</div>
+            </div>
+          </li>
+          <li><hr class="dropdown-divider"></li>
+          <li>
+            <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#helpCenterModal">
+              <i class="bi bi-question-circle"></i> Help Center
+            </a>
+          </li>
+          <li><hr class="dropdown-divider"></li>
+          <li>
+            <a class="dropdown-item dropdown-item-danger" href="{% url 'accounts:logout' %}">
+              <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Standalone Theme Toggle -->
+      <button id="themeToggle" class="btn btn-sm btn-light border d-flex align-items-center justify-content-center" 
+              style="width: 32px; height: 32px; padding: 0;" title="Toggle Theme">
+        <i class="bi bi-sun-fill" id="themeIcon"></i>
+      </button>
+    </div>
+  </div><!-- /topbar -->
+
+  {% with app=request.resolver_match.app_name url=request.resolver_match.url_name %}
+  {% if app == 'integrations' or url == 'ca_command_center' or url == 'ca_command_center_autopilot' or url == 'ca_approval_inbox' or url == 'statutory_exposure' or url == 'statutory_export_center' or url == 'client_operating_readiness' or url == 'client_pilot_launch' or url == 'client_success_cockpit' or url == 'client_portal_health' or url == 'pilot_adoption_evidence' or url == 'pilot_feedback_register' or url == 'market_proof_pack' or url == 'market_external_evidence' or url == 'market_case_studies' or url == 'partner_review_cockpit' or url == 'client_engagements' or url == 'client_engagement_alert_tasks' or url == 'client_engagement_update' or url == 'client_360' or url == 'ca_client_profitability' or url == 'filing_review_center' or url == 'gst_filing_pack' or url == 'gst_filing_pack_download' or url == 'gst_post_filing' or url == 'gst_post_filing_dashboard' or url == 'filing_readiness' or url == 'client_requests' or url == 'client_request_reminders' or url == 'client_request_campaign' or url == 'client_request_create' or url == 'compliance_calendar' or url == 'gst_workbench' or url == 'gst_workbench_detail' or url == 'gst_workbench_execution_pack' or url == 'practice_tasks' or url == 'practice_task_create' or url == 'practice_task_update' or url == 'compliance_filings' or url == 'compliance_filing_create' or url == 'compliance_filing_update' or url == 'compliance_notices' or url == 'compliance_notice_create' or url == 'compliance_notice_update' %}
+  <nav class="context-nav" aria-label="CA Practice navigation">
+    <div class="context-nav__header">
+      <div class="context-nav__label"><i class="bi bi-briefcase"></i> CA Practice</div>
+      <div class="context-nav__tabs" role="list">
+        <a href="{% url 'core:ca_command_center' %}" class="context-nav__tab {% if url == 'ca_command_center' or url == 'ca_command_center_autopilot' or url == 'ca_approval_inbox' or url == 'partner_review_cockpit' or url == 'practice_tasks' or url == 'practice_task_create' or url == 'practice_task_update' or url == 'compliance_filings' or url == 'compliance_filing_create' or url == 'compliance_filing_update' or url == 'compliance_notices' or url == 'compliance_notice_create' or url == 'compliance_notice_update' %}active{% endif %}"><i class="bi bi-kanban"></i> Practice</a>
+        <a href="{% url 'core:client_operating_readiness' %}" class="context-nav__tab {% if url == 'client_operating_readiness' or url == 'client_success_cockpit' or url == 'client_portal_health' or url == 'client_engagements' or url == 'client_engagement_alert_tasks' or url == 'client_engagement_update' or url == 'client_360' or url == 'ca_client_profitability' or url == 'client_requests' or url == 'client_request_reminders' or url == 'client_request_campaign' or url == 'client_request_create' %}active{% endif %}"><i class="bi bi-people"></i> Clients</a>
+        <a href="{% url 'core:client_pilot_launch' %}" class="context-nav__tab {% if url == 'client_pilot_launch' or url == 'pilot_adoption_evidence' or url == 'pilot_feedback_register' %}active{% endif %}"><i class="bi bi-rocket-takeoff"></i> Pilot</a>
+        <a href="{% url 'core:market_proof_pack' %}" class="context-nav__tab {% if url == 'market_proof_pack' or url == 'market_external_evidence' or url == 'market_case_studies' %}active{% endif %}"><i class="bi bi-award"></i> Market Proof</a>
+        <a href="{% url 'core:statutory_exposure' %}" class="context-nav__tab {% if url == 'statutory_exposure' or url == 'statutory_export_center' or url == 'filing_review_center' or url == 'gst_filing_pack' or url == 'gst_filing_pack_download' or url == 'gst_post_filing' or url == 'gst_post_filing_dashboard' or url == 'filing_readiness' or url == 'compliance_calendar' or url == 'gst_workbench' or url == 'gst_workbench_detail' or url == 'gst_workbench_execution_pack' or app == 'integrations' and url == 'statutory_control' or app == 'integrations' and url == 'provider_readiness' or app == 'integrations' and url == 'provider_retry_job_update' or app == 'integrations' and url == 'e_invoice_cockpit' or app == 'integrations' and url == 'e_way_bill_cockpit' or app == 'integrations' and url == 'gst_result_import' or app == 'integrations' and url == 'traces_result_import' or app == 'integrations' and url == 'evidence_center' %}active{% endif %}"><i class="bi bi-shield-check"></i> GST / Statutory</a>
+        <a href="{% url 'integrations:bank_feed_import' %}" class="context-nav__tab {% if app == 'integrations' and url == 'bank_feed_import' or app == 'integrations' and url != 'statutory_control' and url != 'provider_readiness' and url != 'provider_retry_job_update' and url != 'bank_feed_import' and url != 'e_invoice_cockpit' and url != 'e_way_bill_cockpit' and url != 'gst_result_import' and url != 'traces_result_import' and url != 'evidence_center' %}active{% endif %}"><i class="bi bi-plug"></i> Integrations</a>
+      </div>
+    </div>
+    <div class="context-nav__links">
+      {% if url == 'ca_command_center' or url == 'ca_command_center_autopilot' or url == 'ca_approval_inbox' or url == 'partner_review_cockpit' or url == 'practice_tasks' or url == 'practice_task_create' or url == 'practice_task_update' or url == 'compliance_filings' or url == 'compliance_filing_create' or url == 'compliance_filing_update' or url == 'compliance_notices' or url == 'compliance_notice_create' or url == 'compliance_notice_update' %}
+        <a href="{% url 'core:ca_command_center' %}" class="context-nav__link {% if url == 'ca_command_center' %}active{% endif %}">Command Center</a>
+        <a href="{% url 'core:ca_approval_inbox' %}" class="context-nav__link {% if url == 'ca_approval_inbox' %}active{% endif %}">Approval Inbox</a>
+        <a href="{% url 'core:partner_review_cockpit' %}" class="context-nav__link {% if url == 'partner_review_cockpit' %}active{% endif %}">Partner Review</a>
+        <a href="{% url 'core:practice_tasks' %}" class="context-nav__link {% if url == 'practice_tasks' or url == 'practice_task_create' or url == 'practice_task_update' %}active{% endif %}">Work Queue</a>
+        <a href="{% url 'core:compliance_filings' %}" class="context-nav__link {% if url == 'compliance_filings' or url == 'compliance_filing_create' or url == 'compliance_filing_update' %}active{% endif %}">Filings</a>
+        <a href="{% url 'core:compliance_notices' %}" class="context-nav__link {% if url == 'compliance_notices' or url == 'compliance_notice_create' or url == 'compliance_notice_update' %}active{% endif %}">Notices</a>
+      {% elif url == 'client_operating_readiness' or url == 'client_success_cockpit' or url == 'client_portal_health' or url == 'client_engagements' or url == 'client_engagement_alert_tasks' or url == 'client_engagement_update' or url == 'client_360' or url == 'ca_client_profitability' or url == 'client_requests' or url == 'client_request_reminders' or url == 'client_request_campaign' or url == 'client_request_create' %}
+        <a href="{% url 'core:client_operating_readiness' %}" class="context-nav__link {% if url == 'client_operating_readiness' %}active{% endif %}">Operating Readiness</a>
+        <a href="{% url 'core:client_success_cockpit' %}" class="context-nav__link {% if url == 'client_success_cockpit' %}active{% endif %}">Client Success</a>
+        <a href="{% url 'core:client_portal_health' %}" class="context-nav__link {% if url == 'client_portal_health' %}active{% endif %}">Portal Health</a>
+        <a href="{% url 'core:client_engagements' %}" class="context-nav__link {% if url == 'client_engagements' or url == 'client_engagement_update' %}active{% endif %}">Engagements</a>
+        <a href="{% url 'core:ca_client_profitability' %}" class="context-nav__link {% if url == 'ca_client_profitability' or url == 'client_360' %}active{% endif %}">Profitability</a>
+        <a href="{% url 'portal:client_requests' %}" class="context-nav__link {% if url == 'client_requests' or url == 'client_request_create' %}active{% endif %}">Client Requests</a>
+        <a href="{% url 'portal:client_request_campaign' %}" class="context-nav__link {% if url == 'client_request_campaign' %}active{% endif %}">Campaign</a>
+        <a href="{% url 'portal:client_request_reminders' %}" class="context-nav__link {% if url == 'client_request_reminders' %}active{% endif %}">Reminders</a>
+      {% elif url == 'client_pilot_launch' or url == 'pilot_adoption_evidence' or url == 'pilot_feedback_register' %}
+        <a href="{% url 'core:client_pilot_launch' %}" class="context-nav__link {% if url == 'client_pilot_launch' %}active{% endif %}">Pilot Launch</a>
+        <a href="{% url 'core:pilot_adoption_evidence' %}" class="context-nav__link {% if url == 'pilot_adoption_evidence' %}active{% endif %}">Pilot Evidence</a>
+        <a href="{% url 'core:pilot_feedback_register' %}" class="context-nav__link {% if url == 'pilot_feedback_register' %}active{% endif %}">Pilot Feedback</a>
+      {% elif url == 'market_proof_pack' or url == 'market_external_evidence' or url == 'market_case_studies' %}
+        <a href="{% url 'core:market_proof_pack' %}" class="context-nav__link {% if url == 'market_proof_pack' %}active{% endif %}">Market Proof</a>
+        <a href="{% url 'core:market_external_evidence' %}" class="context-nav__link {% if url == 'market_external_evidence' %}active{% endif %}">External Evidence</a>
+        <a href="{% url 'core:market_case_studies' %}" class="context-nav__link {% if url == 'market_case_studies' %}active{% endif %}">Case Studies</a>
+      {% elif url == 'statutory_exposure' or url == 'statutory_export_center' or url == 'filing_review_center' or url == 'gst_filing_pack' or url == 'gst_filing_pack_download' or url == 'gst_post_filing' or url == 'gst_post_filing_dashboard' or url == 'filing_readiness' or url == 'compliance_calendar' or url == 'gst_workbench' or url == 'gst_workbench_detail' or url == 'gst_workbench_execution_pack' or app == 'integrations' and url == 'statutory_control' or app == 'integrations' and url == 'provider_readiness' or app == 'integrations' and url == 'provider_retry_job_update' or app == 'integrations' and url == 'e_invoice_cockpit' or app == 'integrations' and url == 'e_way_bill_cockpit' or app == 'integrations' and url == 'gst_result_import' or app == 'integrations' and url == 'traces_result_import' or app == 'integrations' and url == 'evidence_center' %}
+        <a href="{% url 'core:statutory_exposure' %}" class="context-nav__link {% if url == 'statutory_exposure' %}active{% endif %}">Exposure</a>
+        <a href="{% url 'core:statutory_export_center' %}" class="context-nav__link {% if url == 'statutory_export_center' %}active{% endif %}">Export Center</a>
+        <a href="{% url 'core:filing_review_center' %}" class="context-nav__link {% if url == 'filing_review_center' %}active{% endif %}">Review Center</a>
+        <a href="{% url 'core:gst_filing_pack' %}" class="context-nav__link {% if url == 'gst_filing_pack' or url == 'gst_filing_pack_download' %}active{% endif %}">GST Filing Pack</a>
+        <a href="{% url 'core:gst_post_filing' %}" class="context-nav__link {% if url == 'gst_post_filing' %}active{% endif %}">Post-Filing</a>
+        <a href="{% url 'core:gst_post_filing_dashboard' %}" class="context-nav__link {% if url == 'gst_post_filing_dashboard' %}active{% endif %}">Closure Board</a>
+        <a href="{% url 'core:filing_readiness' %}" class="context-nav__link {% if url == 'filing_readiness' %}active{% endif %}">Readiness</a>
+        <a href="{% url 'core:compliance_calendar' %}" class="context-nav__link {% if url == 'compliance_calendar' %}active{% endif %}">Calendar</a>
+        <a href="{% url 'core:gst_workbench' %}" class="context-nav__link {% if url == 'gst_workbench' or url == 'gst_workbench_detail' or url == 'gst_workbench_execution_pack' %}active{% endif %}">GST Workbench</a>
+        <a href="{% url 'integrations:statutory_control' %}" class="context-nav__link {% if app == 'integrations' and url == 'statutory_control' %}active{% endif %}">Integration Control</a>
+        <a href="{% url 'integrations:provider_readiness' %}" class="context-nav__link {% if app == 'integrations' and url == 'provider_readiness' or app == 'integrations' and url == 'provider_retry_job_update' %}active{% endif %}">Provider Go-Live</a>
+        <a href="{% url 'integrations:e_invoice_cockpit' %}" class="context-nav__link {% if app == 'integrations' and url == 'e_invoice_cockpit' %}active{% endif %}">E-Invoice</a>
+        <a href="{% url 'integrations:e_way_bill_cockpit' %}" class="context-nav__link {% if app == 'integrations' and url == 'e_way_bill_cockpit' %}active{% endif %}">E-Way Bill</a>
+        <a href="{% url 'integrations:gst_result_import' %}" class="context-nav__link {% if app == 'integrations' and url == 'gst_result_import' %}active{% endif %}">GST Results</a>
+        <a href="{% url 'integrations:traces_result_import' %}" class="context-nav__link {% if app == 'integrations' and url == 'traces_result_import' %}active{% endif %}">TRACES</a>
+        <a href="{% url 'integrations:evidence_center' %}" class="context-nav__link {% if app == 'integrations' and url == 'evidence_center' %}active{% endif %}">Evidence Center</a>
+      {% elif app == 'integrations' %}
+        <a href="{% url 'integrations:bank_feed_import' %}" class="context-nav__link {% if url == 'bank_feed_import' %}active{% endif %}">Bank Feed</a>
+        <a href="{% url 'integrations:dashboard' %}" class="context-nav__link {% if url != 'bank_feed_import' %}active{% endif %}">Integrations</a>
+      {% endif %}
+    </div>
+  </nav>
+  {% elif app == 'migration' or url == 'bank_statement_list' or url == 'bank_statement_upload' or url == 'bank_statement_detail' or url == 'bank_reconciliation_report' or url == 'audit_log' or url == 'setup_wizard' or url == 'demo_workspace' or url == 'app_settings' or url == 'company_settings' or url == 'select_company' or url == 'compliance_health' or url == 'security_control' or url == 'operations_monitor' or url == 'system_observability' or url == 'go_live_certificate' or url == 'production_trust_center' %}
+  <nav class="context-nav" aria-label="Settings navigation">
+    <div class="context-nav__header">
+      <div class="context-nav__label"><i class="bi bi-gear"></i> Settings</div>
+      <div class="context-nav__tabs" role="list">
+        <a href="{% url 'core:setup_wizard' %}" class="context-nav__tab {% if url == 'setup_wizard' or url == 'demo_workspace' or url == 'app_settings' or url == 'company_settings' or url == 'select_company' %}active{% endif %}"><i class="bi bi-sliders"></i> Setup</a>
+        <a href="{% url 'core:bank_statement_list' %}" class="context-nav__tab {% if app == 'migration' or url == 'bank_statement_list' or url == 'bank_statement_upload' or url == 'bank_statement_detail' or url == 'bank_reconciliation_report' %}active{% endif %}"><i class="bi bi-database"></i> Data &amp; Migration</a>
+        <a href="{% url 'core:compliance_health' %}" class="context-nav__tab {% if url == 'compliance_health' or url == 'audit_log' or url == 'security_control' %}active{% endif %}"><i class="bi bi-shield-check"></i> Governance</a>
+        {% if request.user.is_staff or request.user.is_superuser %}
+        <a href="{% url 'core:operations_monitor' %}" class="context-nav__tab {% if url == 'operations_monitor' or url == 'system_observability' or url == 'go_live_certificate' or url == 'production_trust_center' %}active{% endif %}"><i class="bi bi-activity"></i> Operations</a>
+        {% endif %}
+      </div>
+    </div>
+    <div class="context-nav__links">
+      {% if url == 'setup_wizard' or url == 'demo_workspace' or url == 'app_settings' or url == 'company_settings' or url == 'select_company' %}
+        <a href="{% url 'core:setup_wizard' %}" class="context-nav__link {% if url == 'setup_wizard' %}active{% endif %}">Setup Wizard</a>
+        <a href="{% url 'core:demo_workspace' %}" class="context-nav__link {% if url == 'demo_workspace' %}active{% endif %}">Demo Mode</a>
+        <a href="{% url 'core:app_settings' %}" class="context-nav__link {% if url == 'app_settings' %}active{% endif %}">App Settings</a>
+        {% if current_company_role == "Admin" %}
+        <a href="{% url 'core:company_settings' %}" class="context-nav__link {% if url == 'company_settings' %}active{% endif %}">Company Settings</a>
+        {% endif %}
+        <a href="{% url 'core:select_company' %}" class="context-nav__link {% if url == 'select_company' %}active{% endif %}">Switch Company</a>
+      {% elif app == 'migration' or url == 'bank_statement_list' or url == 'bank_statement_upload' or url == 'bank_statement_detail' or url == 'bank_reconciliation_report' %}
+        <a href="{% url 'core:bank_statement_list' %}" class="context-nav__link {% if url == 'bank_statement_list' or url == 'bank_statement_upload' or url == 'bank_statement_detail' %}active{% endif %}">Bank Reconciliation</a>
+        <a href="{% url 'core:bank_reconciliation_report' %}" class="context-nav__link {% if url == 'bank_reconciliation_report' %}active{% endif %}">Recon Summary</a>
+        <a href="{% url 'migration:exit_control' %}" class="context-nav__link {% if app == 'migration' and url == 'exit_control' %}active{% endif %}">Tally Exit Control</a>
+        <a href="{% url 'migration:sessions' %}" class="context-nav__link {% if app == 'migration' and url != 'exit_control' %}active{% endif %}">Move from Tally</a>
+      {% elif url == 'compliance_health' or url == 'audit_log' or url == 'security_control' %}
+        <a href="{% url 'core:compliance_health' %}" class="context-nav__link {% if url == 'compliance_health' %}active{% endif %}">Compliance Health</a>
+        <a href="{% url 'core:audit_log' %}" class="context-nav__link {% if url == 'audit_log' %}active{% endif %}">Audit Trail</a>
+        {% if request.user.is_staff or request.user.is_superuser or current_company_role == "Admin" %}
+        <a href="{% url 'core:security_control' %}" class="context-nav__link {% if url == 'security_control' %}active{% endif %}">Security Control</a>
+        {% endif %}
+      {% elif url == 'operations_monitor' or url == 'system_observability' or url == 'go_live_certificate' or url == 'production_trust_center' %}
+        <a href="{% url 'core:operations_monitor' %}" class="context-nav__link {% if url == 'operations_monitor' %}active{% endif %}">Operations Monitor</a>
+        <a href="{% url 'core:system_observability' %}" class="context-nav__link {% if url == 'system_observability' %}active{% endif %}">System Observability</a>
+        <a href="{% url 'core:go_live_certificate' %}" class="context-nav__link {% if url == 'go_live_certificate' %}active{% endif %}">Go-Live Certificate</a>
+        <a href="{% url 'core:production_trust_center' %}" class="context-nav__link {% if url == 'production_trust_center' %}active{% endif %}">Production Trust</a>
+        <a href="{% url 'admin:index' %}" class="context-nav__link">Admin Panel</a>
+      {% endif %}
+    </div>
+  </nav>
+  {% elif app == 'reports' %}
+  <nav class="context-nav" aria-label="Reports navigation">
+    <div class="context-nav__header">
+      <div class="context-nav__label"><i class="bi bi-bar-chart-line"></i> Reports</div>
+      <div class="context-nav__tabs" role="list">
+        <a href="{% url 'reports:dashboard_financials' %}" class="context-nav__tab {% if url == 'home' or url == 'dashboard_financials' or url == 'day_book' %}active{% endif %}"><i class="bi bi-grid-1x2"></i> Overview</a>
+        <a href="{% url 'reports:profit_loss_simple' %}" class="context-nav__tab {% if url == 'profit_loss_simple' or url == 'balance_sheet_simple' or url == 'trial_balance_simple' or url == 'group_detail' or url == 'ledger_detail' %}active{% endif %}"><i class="bi bi-list-columns-reverse"></i> Core Financials</a>
+        <a href="{% url 'reports:profit_loss' %}" class="context-nav__tab {% if url == 'profit_loss' or url == 'balance_sheet' or url == 'trial_balance' or url == 'project_pnl' %}active{% endif %}"><i class="bi bi-journal-bookmark"></i> Detailed Statements</a>
+        <a href="{% url 'reports:receivables_aging' %}" class="context-nav__tab {% if url == 'receivables_aging' or url == 'msme_overdue' or url == 'cash_flow' or url == 'cash_flow_forecast' %}active{% endif %}"><i class="bi bi-cash-stack"></i> Cash &amp; Credit</a>
+        <a href="{% url 'reports:gst_report' %}" class="context-nav__tab {% if url == 'gst_report' or url == 'gstr1_export' or url == 'gstr3b_export' %}active{% endif %}"><i class="bi bi-percent"></i> GST Reports</a>
+      </div>
+    </div>
+    <div class="context-nav__links">
+      {% if url == 'home' or url == 'dashboard_financials' or url == 'day_book' %}
+        <a href="{% url 'reports:home' %}" class="context-nav__link {% if url == 'home' %}active{% endif %}">Reports Home</a>
+        <a href="{% url 'reports:dashboard_financials' %}" class="context-nav__link {% if url == 'dashboard_financials' %}active{% endif %}">Financial Dashboard</a>
+        <a href="{% url 'reports:day_book' %}" class="context-nav__link {% if url == 'day_book' %}active{% endif %}">Day Book</a>
+      {% elif url == 'profit_loss_simple' or url == 'balance_sheet_simple' or url == 'trial_balance_simple' or url == 'group_detail' or url == 'ledger_detail' %}
+        <a href="{% url 'reports:profit_loss_simple' %}" class="context-nav__link {% if url == 'profit_loss_simple' %}active{% endif %}">P&amp;L Simple</a>
+        <a href="{% url 'reports:balance_sheet_simple' %}" class="context-nav__link {% if url == 'balance_sheet_simple' %}active{% endif %}">Balance Sheet Simple</a>
+        <a href="{% url 'reports:trial_balance_simple' %}" class="context-nav__link {% if url == 'trial_balance_simple' or url == 'group_detail' or url == 'ledger_detail' %}active{% endif %}">Trial Balance Simple</a>
+      {% elif url == 'profit_loss' or url == 'balance_sheet' or url == 'trial_balance' or url == 'project_pnl' %}
+        <a href="{% url 'reports:profit_loss' %}" class="context-nav__link {% if url == 'profit_loss' %}active{% endif %}">Profit &amp; Loss</a>
+        <a href="{% url 'reports:balance_sheet' %}" class="context-nav__link {% if url == 'balance_sheet' %}active{% endif %}">Balance Sheet</a>
+        <a href="{% url 'reports:trial_balance' %}" class="context-nav__link {% if url == 'trial_balance' %}active{% endif %}">Trial Balance</a>
+        {% if url == 'project_pnl' %}
+        <span class="context-nav__link active" aria-current="page">Project P&amp;L</span>
+        {% endif %}
+      {% elif url == 'receivables_aging' or url == 'msme_overdue' or url == 'cash_flow' or url == 'cash_flow_forecast' %}
+        <a href="{% url 'reports:receivables_aging' %}" class="context-nav__link {% if url == 'receivables_aging' %}active{% endif %}">Receivables Aging</a>
+        <a href="{% url 'reports:msme_overdue' %}" class="context-nav__link {% if url == 'msme_overdue' %}active{% endif %}">MSME Overdue</a>
+        <a href="{% url 'reports:cash_flow' %}" class="context-nav__link {% if url == 'cash_flow' %}active{% endif %}">Cash Flow</a>
+        <a href="{% url 'reports:cash_flow_forecast' %}" class="context-nav__link {% if url == 'cash_flow_forecast' %}active{% endif %}">Cash Flow Forecast</a>
+      {% elif url == 'gst_report' or url == 'gstr1_export' or url == 'gstr3b_export' %}
+        <a href="{% url 'reports:gst_report' %}" class="context-nav__link {% if url == 'gst_report' %}active{% endif %}">GST Report</a>
+        <a href="{% url 'reports:gstr1_export' %}" class="context-nav__link {% if url == 'gstr1_export' %}active{% endif %}">GSTR-1 Export</a>
+        <a href="{% url 'reports:gstr3b_export' %}" class="context-nav__link {% if url == 'gstr3b_export' %}active{% endif %}">GSTR-3B Export</a>
+      {% endif %}
+    </div>
+  </nav>
+  {% endif %}
+  {% endwith %}
+
+  <!-- Page content -->
+  <div class="page-body">
+    {% block content %}{% endblock %}
+  </div>
+
+</div><!-- /main-content -->
+
+<!-- ════════════════════════════════════════════
+     TOAST NOTIFICATIONS (Django Messages)
+     ════════════════════════════════════════════ -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 3000;">
+  {% if messages %}
+    {% for msg in messages %}
+    <div class="toast show mb-2 border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true" 
+         data-type="{{ msg.tags }}"
+         data-bs-autohide="false">
+      <div class="d-flex align-items-center p-2 rounded 
+        {% if msg.tags == 'success' %}bg-success-subtle text-success
+        {% elif msg.tags == 'error' or msg.tags == 'danger' %}bg-danger-subtle text-danger
+        {% elif msg.tags == 'warning' %}bg-warning-subtle text-warning
+        {% else %}bg-info-subtle text-info{% endif %}">
+        <div class="toast-body d-flex align-items-center gap-2 py-1">
+          <i class="bi 
+            {% if msg.tags == 'success' %}bi-check-circle-fill
+            {% elif msg.tags == 'error' or msg.tags == 'danger' %}bi-x-circle-fill
+            {% elif msg.tags == 'warning' %}bi-exclamation-triangle-fill
+            {% else %}bi-info-circle-fill{% endif %} fs-5"></i>
+          <span class="fw-medium">{{ msg }}</span>
+        </div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    </div>
+    {% endfor %}
+  {% endif %}
+</div>
+
+<script>
+  (function() {
+    document.addEventListener('DOMContentLoaded', () => {
+      const toasts = document.querySelectorAll('.toast');
+      
+      toasts.forEach(toastEl => {
+        const type = toastEl.getAttribute('data-type');
+        let delay = 0;
+
+        if (type === 'success') delay = 3000;
+        else if (type === 'info') delay = 4000;
+        else if (type === 'warning') delay = 5000;
+        // error/danger stay permanently (delay 0)
+
+        if (delay > 0) {
+          let timeout;
+          const bsToast = bootstrap.Toast.getOrCreateInstance(toastEl);
+          
+          const startTimer = () => {
+            timeout = setTimeout(() => {
+              bsToast.hide();
+            }, delay);
+          };
+
+          const stopTimer = () => clearTimeout(timeout);
+
+          // Auto-start
+          startTimer();
+
+          // Hover interaction
+          toastEl.addEventListener('mouseenter', stopTimer);
+          toastEl.addEventListener('mouseleave', startTimer);
+        }
+      });
+    });
+  })();
+</script>
+
+<!-- ════════════════════════════════════════════
+     COMMAND PALETTE (Ctrl+K)
+     ════════════════════════════════════════════ -->
+<div id="commandPalette">
+  <div class="cp-container">
+    <div class="cp-input-wrapper">
+      <i class="bi bi-search text-muted"></i>
+      <input type="text" id="cpInput" class="cp-input" placeholder="Search for actions, reports, or pages..." autocomplete="off">
+    </div>
+    <div id="cpResults" class="cp-results"></div>
+    <div class="cp-hint">
+      <span><kbd>↑↓</kbd> to navigate</span>
+      <span><kbd>Enter</kbd> to select</span>
+      <span><kbd>Esc</kbd> to close</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const cp = document.getElementById('commandPalette');
+    const input = document.getElementById('cpInput');
+    const results = document.getElementById('cpResults');
+    let activeIndex = 0;
+    let filteredResults = [];
+    let debounceTimer;
+
+    const openCP = () => {
+      cp.classList.add('show');
+      input.focus();
+      activeIndex = 0;
+      fetchResults("");
+    };
+
+    const closeCP = () => {
+      cp.classList.remove('show');
+      input.value = "";
+    };
+
+    const highlight = (text, query) => {
+      if (!query) return text;
+      const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+      return text.replace(regex, '<mark class="cp-match">$1</mark>');
+    };
+
+    const fetchResults = async (query) => {
+      try {
+        const response = await fetch(`{% url 'core:api_search' %}?q=${encodeURIComponent(query)}`);
+        const data = await response.json();
+        renderResults(data, query);
+      } catch (err) {
+        console.error("Search failed", err);
+      }
+    };
+
+    const renderResults = (data, query) => {
+      filteredResults = [];
+      let html = "";
+
+      const categories = [
+        { key: 'navigation', label: 'Navigation', icon: 'bi-compass' },
+        { key: 'ledgers', label: 'Ledger', icon: 'bi-journal-text' },
+        { key: 'vouchers', label: 'Voucher', icon: 'bi-receipt' },
+        { key: 'items', label: 'Stock Item', icon: 'bi-box-seam' },
+        { key: 'tasks', label: 'Task', icon: 'bi-list-check' },
+        { key: 'client_requests', label: 'Client Request', icon: 'bi-inbox' }
+      ];
+
+      if (data.recent) {
+        html += `<div class="cp-category text-primary-emphasis"><i class="bi bi-clock-history me-1"></i> Recently Accessed</div>`;
+      }
+
+      categories.forEach(cat => {
+        const items = data[cat.key] || [];
+        if (items.length > 0) {
+          if (!data.recent) {
+            html += `<div class="cp-category">${cat.label}s</div>`;
+          }
+          items.forEach(item => {
+            const name = item.name || item.number;
+            const badge = item.category || cat.label;
+            const idx = filteredResults.length;
+            filteredResults.push(item);
+            html += `
+              <div class="cp-item ${idx === activeIndex ? 'active' : ''}" data-url="${item.url}">
+                <div class="d-flex align-items-center gap-2">
+                  <i class="bi ${cat.icon} opacity-50"></i>
+                  <span>${highlight(name, query)}</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-secondary-subtle text-secondary small fw-normal">${badge}</span>
+                </div>
+              </div>
+            `;
+          });
+        }
+      });
+
+      results.innerHTML = html;
+      
+      if (filteredResults.length === 0) {
+        results.innerHTML = '<div class="p-4 text-center text-muted small">No results found</div>';
+      }
+
+      const activeItem = results.querySelector('.cp-item.active');
+      if (activeItem) {
+        activeItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    };
+
+    const updateActiveItem = () => {
+      const items = results.querySelectorAll('.cp-item');
+      items.forEach((item, i) => {
+        if (i === activeIndex) {
+          item.classList.add('active');
+          const rect = item.getBoundingClientRect();
+          const containerRect = results.getBoundingClientRect();
+          if (rect.bottom > containerRect.bottom || rect.top < containerRect.top) {
+            item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          }
+        } else {
+          item.classList.remove('active');
+        }
+      });
+    };
+
+    // Toggle with keyboard
+    window.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        openCP();
+      }
+      if (e.key === 'Escape') closeCP();
+      
+      if (cp.classList.contains('show')) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          if (filteredResults.length > 0) {
+            activeIndex = (activeIndex + 1) % filteredResults.length;
+            updateActiveItem();
+          }
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (filteredResults.length > 0) {
+            activeIndex = (activeIndex - 1 + filteredResults.length) % filteredResults.length;
+            updateActiveItem();
+          }
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          if (filteredResults[activeIndex]) {
+            window.location.href = filteredResults[activeIndex].url;
+          }
+        }
+      }
+    });
+
+    input.addEventListener('input', (e) => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        activeIndex = 0;
+        fetchResults(e.target.value);
+      }, 300);
+    });
+
+    // Toggle with click
+    document.getElementById('topbar-search-trigger').addEventListener('click', openCP);
+    cp.addEventListener('mousedown', (e) => {
+      if (e.target === cp) closeCP();
+    });
+    results.addEventListener('click', (e) => {
+      const item = e.target.closest('.cp-item');
+      if (item) window.location.href = item.dataset.url;
+    });
+  })();
+
+  // ── Existing Theme Toggle Logic ───────────────────────────────────────────────────
+  const themeToggle = document.getElementById('themeToggle');
+  const themeIcon = document.getElementById('themeIcon');
+  const htmlEl = document.documentElement;
+
+  function updateThemeIcon(theme) {
+    if (theme === 'dark') {
+      themeIcon.classList.replace('bi-sun-fill', 'bi-moon-stars-fill');
+    } else {
+      themeIcon.classList.replace('bi-moon-stars-fill', 'bi-sun-fill');
+    }
+  }
+
+  // Set initial icon
+  updateThemeIcon(htmlEl.getAttribute('data-bs-theme'));
+
+  themeToggle.addEventListener('click', () => {
+    const currentTheme = htmlEl.getAttribute('data-bs-theme');
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+
+    htmlEl.setAttribute('data-bs-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    updateThemeIcon(newTheme);
+
+    // Optional: Dispatch event for charts to re-render
+    window.dispatchEvent(new Event('themeChanged'));
+  });
+
+  // ── Global Keyboard Shortcuts ────────────────────────────────────────────────
+
+  window.addEventListener('keydown', (e) => {
+    // Skip if user is typing in an input/textarea
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+    
+    // Command Palette already handled by its own listener
+    if (document.getElementById('commandPalette').classList.contains('show')) return;
+
+    const key = e.key.toLowerCase();
+    
+    // N -> New Voucher
+    if (key === 'n') {
+      window.location.href = "{% url 'vouchers:create' %}";
+    }
+    
+    // E -> Edit (if a row is selected or we're on a detail page with an edit link)
+    if (key === 'e') {
+      const editBtn = document.querySelector('.btn-edit-shortcut') || document.querySelector('a[href*="/edit/"]');
+      if (editBtn) editBtn.click();
+    }
+
+    // D -> Delete (with confirmation)
+    if (key === 'd') {
+      const delBtn = document.querySelector('.btn-delete-shortcut') || document.querySelector('a[href*="/delete/"]');
+      if (delBtn && confirm('Are you sure you want to delete this item?')) {
+        // If it's a link, we might need a POST, but usually delete pages are GET then POST confirm
+        delBtn.click();
+      }
+    }
+  });
+
+  // ── AJAX Form Filtering ─────────────────────────────────────────────────────
+  document.querySelectorAll('.ajax-filter-form').forEach(form => {
+    const targetId = form.dataset.target;
+    if (!targetId) return;
+    
+    const updateResults = async () => {
+      const formData = new FormData(form);
+      const params = new URLSearchParams(formData);
+      const url = `${form.getAttribute('action') || window.location.pathname}?${params.toString()}`;
+      
+      // Update URL without reload
+      window.history.pushState({}, '', url);
+      
+      try {
+        const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const html = await response.text();
+        document.getElementById(targetId).innerHTML = html;
+      } catch (err) {
+        console.error("Filter failed", err);
+      }
+    };
+
+    form.addEventListener('change', updateResults);
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      updateResults();
+    });
+  });
+  // PWA Service Worker registration
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/static/js/sw.js')
+        .then(reg => console.log('SW registered:', reg.scope))
+        .catch(err => console.warn('SW registration failed:', err));
+    });
+  }
+  // ── Session Memory (Last Visited Page) ───────────────────────────────────
+  const currentPath = window.location.pathname;
+  if (!['/login/', '/logout/', '/select-company/'].some(p => currentPath.startsWith(p))) {
+    localStorage.setItem('akshaya_last_path', window.location.href);
+  }
+
+  // ── Quick View Modal Logic ────────────────────────────────────────────────
+  const quickViewModalEl = document.getElementById('quickViewModal');
+  const quickViewModal = new bootstrap.Modal(quickViewModalEl);
+  
+  window.openQuickView = async (url) => {
+    const body = quickViewModalEl.querySelector('.modal-body');
+    body.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-primary"></div></div>';
+    quickViewModal.show();
+    
+    try {
+      const resp = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      const html = await resp.text();
+      body.innerHTML = html;
+    } catch (e) {
+      body.innerHTML = '<div class="alert alert-danger">Failed to load details.</div>';
+    }
+  };
+
+  // Attach to links with .quick-view class
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest('.quick-view');
+    if (link) {
+      e.preventDefault();
+      openQuickView(link.href);
+    }
+  });
+</script>
+
+<!-- Quick View Modal -->
+<div class="modal fade" id="quickViewModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title">Voucher Quick View</h6>
+        <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        <!-- Content loaded via AJAX -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Help Center & Audit Logic ── -->
+{% include "help_center.html" %}
+
+<script src="{% static 'js/page_explainer.js' %}"></script>
+<script src="{% static 'js/sidebar.js' %}"></script>
+<script src="{% static 'js/keyboard_nav.js' %}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

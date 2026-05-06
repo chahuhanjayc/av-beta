@@ -1,0 +1,447 @@
+{% extends "base.html" %}
+
+{% block title %}GST Review - {{ company.name }} - Akshaya Vistara{% endblock %}
+{% block page_title %}GST Review{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h5 class="mb-0">{{ company.name }} - {{ period_start|date:"M Y" }}</h5>
+    <small class="text-muted">{{ company.gstin|default:"No GSTIN" }} | Review packet for {{ period_start|date:"d M Y" }} to {{ period_end|date:"d M Y" }}</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'core:gst_workbench_detail' company.pk period_value %}?export=csv" class="btn btn-sm btn-outline-primary">
+      <i class="bi bi-download"></i> Export Exceptions
+    </a>
+    <a href="{% url 'core:gst_workbench_execution_pack' company.pk period_value %}" class="btn btn-sm btn-outline-success">
+      <i class="bi bi-file-zip"></i> Execution Pack
+    </a>
+    <a href="{% url 'core:switch_company' company.id %}?next={% url 'integrations:gst_result_import' %}" class="btn btn-sm btn-outline-primary">
+      <i class="bi bi-cloud-upload"></i> Upload Results
+    </a>
+    <a href="{% url 'core:gst_workbench' %}?period={{ period_value }}&company={{ company.pk }}" class="btn btn-sm btn-outline-secondary">Back</a>
+    <form method="post" action="{% url 'core:gst_workbench_create_filings' %}">
+      {% csrf_token %}
+      <input type="hidden" name="period" value="{{ period_value }}">
+      <input type="hidden" name="company_id" value="{{ company.pk }}">
+      <button type="submit" class="btn btn-sm btn-outline-primary">Create Filings</button>
+    </form>
+    <form method="post" action="{% url 'core:gst_workbench_chase_pack' %}">
+      {% csrf_token %}
+      <input type="hidden" name="period" value="{{ period_value }}">
+      <input type="hidden" name="company_id" value="{{ company.pk }}">
+      <button type="submit" class="btn btn-sm btn-outline-info">Client Chase Pack</button>
+    </form>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-xl-2">
+    <div class="card h-100"><div class="card-body py-3">
+      <div class="text-muted small text-uppercase fw-semibold">Risk</div>
+      <div class="h4 mb-0 {% if risk_score >= 60 %}text-danger{% elif risk_score >= 30 %}text-warning{% else %}text-success{% endif %}">{{ risk_score }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-xl-2">
+    <div class="card h-100"><div class="card-body py-3">
+      <div class="text-muted small text-uppercase fw-semibold">Output Tax</div>
+      <div class="h5 mb-0">Rs.{{ output_tax|floatformat:2 }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-xl-2">
+    <div class="card h-100"><div class="card-body py-3">
+      <div class="text-muted small text-uppercase fw-semibold">ITC</div>
+      <div class="h5 mb-0">Rs.{{ itc|floatformat:2 }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-xl-2">
+    <div class="card h-100"><div class="card-body py-3">
+      <div class="text-muted small text-uppercase fw-semibold">ITC 180-Day</div>
+      <div class="h5 mb-0 {% if itc_180_overdue %}text-danger{% elif itc_180_due_soon %}text-warning{% else %}text-success{% endif %}">
+        {{ itc_180_reversal_due }}
+      </div>
+      <div class="small text-muted">Rs.{{ itc_180_reversal_itc|floatformat:2 }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-xl-2">
+    <div class="card h-100"><div class="card-body py-3">
+      <div class="text-muted small text-uppercase fw-semibold">RCM Watch</div>
+      <div class="h5 mb-0 {% if rcm_missing_tax %}text-danger{% elif rcm_purchase_count %}text-warning{% else %}text-success{% endif %}">
+        {{ rcm_missing_tax }}
+      </div>
+      <div class="small text-muted">Rs.{{ rcm_tax_amount|floatformat:2 }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-xl-2">
+    <div class="card h-100"><div class="card-body py-3">
+      <div class="text-muted small text-uppercase fw-semibold">E-Way Bill</div>
+      <div class="h5 mb-0 {% if eway_missing or eway_expired %}text-danger{% elif eway_due_soon %}text-warning{% else %}text-success{% endif %}">
+        {{ eway_missing|add:eway_expired }}
+      </div>
+      <div class="small text-muted">{{ eway_due_soon }} expiring</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-xl-2">
+    <div class="card h-100"><div class="card-body py-3">
+      <div class="text-muted small text-uppercase fw-semibold">Net Payable</div>
+      <div class="h5 mb-0">Rs.{{ net_tax_payable|floatformat:2 }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-xl-2">
+    <div class="card h-100"><div class="card-body py-3">
+      <div class="text-muted small text-uppercase fw-semibold">2B Gaps</div>
+      <div class="h5 mb-0 text-warning">{{ missing_in_books|add:missing_in_portal }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-xl-2">
+    <div class="card h-100"><div class="card-body py-3">
+      <div class="text-muted small text-uppercase fw-semibold">Sales Readiness</div>
+      <div class="h5 mb-0 {% if sales_missing_pos or sales_invalid_party_gstin or sales_missing_hsn %}text-danger{% elif sales_tax_pos_mismatch %}text-warning{% else %}text-success{% endif %}">
+        {{ sales_missing_pos|add:sales_invalid_party_gstin|add:sales_tax_pos_mismatch|add:sales_missing_hsn }}
+      </div>
+      <div class="small text-muted">POS / GSTIN / HSN / tax split</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-xl-2">
+    <div class="card h-100"><div class="card-body py-3">
+      <div class="text-muted small text-uppercase fw-semibold">E-Invoice</div>
+      {% if e_invoice_enabled %}
+        <div class="h5 mb-0 {% if e_invoice_expired %}text-danger{% elif e_invoice_due_soon %}text-warning{% else %}text-success{% endif %}">
+          {{ e_invoice_missing_irn }}
+        </div>
+        <div class="small text-muted">{{ e_invoice_deadline_days }} day IRP window</div>
+      {% else %}
+        <div class="h6 mb-0 text-muted">Off</div>
+      {% endif %}
+    </div></div>
+  </div>
+  <div class="col-6 col-xl-2">
+    <div class="card h-100"><div class="card-body py-3">
+      <div class="text-muted small text-uppercase fw-semibold">Review</div>
+      {% if review %}
+        <div class="h6 mb-0">{{ review.get_status_display }}</div>
+      {% else %}
+        <div class="h6 mb-0 text-muted">Not started</div>
+      {% endif %}
+    </div></div>
+  </div>
+  <div class="col-6 col-xl-2">
+    <div class="card h-100"><div class="card-body py-3">
+      <div class="text-muted small text-uppercase fw-semibold">Client Chase</div>
+      <div class="h5 mb-0 {% if client_chase_overdue %}text-danger{% else %}text-info{% endif %}">{{ client_chase_open }}</div>
+      <div class="small text-muted">{{ client_chase_uploaded }} uploaded</div>
+    </div></div>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-xl-8">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Exception Action Queue</h6>
+        <span class="small text-muted">{{ exception_items|length }} open items</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Issue</th>
+              <th>Reference</th>
+              <th>Due/Date</th>
+              <th class="text-end">Amount</th>
+              <th class="text-end pe-3">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in exception_items %}
+              <tr>
+                <td class="ps-3">
+                  <span class="badge {% if item.severity == 'danger' %}bg-danger{% else %}bg-warning text-dark{% endif %}">{{ item.label }}</span>
+                  <div class="fw-semibold mt-1">{{ item.title }}</div>
+                </td>
+                <td>{{ item.reference|default:"-" }}</td>
+                <td>{{ item.date|date:"d M Y"|default:"-" }}</td>
+                <td class="text-end">{% if item.amount %}Rs.{{ item.amount|floatformat:2 }}{% else %}-{% endif %}</td>
+                <td class="text-end pe-3">
+                  {% if item.document_request %}
+                    {% with doc_req=item.document_request %}
+                      <a class="btn btn-xs btn-outline-info" target="_blank" href="{% url 'portal:document_request_upload' doc_req.token %}">Upload Link</a>
+                      <span class="badge {% if doc_req.status == 'uploaded' %}bg-success{% elif doc_req.is_overdue %}bg-danger{% else %}bg-info text-dark{% endif %}">{{ doc_req.get_status_display }}</span>
+                    {% endwith %}
+                  {% endif %}
+                  {% if item.kind == "2b_missing_in_books" %}
+                    <a class="btn btn-xs btn-outline-secondary" href="{% url 'core:switch_company' company.id %}?next={% url 'gstr2b:create_voucher' item.object.pk %}">Voucher</a>
+                    <form method="post" action="{% url 'core:gst_workbench_2b_action' item.object.pk %}" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" name="action_status" value="pending" class="btn btn-xs btn-outline-warning">Pending</button>
+                      <button type="submit" name="action_status" value="rejected" class="btn btn-xs btn-outline-danger">Reject</button>
+                    </form>
+                  {% elif item.kind == "purchase_missing_in_2b" or item.kind == "draft_gst_voucher" or item.kind == "itc_180_reversal_due" or item.kind == "rcm_missing_tax" %}
+                    <a class="btn btn-xs btn-outline-secondary" href="{% url 'core:switch_company' company.id %}?next={% url 'vouchers:detail' item.object.pk %}">Voucher</a>
+                  {% elif item.kind == "eway_bill_missing" %}
+                    {% if item.object.pk in e_way_bill_payload_ready_ids %}
+                      <a class="btn btn-xs btn-outline-primary" href="{% url 'core:switch_company' company.id %}?next={% url 'integrations:e_way_bill_payload_download' item.object.pk %}">EWB JSON</a>
+                    {% endif %}
+                    <a class="btn btn-xs btn-outline-secondary" href="{% url 'core:switch_company' company.id %}?next={% url 'vouchers:detail' item.object.pk %}">Voucher</a>
+                  {% elif item.kind == "eway_bill_expired" %}
+                    <a class="btn btn-xs btn-outline-secondary" href="{% url 'core:switch_company' company.id %}?next={% url 'vouchers:detail' item.object.pk %}">Voucher</a>
+                  {% elif item.kind == "e_invoice_missing_irn" %}
+                    {% if item.object.pk in e_invoice_payload_ready_ids %}
+                      <a class="btn btn-xs btn-outline-primary" href="{% url 'core:switch_company' company.id %}?next={% url 'integrations:e_invoice_payload_download' item.object.pk %}">IRP JSON</a>
+                    {% endif %}
+                    <a class="btn btn-xs btn-outline-secondary" href="{% url 'core:switch_company' company.id %}?next={% url 'vouchers:detail' item.object.pk %}">Voucher</a>
+                  {% elif item.kind == "sales_missing_pos" or item.kind == "sales_invalid_party_gstin" or item.kind == "sales_tax_pos_mismatch" or item.kind == "sales_missing_hsn" %}
+                    <a class="btn btn-xs btn-outline-secondary" href="{% url 'core:switch_company' company.id %}?next={% url 'vouchers:detail' item.object.pk %}">Voucher</a>
+                  {% elif item.kind == "overdue_gst_filing" %}
+                    <a class="btn btn-xs btn-outline-secondary" href="{% url 'core:compliance_filing_update' item.object.pk %}">Filing</a>
+                  {% elif item.kind == "open_gst_notice" %}
+                    <a class="btn btn-xs btn-outline-secondary" href="{% url 'core:compliance_notice_update' item.object.pk %}">Notice</a>
+                  {% endif %}
+                  {% if item.task_reference in existing_task_refs %}
+                    <span class="badge bg-success">Tasked</span>
+                  {% else %}
+                    <form method="post" action="{% url 'core:gst_workbench_exception_task' %}" class="d-inline">
+                      {% csrf_token %}
+                      <input type="hidden" name="company_id" value="{{ company.pk }}">
+                      <input type="hidden" name="period" value="{{ period_value }}">
+                      <input type="hidden" name="kind" value="{{ item.kind }}">
+                      <input type="hidden" name="object_id" value="{{ item.object.pk }}">
+                      <button type="submit" name="action_type" value="resolve" class="btn btn-xs btn-outline-primary">Task</button>
+                      <button type="submit" name="action_type" value="client_chase" class="btn btn-xs btn-outline-info">Chase</button>
+                    </form>
+                  {% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="5" class="text-center text-muted py-4">No GST exceptions for this period.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-4">
+    <div class="card h-100">
+      <div class="card-header"><h6 class="mb-0"><i class="bi bi-check2-square me-2"></i>CA Sign-Off</h6></div>
+      <div class="card-body">
+        {% if review %}
+          <div class="mb-2">
+            <span class="badge {% if review.status == 'signed_off' %}bg-success{% elif review.status == 'in_review' %}bg-info text-dark{% else %}bg-secondary{% endif %}">{{ review.get_status_display }}</span>
+            {% if review.reviewed_by %}<div class="small text-muted mt-1">By {{ review.reviewed_by.email }} on {{ review.reviewed_at|date:"d M Y H:i" }}</div>{% endif %}
+          </div>
+        {% endif %}
+        {% if signoff_blockers %}
+          <div class="alert alert-warning py-2 mb-3">
+            <div class="fw-semibold small mb-2">Sign-off blockers</div>
+            <div class="d-flex flex-column gap-2">
+              {% for blocker in signoff_blockers %}
+                <div>
+                  <div class="small fw-semibold">{{ blocker.title }}{% if blocker.count > 1 %} ({{ blocker.count }}){% endif %}</div>
+                  <div class="small text-muted">{{ blocker.description }}</div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% else %}
+          <div class="alert alert-success py-2 mb-3 small">
+            GST review is clear for final sign-off.
+          </div>
+        {% endif %}
+        <form method="post" action="{% url 'core:gst_workbench_signoff' %}">
+          {% csrf_token %}
+          <input type="hidden" name="period" value="{{ period_value }}">
+          <input type="hidden" name="company_id" value="{{ company.pk }}">
+          <label class="form-label small text-muted">Review note</label>
+          <textarea name="notes" class="form-control form-control-sm mb-2" rows="4">{% if review %}{{ review.notes }}{% endif %}</textarea>
+          <button type="submit" name="status" value="in_review" class="btn btn-sm btn-outline-secondary">Mark Review</button>
+          <button type="submit" name="status" value="signed_off" class="btn btn-sm btn-success" {% if not can_sign_off %}disabled title="Clear sign-off blockers first"{% endif %}>Sign Off</button>
+          {% if review and review.is_signed_off %}
+            <button type="submit" name="status" value="reopened" class="btn btn-sm btn-outline-warning">Reopen</button>
+          {% endif %}
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-xl-4">
+    <div class="card h-100">
+      <div class="card-header"><h6 class="mb-0">GST Filings</h6></div>
+      <div class="list-group list-group-flush">
+        {% for filing in filing_list %}
+          <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" href="{% url 'core:compliance_filing_update' filing.pk %}">
+            <span>
+              <span class="fw-semibold">{{ filing.get_filing_type_display }}</span>
+              <span class="small text-muted d-block">{{ filing.due_date|date:"d M Y"|default:"No due date" }}</span>
+            </span>
+            <span class="badge {% if filing.status == 'filed' %}bg-success{% elif filing.status == 'blocked' or filing.status == 'client_pending' %}bg-warning text-dark{% else %}bg-primary-subtle text-primary{% endif %}">{{ filing.get_status_display }}</span>
+          </a>
+        {% empty %}
+          <div class="list-group-item text-muted">No filing workflows created for this period.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="card h-100">
+      <div class="card-header"><h6 class="mb-0">Open GST Tasks</h6></div>
+      <div class="list-group list-group-flush">
+        {% for task in open_task_list %}
+          <a class="list-group-item list-group-item-action" href="{% url 'core:practice_task_update' task.pk %}">
+            <div class="fw-semibold">{{ task.title }}</div>
+            <div class="small text-muted">{{ task.due_date|date:"d M Y"|default:"No due date" }} | {{ task.get_status_display }}</div>
+          </a>
+        {% empty %}
+          <div class="list-group-item text-muted">No open GST tasks for this period.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="card h-100">
+      <div class="card-header"><h6 class="mb-0">Open GST Notices</h6></div>
+      <div class="list-group list-group-flush">
+        {% for notice in notice_list %}
+          <a class="list-group-item list-group-item-action" href="{% url 'core:compliance_notice_update' notice.pk %}">
+            <div class="fw-semibold">{{ notice.title }}</div>
+            <div class="small text-muted">{{ notice.response_due_date|date:"d M Y"|default:"No due date" }} | {{ notice.get_status_display }}</div>
+          </a>
+        {% empty %}
+          <div class="list-group-item text-muted">No open GST notices.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h6 class="mb-0"><i class="bi bi-cloud-upload me-2"></i>Client Document Requests</h6>
+    <div class="d-flex align-items-center gap-2">
+      <span class="small text-muted">{{ document_requests|length }} request{{ document_requests|length|pluralize }}</span>
+      <a class="btn btn-xs btn-outline-info" href="{% url 'portal:client_request_reminders' %}?company={{ company.pk }}">Reminder Queue</a>
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th class="ps-3">Request</th>
+          <th>Due</th>
+          <th>Status</th>
+          <th>Uploaded</th>
+          <th class="text-end pe-3">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for req in document_requests %}
+          <tr>
+            <td class="ps-3">
+              <div class="fw-semibold">{{ req.title }}</div>
+              <div class="small text-muted">{{ req.source_reference }}</div>
+            </td>
+            <td class="{% if req.is_overdue %}text-danger fw-semibold{% endif %}">{{ req.due_date|date:"d M Y"|default:"-" }}</td>
+            <td><span class="badge {% if req.status == 'uploaded' %}bg-success{% elif req.is_overdue %}bg-danger{% else %}bg-info text-dark{% endif %}">{{ req.get_status_display }}</span></td>
+            <td>
+              {% if req.uploaded_submission %}
+                <a href="{% url 'ocr:verify' req.uploaded_submission.pk %}">OCR #{{ req.uploaded_submission.pk }}</a>
+                <div class="small text-muted">{{ req.uploaded_at|date:"d M Y H:i" }}</div>
+              {% else %}
+                <span class="text-muted">Not uploaded</span>
+              {% endif %}
+            </td>
+            <td class="text-end pe-3">
+              <a class="btn btn-xs btn-outline-info" target="_blank" href="{% url 'portal:document_request_upload' req.token %}">Open Link</a>
+              {% if req.status == 'uploaded' %}
+                {% if req.uploaded_submission %}
+                  <a class="btn btn-xs btn-outline-success" href="{% url 'ocr:verify' req.uploaded_submission.pk %}">Review</a>
+                {% endif %}
+                <form method="post" action="{% url 'core:gst_workbench_document_request_status' req.pk %}" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="period" value="{{ period_value }}">
+                  <button type="submit" name="action" value="close_reviewed" class="btn btn-xs btn-success">Close Reviewed</button>
+                </form>
+              {% elif req.status == 'closed' %}
+                <form method="post" action="{% url 'core:gst_workbench_document_request_status' req.pk %}" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="period" value="{{ period_value }}">
+                  <button type="submit" name="action" value="reopen" class="btn btn-xs btn-outline-warning">Reopen</button>
+                </form>
+              {% endif %}
+              {% if req.related_task %}
+                <a class="btn btn-xs btn-outline-secondary" href="{% url 'core:practice_task_update' req.related_task.pk %}">Task</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="text-center text-muted py-4">No client document requests for these exceptions.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-6">
+    <div class="card">
+      <div class="card-header"><h6 class="mb-0">GSTR-1 Sales Readiness</h6></div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead class="table-light"><tr><th class="ps-3">Voucher</th><th>Date</th><th>Status</th><th>IRN</th><th class="text-end">Tax</th><th class="text-end pe-3">Action</th></tr></thead>
+          <tbody>
+            {% for voucher in sales_vouchers %}
+              <tr>
+                <td class="ps-3"><a href="{% url 'core:switch_company' company.id %}?next={% url 'vouchers:detail' voucher.pk %}">{{ voucher.number|default:voucher.pk }}</a></td>
+                <td>{{ voucher.date|date:"d M Y" }}</td>
+                <td>{{ voucher.get_status_display }}</td>
+                <td>
+                  {% if voucher.e_invoice_irn %}
+                    <span class="badge bg-success">IRN saved</span>
+                  {% elif voucher.pk in e_invoice_missing_voucher_ids %}
+                    <span class="badge bg-warning text-dark">Missing</span>
+                  {% else %}
+                    <span class="text-muted">-</span>
+                  {% endif %}
+                </td>
+                <td class="text-end">Rs.{{ voucher.total_tax|floatformat:2 }}</td>
+                <td class="text-end pe-3">
+                  {% if voucher.pk in e_invoice_missing_voucher_ids and voucher.pk in e_invoice_payload_ready_ids %}
+                    <a class="btn btn-xs btn-outline-primary" href="{% url 'core:switch_company' company.id %}?next={% url 'integrations:e_invoice_payload_download' voucher.pk %}">IRP JSON</a>
+                  {% endif %}
+                  <a class="btn btn-xs btn-outline-secondary" href="{% url 'core:switch_company' company.id %}?next={% url 'vouchers:detail' voucher.pk %}">Open</a>
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="6" class="text-center text-muted py-4">No sales vouchers in this period.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-6">
+    <div class="card">
+      <div class="card-header"><h6 class="mb-0">GSTR-2B Match Review</h6></div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead class="table-light"><tr><th class="ps-3">Supplier</th><th>Invoice</th><th>Status</th><th class="text-end">Tax</th></tr></thead>
+          <tbody>
+            {% for entry in matched_2b_entries %}
+              <tr>
+                <td class="ps-3">{{ entry.supplier_name|default:entry.gstin }}</td>
+                <td>{{ entry.invoice_number }}<div class="small text-muted">{{ entry.invoice_date|date:"d M Y" }}</div></td>
+                <td><span class="badge bg-success">{{ entry.get_action_status_display }}</span></td>
+                <td class="text-end">Rs.{{ entry.tax_amount|floatformat:2 }}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="4" class="text-center text-muted py-4">No matched 2B entries in this period.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

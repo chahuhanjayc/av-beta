@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+{% block title %}TDS Filing Pack - Akshaya Vistara{% endblock %}
+{% block page_title %}TDS Filing Pack{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3">
+    <form class="row g-2 align-items-end" method="get">
+      <div class="col-sm-3 col-lg-2">
+        <label class="form-label small mb-1">Financial Year</label>
+        <select name="fy" class="form-select form-select-sm">
+          {% for option in fy_options %}
+            <option value="{{ option.value }}" {% if filters.fy_start == option.value %}selected{% endif %}>{{ option.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-3 col-lg-2">
+        <label class="form-label small mb-1">Quarter</label>
+        <select name="quarter" class="form-select form-select-sm">
+          {% for value, label in quarter_options %}
+            <option value="{{ value }}" {% if filters.quarter == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-4 col-lg-3">
+        <label class="form-label small mb-1">Return</label>
+        <select name="form_type" class="form-select form-select-sm">
+          {% for value, label in form_type_options %}
+            <option value="{{ value }}" {% if filters.form_type == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-sm">
+          <i class="bi bi-funnel me-1"></i>Load
+        </button>
+      </div>
+      <div class="col-auto ms-auto d-flex gap-2">
+        <a href="{% url 'tds:return_workbench' %}?fy={{ filters.fy_start }}&quarter={{ filters.quarter }}&form_type={{ filters.form_type }}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-clipboard2-check me-1"></i>Workbench
+        </a>
+        <a href="{% url 'tds:post_filing_center' %}?fy={{ filters.fy_start }}&quarter={{ filters.quarter }}&form_type={{ filters.form_type }}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-patch-check me-1"></i>Post-Filing
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="small text-muted">Pack Status</div>
+        <div class="fw-bold fs-5">{{ pack.status }}</div>
+        <div class="small text-muted">
+          {% if pack.pack_record %}Saved {{ pack.pack_record.updated_at|date:"d M Y H:i" }}{% else %}No saved pack{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="small text-muted">Return</div>
+        <div class="fw-bold fs-5">{{ filters.form_type }} {{ filters.quarter }}</div>
+        <div class="small text-muted">FY {{ filters.fy_label }} | Due {{ filters.due_date|date:"d M Y" }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="small text-muted">Export Rows</div>
+        <div class="fw-bold fs-5">{{ pack.export_data.deductee_rows|length }} deductees</div>
+        <div class="small text-muted">{{ pack.export_data.challan_rows|length }} challans</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="small text-muted">Pre-FVU Checks</div>
+        <div class="fw-bold fs-5 {% if pack.critical_count %}text-danger{% elif pack.warning_count %}text-warning{% else %}text-success{% endif %}">
+          {{ pack.critical_count }} critical
+        </div>
+        <div class="small text-muted">{{ pack.warning_count }} warnings</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-8">
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <div>
+          <h6 class="mb-0 fw-bold">Pre-FVU Validation</h6>
+          <div class="small text-muted">Controls to clean before entering data into RPU/FVU utilities.</div>
+        </div>
+        {% if pack.can_generate %}
+          <span class="badge bg-success-subtle text-success">Exports available</span>
+        {% else %}
+          <span class="badge bg-danger-subtle text-danger">Exports blocked</span>
+        {% endif %}
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm table-hover mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Status</th>
+              <th>Check</th>
+              <th class="text-end">Count</th>
+              <th>Result</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in pack.validations %}
+            <tr>
+              <td>
+                {% if item.severity == "critical" %}
+                  <span class="badge bg-danger-subtle text-danger">Critical</span>
+                {% elif item.severity == "warning" %}
+                  <span class="badge bg-warning-subtle text-warning">Warning</span>
+                {% else %}
+                  <span class="badge bg-success-subtle text-success">OK</span>
+                {% endif %}
+              </td>
+              <td class="fw-semibold">{{ item.title }}</td>
+              <td class="text-end">{{ item.count }}</td>
+              <td class="small text-muted">{{ item.description }}</td>
+              <td class="text-end">
+                {% if item.action_url %}
+                  <a href="{{ item.action_url }}" class="btn btn-sm btn-outline-secondary">Open</a>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-header bg-white py-3">
+            <h6 class="mb-0 fw-bold">RPU Challan Rows</h6>
+          </div>
+          <div class="card-body p-0">
+            {% if pack.export_data.challan_rows %}
+            <table class="table table-sm mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Serial</th>
+                  <th>BSR / Challan</th>
+                  <th>Date</th>
+                  <th class="text-end">TDS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in pack.export_data.challan_rows %}
+                <tr>
+                  <td>{{ row.challan_serial }}</td>
+                  <td><code>{{ row.bsr_code }}</code><div class="small text-muted">{{ row.challan_number }}</div></td>
+                  <td>{{ row.deposit_date|default:"-" }}</td>
+                  <td class="text-end fw-semibold">{{ row.tds_amount }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% else %}
+            <div class="text-center py-4 text-muted small">No challan rows available.</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-header bg-white py-3">
+            <h6 class="mb-0 fw-bold">Section Totals</h6>
+          </div>
+          <div class="card-body p-0">
+            {% if pack.workbench.sections %}
+            <table class="table table-sm mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Section</th>
+                  <th class="text-end">Entries</th>
+                  <th class="text-end">TDS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in pack.workbench.sections %}
+                <tr>
+                  <td>{{ row.section }}</td>
+                  <td class="text-end">{{ row.entry_count }}</td>
+                  <td class="text-end fw-semibold">{{ row.tds_amount|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% else %}
+            <div class="text-center py-4 text-muted small">No section rows available.</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3">
+        <h6 class="mb-0 fw-bold">RPU Deductee Preview</h6>
+      </div>
+      <div class="card-body p-0">
+        {% if pack.export_data.deductee_rows %}
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0 align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Serial</th>
+                <th>Challan</th>
+                <th>Section</th>
+                <th>Deductee</th>
+                <th>PAN</th>
+                <th class="text-end">Paid</th>
+                <th class="text-end">TDS</th>
+                <th>Issues</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in pack.export_data.deductee_rows %}
+              <tr>
+                <td>{{ row.deductee_serial }}</td>
+                <td>{{ row.challan_serial|default:"-" }}</td>
+                <td><span class="badge bg-info-subtle text-info">{{ row.section }}</span></td>
+                <td>{{ row.deductee_name }}</td>
+                <td><code>{{ row.deductee_pan|default:"-" }}</code></td>
+                <td class="text-end">{{ row.amount_paid }}</td>
+                <td class="text-end fw-semibold">{{ row.tds_amount }}</td>
+                <td>
+                  {% if row.issue_flags %}
+                    <span class="badge bg-danger-subtle text-danger">{{ row.issue_flags }}</span>
+                  {% else %}
+                    <span class="badge bg-success-subtle text-success">OK</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+          <i class="bi bi-file-earmark-spreadsheet fs-1 d-block mb-2"></i>
+          No RPU deductee rows for this selected return.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-4">
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white py-3">
+        <h6 class="mb-0 fw-bold">Downloads</h6>
+      </div>
+      <div class="card-body">
+        {% if pack.can_generate %}
+          <div class="d-grid gap-2">
+            <a class="btn btn-primary" href="{% url 'tds:filing_pack_download' 'xlsx' %}?fy={{ filters.fy_start }}&quarter={{ filters.quarter }}&form_type={{ filters.form_type }}">
+              <i class="bi bi-file-earmark-spreadsheet me-1"></i>Filing Pack XLSX
+            </a>
+            <a class="btn btn-outline-primary" href="{% url 'tds:filing_pack_download' 'deductees' %}?fy={{ filters.fy_start }}&quarter={{ filters.quarter }}&form_type={{ filters.form_type }}">
+              <i class="bi bi-filetype-csv me-1"></i>RPU Deductee CSV
+            </a>
+            <a class="btn btn-outline-primary" href="{% url 'tds:filing_pack_download' 'challans' %}?fy={{ filters.fy_start }}&quarter={{ filters.quarter }}&form_type={{ filters.form_type }}">
+              <i class="bi bi-filetype-csv me-1"></i>RPU Challan CSV
+            </a>
+            <a class="btn btn-outline-secondary" href="{% url 'tds:filing_pack_download' 'json' %}?fy={{ filters.fy_start }}&quarter={{ filters.quarter }}&form_type={{ filters.form_type }}">
+              <i class="bi bi-filetype-json me-1"></i>Draft JSON
+            </a>
+          </div>
+        {% else %}
+          <div class="alert alert-light border small mb-0">
+            Downloads unlock after the workpaper is ready and all critical validations are clear.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3">
+        <h6 class="mb-0 fw-bold">Pack Control</h6>
+      </div>
+      <div class="card-body">
+        {% if not can_write %}
+          <div class="alert alert-light border small mb-0">You have read-only access to this filing pack.</div>
+        {% else %}
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="fy" value="{{ filters.fy_start }}">
+          <input type="hidden" name="quarter" value="{{ filters.quarter }}">
+          <input type="hidden" name="form_type" value="{{ filters.form_type }}">
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold" for="pack-notes">Notes</label>
+            <textarea id="pack-notes" name="notes" rows="3" class="form-control form-control-sm">{{ pack.pack_record.notes|default:"" }}</textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold" for="ack-number">Acknowledgement Number</label>
+            <input id="ack-number" name="ack_number" class="form-control form-control-sm" value="{{ pack.pack_record.ack_number|default:"" }}" placeholder="TRACES acknowledgement">
+          </div>
+
+          <div class="d-grid gap-2">
+            <button type="submit" name="action" value="generate_pack" class="btn btn-primary" {% if not pack.can_generate %}disabled{% endif %}>
+              <i class="bi bi-archive me-1"></i>Generate Filing Pack
+            </button>
+            <button type="submit" name="action" value="mark_filed" class="btn btn-success" {% if not pack.pack_record %}disabled{% endif %}>
+              <i class="bi bi-cloud-check me-1"></i>Mark Filed
+            </button>
+            <button type="submit" name="action" value="reopen_pack" class="btn btn-outline-secondary" {% if not pack.pack_record %}disabled{% endif %}>
+              <i class="bi bi-arrow-counterclockwise me-1"></i>Reopen Pack
+            </button>
+          </div>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

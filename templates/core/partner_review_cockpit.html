@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block title %}Partner Review Cockpit - Akshaya Vistara{% endblock %}
+{% block page_title %}Partner Review Cockpit{% endblock %}
+
+{% block extra_head %}
+<style>
+  .partner-score {
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .partner-filter {
+    background: var(--surface-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 0.85rem 1rem;
+  }
+  .partner-filter label {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+  .partner-evidence {
+    max-width: 38rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h5 class="mb-0">Partner Review Cockpit</h5>
+    <small class="text-muted">{{ period_start|date:"M Y" }} sign-off queue across filings, invoices, renewals, notices, and client communications</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'core:filing_review_center' %}?period={{ period_value }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-patch-check me-1"></i> Review Center
+    </a>
+    <a href="{% url 'core:partner_review_cockpit' %}?{{ export_query }}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-download me-1"></i> Export CSV
+    </a>
+  </div>
+</div>
+
+<form method="get" class="partner-filter mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-4">
+      <label for="q">Client / GSTIN</label>
+      <input id="q" type="search" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Search client">
+    </div>
+    <div class="col-md-3">
+      <label for="period">Period</label>
+      <input id="period" type="month" name="period" value="{{ period_value }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-md-3">
+      <label for="focus">Focus</label>
+      <select id="focus" name="focus" class="form-select form-select-sm">
+        {% for value, label in focus_options %}
+        <option value="{{ value }}" {% if focus == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-primary btn-sm w-100">
+        <i class="bi bi-funnel me-1"></i> Apply
+      </button>
+    </div>
+  </div>
+</form>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-2">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Clients</div>
+        <div class="partner-score">{{ totals.clients_with_items }}</div>
+        <div class="small text-muted">{{ totals.clients }} scanned</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Critical</div>
+        <div class="partner-score text-danger">{{ totals.critical }}</div>
+        <div class="small text-muted">{{ totals.blocked }} blocked</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Ready</div>
+        <div class="partner-score text-warning">{{ totals.ready }}</div>
+        <div class="small text-muted">approval/sign-off</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Commercial</div>
+        <div class="partner-score">{{ totals.commercial }}</div>
+        <div class="small text-muted">{{ totals.billing }} billing</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Comms</div>
+        <div class="partner-score">{{ totals.communications }}</div>
+        <div class="small text-muted">{{ totals.notices }} notices</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Total Items</div>
+        <div class="partner-score">{{ totals.items }}</div>
+        <div class="small text-muted">{{ totals.filings }} filing/GST</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h6 class="mb-0"><i class="bi bi-person-check me-2"></i>Partner Sign-off Queue</h6>
+    <span class="small text-muted">Highest risk first</span>
+  </div>
+  <div class="list-group list-group-flush">
+    {% for item in items %}
+    <a href="{{ item.action_url }}" class="list-group-item list-group-item-action">
+      <div class="d-flex justify-content-between align-items-start gap-3">
+        <div>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="badge {{ item.badge_class }}">{{ item.severity|title }}</span>
+            <span class="badge bg-light text-dark">{{ item.gate }}</span>
+            <span class="fw-semibold">{{ item.company.name }} - {{ item.title }}</span>
+          </div>
+          <div class="small text-muted partner-evidence">{{ item.reason }}</div>
+          <div class="small mt-1"><strong>Exact action:</strong> {{ item.decision }}</div>
+          {% if item.evidence %}
+          <div class="small text-muted mt-1">
+            {% for evidence in item.evidence %}
+            <span class="me-2">{{ evidence|truncatechars:120 }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+        <div class="text-end">
+          {% if item.due_date %}
+          <div class="{% if item.due_date <= today %}text-danger{% else %}text-muted{% endif %} small">{{ item.due_date|date:"d M Y" }}</div>
+          {% endif %}
+          <div class="small text-primary">{{ item.action_label }}</div>
+          <div class="small text-muted">{{ item.count }} item(s)</div>
+        </div>
+      </div>
+    </a>
+    {% empty %}
+    <div class="list-group-item text-center text-muted py-4">No partner sign-off items match the current filters.</div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h6 class="mb-0"><i class="bi bi-building-check me-2"></i>Client Decision Board</h6>
+    <span class="small text-muted">Grouped by client</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th class="ps-3">Client</th>
+          <th>Owner</th>
+          <th>Top Gate</th>
+          <th>Exact Action</th>
+          <th>Open Items</th>
+          <th class="text-end pe-3">Open</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="ps-3">
+            <a href="{{ row.client_360_url }}" class="fw-semibold text-decoration-none">{{ row.company.name }}</a>
+            <div class="small text-muted">{{ row.company.gstin|default:"No GSTIN" }}</div>
+          </td>
+          <td>
+            {% if row.owner %}
+            <div class="small">{{ row.owner.email }}</div>
+            {% else %}
+            <span class="text-muted small">Unassigned</span>
+            {% endif %}
+          </td>
+          <td style="min-width: 220px;">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="badge {{ row.top_item.badge_class }}">{{ row.top_item.severity|title }}</span>
+              <span class="badge bg-light text-dark">{{ row.top_item.gate }}</span>
+            </div>
+            <div class="fw-semibold">{{ row.top_item.title }}</div>
+            <div class="small text-muted">{{ row.top_item.reason|truncatechars:120 }}</div>
+          </td>
+          <td style="min-width: 280px;">
+            <div class="small">{{ row.top_item.decision }}</div>
+            <a href="{{ row.top_item.action_url }}" class="small text-primary">{{ row.top_item.action_label }}</a>
+          </td>
+          <td style="min-width: 260px;">
+            {% for item in row.items %}
+            <div class="d-flex justify-content-between gap-2 small mb-1">
+              <span>
+                <span class="badge {{ item.badge_class }} me-1">{{ item.severity|slice:":1"|upper }}</span>
+                {{ item.gate }} - {{ item.title }}
+              </span>
+              <span class="text-muted">{{ item.count }}</span>
+            </div>
+            {% endfor %}
+            {% if row.item_count > 6 %}
+            <div class="small text-muted">+{{ row.item_count|add:"-6" }} more</div>
+            {% endif %}
+          </td>
+          <td class="text-end pe-3">
+            <div class="btn-group btn-group-sm">
+              <a href="{{ row.client_360_url }}" class="btn btn-outline-secondary">360</a>
+              <a href="{{ row.review_url }}" class="btn btn-outline-primary">Review</a>
+              <a href="{{ row.gst_url }}" class="btn btn-outline-secondary">GST</a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" class="text-center text-muted py-5">No clients need partner review for the current filter.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

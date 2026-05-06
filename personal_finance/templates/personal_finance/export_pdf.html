@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SpendSight — Expense Report</title>
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 12px; color: #1e293b; margin: 20px; }
+    h1 { font-size: 20px; color: #4f46e5; margin-bottom: 4px; }
+    .meta { color: #64748b; font-size: 11px; margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    thead th { background: #4f46e5; color: #fff; padding: 7px 10px; text-align: left; font-size: 11px; }
+    tbody tr:nth-child(even) { background: #f1f5f9; }
+    tbody td { padding: 6px 10px; border-bottom: 1px solid #e2e8f0; }
+    .amount { text-align: right; font-weight: bold; color: #dc2626; }
+    .total-row td { font-weight: bold; background: #eef2ff; color: #3730a3; }
+  </style>
+</head>
+<body>
+  <h1>SpendSight — Expense Report</h1>
+  <div class="meta">Generated: {{ generated_date }} &nbsp;·&nbsp; {{ expenses|length }} record(s) &nbsp;·&nbsp; User: {{ user.get_full_name|default:user.username }}</div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Category</th>
+        <th>Item</th>
+        <th>Method</th>
+        <th>Qty / Unit</th>
+        <th style="text-align:right;">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ex in expenses %}
+      <tr>
+        <td>{{ ex.date|date:"d M Y" }}</td>
+        <td>{{ ex.category.name }}</td>
+        <td>{{ ex.item_name|default:ex.description|default:"-" }}</td>
+        <td>{{ ex.payment_method }}</td>
+        <td>{% if ex.quantity %}{{ ex.quantity }} {{ ex.unit }}{% else %}-{% endif %}</td>
+        <td class="amount">{{ currency_symbol }}{{ ex.amount|floatformat:2 }}</td>
+      </tr>
+      {% endfor %}
+      <tr class="total-row">
+        <td colspan="5">Total</td>
+        <td class="amount">{{ currency_symbol }}{{ total|floatformat:2 }}</td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+</html>

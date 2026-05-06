@@ -1,0 +1,378 @@
+{% extends "base.html" %}
+{% block title %}Market Case Studies - Akshaya Vistara{% endblock %}
+{% block page_title %}Market Case Studies{% endblock %}
+
+{% block extra_head %}
+<style>
+.case-score {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.case-filter {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+.case-table td {
+  vertical-align: middle;
+}
+.case-summary {
+  max-width: 34rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end flex-wrap gap-2 mb-3">
+  <a href="{% url 'core:market_case_studies' %}?export=csv{% if export_query %}&{{ export_query }}{% endif %}" class="btn btn-outline-primary btn-sm">
+    <i class="bi bi-download me-1"></i>Export CSV
+  </a>
+  <a href="{% url 'core:market_proof_pack' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-award me-1"></i>Market Proof
+  </a>
+  <a href="{% url 'core:pilot_feedback_register' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-chat-square-text me-1"></i>Pilot Feedback
+  </a>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Publishable Proof</div>
+        <div class="case-score text-success">{{ totals.publishable }}</div>
+        <div class="small text-muted">{{ totals.approved }} approved, {{ totals.published }} published</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Consent / Quote</div>
+        <div class="case-score text-primary">{{ totals.consented }}</div>
+        <div class="small text-muted">{{ totals.with_quote }} quote{{ totals.with_quote|pluralize }} captured</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Tally Replacements</div>
+        <div class="case-score text-primary">{{ totals.tally_replacements }}</div>
+        <div class="small text-muted">{{ totals.converted }} converted outcome{{ totals.converted|pluralize }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Missing Proof</div>
+        <div class="case-score {% if totals.missing_total %}text-danger{% else %}text-success{% endif %}">{{ totals.missing_total }}</div>
+        <div class="small text-muted">{{ totals.with_metrics }} with metric proof</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<form method="get" class="case-filter mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-3">
+      <label class="form-label small text-muted" for="case-q">Search</label>
+      <input id="case-q" type="search" class="form-control form-control-sm" name="q" value="{{ q }}" placeholder="Client, story, quote, evidence">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small text-muted" for="case-company">Company</label>
+      <select id="case-company" class="form-select form-select-sm" name="company">
+        <option value="all" {% if company_filter == "all" %}selected{% endif %}>All Clients</option>
+        {% for company in company_options %}
+          <option value="{{ company.pk }}" {% if company_filter == company.pk|stringformat:"s" %}selected{% endif %}>{{ company.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small text-muted" for="case-status">Status</label>
+      <select id="case-status" class="form-select form-select-sm" name="status">
+        {% for value,label in status_options %}
+          <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small text-muted" for="case-outcome">Outcome</label>
+      <select id="case-outcome" class="form-select form-select-sm" name="outcome">
+        {% for value,label in outcome_options %}
+          <option value="{{ value }}" {% if outcome_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3 d-flex gap-2">
+      <button type="submit" class="btn btn-primary btn-sm">
+        <i class="bi bi-funnel me-1"></i>Apply
+      </button>
+      <a href="{% url 'core:market_case_studies' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+    </div>
+  </div>
+  <div class="row g-2 mt-1">
+    <div class="col-md-3">
+      <select class="form-select form-select-sm" name="source" aria-label="Source">
+        {% for value,label in source_options %}
+          <option value="{{ value }}" {% if source_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+</form>
+
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-megaphone me-2"></i>Capture Case Study</h6>
+      </div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="create_case_study">
+          <input type="hidden" name="q" value="{{ q }}">
+          <input type="hidden" name="company" value="{{ company_filter }}">
+          <input type="hidden" name="status" value="{{ status_filter }}">
+          <input type="hidden" name="outcome" value="{{ outcome_filter }}">
+          <input type="hidden" name="source" value="{{ source_filter }}">
+          {% if case_study_form.non_field_errors %}
+            <div class="alert alert-danger py-2">{{ case_study_form.non_field_errors }}</div>
+          {% endif %}
+          <div class="mb-2">
+            <label class="form-label small text-muted" for="{{ case_study_form.company.id_for_label }}">Company</label>
+            {{ case_study_form.company }}
+            {{ case_study_form.company.errors }}
+          </div>
+          <div class="mb-2">
+            <label class="form-label small text-muted" for="{{ case_study_form.title.id_for_label }}">Title</label>
+            {{ case_study_form.title }}
+            {{ case_study_form.title.errors }}
+          </div>
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label small text-muted" for="{{ case_study_form.status.id_for_label }}">Status</label>
+              {{ case_study_form.status }}
+              {{ case_study_form.status.errors }}
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-muted" for="{{ case_study_form.outcome.id_for_label }}">Outcome</label>
+              {{ case_study_form.outcome }}
+              {{ case_study_form.outcome.errors }}
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-muted" for="{{ case_study_form.migration_source.id_for_label }}">Replaced Tool</label>
+              {{ case_study_form.migration_source }}
+              {{ case_study_form.migration_source.errors }}
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-muted" for="{{ case_study_form.owner.id_for_label }}">Owner</label>
+              {{ case_study_form.owner }}
+              {{ case_study_form.owner.errors }}
+            </div>
+          </div>
+          <div class="row g-2 mt-1">
+            <div class="col-6">
+              <label class="form-label small text-muted" for="{{ case_study_form.client_contact.id_for_label }}">Client Contact</label>
+              {{ case_study_form.client_contact }}
+              {{ case_study_form.client_contact.errors }}
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-muted" for="{{ case_study_form.client_role.id_for_label }}">Role</label>
+              {{ case_study_form.client_role }}
+              {{ case_study_form.client_role.errors }}
+            </div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label small text-muted" for="{{ case_study_form.testimonial_quote.id_for_label }}">Quote</label>
+            {{ case_study_form.testimonial_quote }}
+            {{ case_study_form.testimonial_quote.errors }}
+          </div>
+          <div class="row g-2 mt-1">
+            <div class="col-6">
+              <label class="form-label small text-muted" for="{{ case_study_form.consent_reference.id_for_label }}">Consent Ref</label>
+              {{ case_study_form.consent_reference }}
+              {{ case_study_form.consent_reference.errors }}
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-muted" for="{{ case_study_form.evidence_reference.id_for_label }}">Evidence Ref</label>
+              {{ case_study_form.evidence_reference }}
+              {{ case_study_form.evidence_reference.errors }}
+            </div>
+          </div>
+          <div class="row g-2 mt-1">
+            <div class="col-6">
+              <label class="form-label small text-muted" for="{{ case_study_form.before_process_hours.id_for_label }}">Before Hours</label>
+              {{ case_study_form.before_process_hours }}
+              {{ case_study_form.before_process_hours.errors }}
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-muted" for="{{ case_study_form.after_process_hours.id_for_label }}">After Hours</label>
+              {{ case_study_form.after_process_hours }}
+              {{ case_study_form.after_process_hours.errors }}
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-muted" for="{{ case_study_form.monthly_documents.id_for_label }}">Documents</label>
+              {{ case_study_form.monthly_documents }}
+              {{ case_study_form.monthly_documents.errors }}
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-muted" for="{{ case_study_form.monthly_invoices.id_for_label }}">Invoices</label>
+              {{ case_study_form.monthly_invoices }}
+              {{ case_study_form.monthly_invoices.errors }}
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-muted" for="{{ case_study_form.gst_periods_completed.id_for_label }}">GST Periods</label>
+              {{ case_study_form.gst_periods_completed }}
+              {{ case_study_form.gst_periods_completed.errors }}
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-muted" for="{{ case_study_form.tally_parallel_run_days.id_for_label }}">Parallel Days</label>
+              {{ case_study_form.tally_parallel_run_days }}
+              {{ case_study_form.tally_parallel_run_days.errors }}
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-muted" for="{{ case_study_form.cutover_date.id_for_label }}">Cutover Date</label>
+              {{ case_study_form.cutover_date }}
+              {{ case_study_form.cutover_date.errors }}
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-muted" for="{{ case_study_form.commercial_value.id_for_label }}">Commercial Value</label>
+              {{ case_study_form.commercial_value }}
+              {{ case_study_form.commercial_value.errors }}
+            </div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label small text-muted" for="{{ case_study_form.value_summary.id_for_label }}">Value Summary</label>
+            {{ case_study_form.value_summary }}
+            {{ case_study_form.value_summary.errors }}
+          </div>
+          <div class="row g-2 mt-2">
+            <div class="col-6">
+              <div class="form-check">
+                {{ case_study_form.publish_consent }}
+                <label class="form-check-label" for="{{ case_study_form.publish_consent.id_for_label }}">Publish consent</label>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="form-check">
+                {{ case_study_form.anonymized }}
+                <label class="form-check-label" for="{{ case_study_form.anonymized.id_for_label }}">Anonymized</label>
+              </div>
+            </div>
+          </div>
+          <div class="form-check mt-2">
+            {{ case_study_form.create_follow_up_task }}
+            <label class="form-check-label" for="{{ case_study_form.create_follow_up_task.id_for_label }}">Create proof follow-up task</label>
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm mt-3 w-100">
+            <i class="bi bi-plus-circle me-1"></i>Capture Case Study
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-table me-2"></i>Case Study Register</h6>
+        <span class="small text-muted">{{ totals.items }} visible case stud{{ totals.items|pluralize:"y,ies" }}</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover case-table mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Story</th>
+              <th>Proof</th>
+              <th class="text-end">Metrics</th>
+              <th class="pe-3 text-end">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+              {% with item=row.case_study %}
+                <tr>
+                  <td class="ps-3 case-summary">
+                    <a href="{% url 'core:client_360' item.company.pk %}" class="fw-semibold text-decoration-none">{{ item.company.name }}</a>
+                    <div class="fw-semibold">{{ item.title }}</div>
+                    <div class="small text-muted">{{ item.get_migration_source_display }} | {{ item.client_contact|default:"No contact" }}{% if item.client_role %} | {{ item.client_role }}{% endif %}</div>
+                    <div class="mt-1">
+                      <span class="badge {{ item.status_badge_class }}">{{ item.get_status_display }}</span>
+                      <span class="badge {{ item.outcome_badge_class }}">{{ item.get_outcome_display }}</span>
+                      {% if item.is_publishable %}
+                        <span class="badge bg-success-subtle text-success">Publishable</span>
+                      {% else %}
+                        <span class="badge bg-warning-subtle text-warning">Needs Proof</span>
+                      {% endif %}
+                    </div>
+                  </td>
+                  <td>
+                    {% if item.testimonial_quote %}
+                      <div class="small">"{{ item.testimonial_quote|truncatechars:120 }}"</div>
+                    {% else %}
+                      <div class="small text-muted">No quote captured</div>
+                    {% endif %}
+                    <div class="small text-muted">Consent: {% if item.publish_consent %}yes{% else %}no{% endif %} | {{ item.consent_reference|default:"No consent ref" }}</div>
+                    <div class="small text-muted">Evidence: {{ item.evidence_reference|default:"No evidence ref" }}</div>
+                    {% if row.missing_items %}
+                      <div class="small text-danger mt-1">Missing: {{ row.missing_items|join:", " }}</div>
+                    {% endif %}
+                  </td>
+                  <td class="text-end">
+                    <div>{{ item.monthly_documents }} docs, {{ item.monthly_invoices }} invoices</div>
+                    <div class="small text-muted">{{ item.gst_periods_completed }} GST period{{ item.gst_periods_completed|pluralize }}, {{ item.tally_parallel_run_days }} parallel days</div>
+                    <div class="small text-muted">
+                      {% if item.hours_saved != None %}{{ item.hours_saved }} hour{{ item.hours_saved|pluralize }} saved{% else %}No hours metric{% endif %}
+                    </div>
+                    <div class="small text-muted">Value {{ item.commercial_value }}</div>
+                  </td>
+                  <td class="pe-3 text-end">
+                    {% if row.can_manage and item.status == "ready" %}
+                      <form method="post" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="approve_case_study">
+                        <input type="hidden" name="case_study_id" value="{{ item.pk }}">
+                        <input type="hidden" name="q" value="{{ q }}">
+                        <input type="hidden" name="company" value="{{ company_filter }}">
+                        <input type="hidden" name="status" value="{{ status_filter }}">
+                        <input type="hidden" name="outcome" value="{{ outcome_filter }}">
+                        <input type="hidden" name="source" value="{{ source_filter }}">
+                        <button type="submit" class="btn btn-sm btn-outline-success">Approve</button>
+                      </form>
+                    {% endif %}
+                    {% if row.can_manage and item.status == "approved" %}
+                      <form method="post" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="publish_case_study">
+                        <input type="hidden" name="case_study_id" value="{{ item.pk }}">
+                        <input type="hidden" name="q" value="{{ q }}">
+                        <input type="hidden" name="company" value="{{ company_filter }}">
+                        <input type="hidden" name="status" value="{{ status_filter }}">
+                        <input type="hidden" name="outcome" value="{{ outcome_filter }}">
+                        <input type="hidden" name="source" value="{{ source_filter }}">
+                        <button type="submit" class="btn btn-sm btn-outline-primary">Publish</button>
+                      </form>
+                    {% endif %}
+                    <a href="{% url 'core:market_proof_pack' %}?q={{ item.company.name|urlencode }}" class="btn btn-sm btn-outline-secondary">Proof</a>
+                  </td>
+                </tr>
+              {% endwith %}
+            {% empty %}
+              <tr>
+                <td colspan="4" class="text-center text-muted py-5">
+                  No case studies match the current filter.
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

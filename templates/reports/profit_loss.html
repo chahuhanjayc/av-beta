@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+{% block title %}Profit & Loss – Akshaya Vistara{% endblock %}
+{% block page_title %}Profit &amp; Loss Report{% endblock %}
+
+{% block extra_head %}
+<style>
+@media print {
+  #sidebar, #topbar, .no-print, .btn { display: none !important; }
+  #main-content { margin-left: 0 !important; }
+  .page-body { padding: 0 !important; }
+  .card { border: 1px solid #dee2e6 !important; box-shadow: none !important; }
+  body { background: white !important; font-size: 11pt; }
+  .table { font-size: 10pt; }
+  .row.g-3 { page-break-inside: avoid; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Date filter ──────────────────────────────────────────── -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-auto">
+        <label class="form-label small fw-semibold mb-1">From</label>
+        <input type="date" name="start_date" class="form-control form-control-sm"
+               value="{{ start_date|date:'Y-m-d' }}" />
+      </div>
+      <div class="col-auto">
+        <label class="form-label small fw-semibold mb-1">To</label>
+        <input type="date" name="end_date" class="form-control form-control-sm"
+               value="{{ end_date|date:'Y-m-d' }}" />
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-primary btn-sm" type="submit">
+          <i class="bi bi-funnel me-1"></i> Apply
+        </button>
+      </div>
+      <div class="col-auto ms-auto d-flex gap-2 no-print">
+        <a href="{% url 'reports:export_pl_excel' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}"
+           class="btn btn-outline-success btn-sm">
+          <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
+        </a>
+        <a href="{% url 'reports:profit_loss_pdf' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}"
+           class="btn btn-outline-danger btn-sm">
+          <i class="bi bi-file-earmark-pdf me-1"></i> Download PDF
+        </a>
+        <button class="btn btn-outline-secondary btn-sm" type="button" onclick="window.print()">
+          <i class="bi bi-printer me-1"></i> Print
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Report header ────────────────────────────────────────── -->
+<div class="text-center mb-4 print-header">
+  <h4 class="fw-bold">{{ current_company.name }}</h4>
+  <h5 class="text-muted">Profit &amp; Loss Statement</h5>
+  <p class="text-muted small mb-0">
+    Period: {{ start_date|date:"d M Y" }} to {{ end_date|date:"d M Y" }}
+  </p>
+</div>
+
+<!-- ── Two-column layout: Income | Expense ──────────────────── -->
+<div class="row g-3">
+
+  <!-- Income -->
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header py-3" style="background:#f0fdf4;border-bottom:2px solid #86efac;">
+        <h6 class="mb-0 text-success">
+          <i class="bi bi-arrow-down-circle me-2"></i>Income
+        </h6>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Ledger</th>
+              <th class="text-end">Amount (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in income_items %}
+            <tr>
+              <td>{{ item.name }}</td>
+              <td class="text-end {% if item.amount < 0 %}text-danger{% endif %}">
+                {{ item.amount|floatformat:2 }}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="2" class="text-muted text-center py-3 small">
+                No income entries in this period.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr class="table-success fw-bold">
+              <td>Total Income</td>
+              <td class="text-end">{{ total_income|floatformat:2 }}</td>
+            </tr>
+          </tfoot>
+        </table>
+        </div>  {# /table-responsive #}
+      </div>
+    </div>
+  </div>
+
+  <!-- Expense -->
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header py-3" style="background:#fef2f2;border-bottom:2px solid #fca5a5;">
+        <h6 class="mb-0 text-danger">
+          <i class="bi bi-arrow-up-circle me-2"></i>Expenses
+        </h6>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Ledger</th>
+              <th class="text-end">Amount (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in expense_items %}
+            <tr>
+              <td>{{ item.name }}</td>
+              <td class="text-end {% if item.amount < 0 %}text-success{% endif %}">
+                {{ item.amount|floatformat:2 }}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="2" class="text-muted text-center py-3 small">
+                No expense entries in this period.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr class="table-danger fw-bold">
+              <td>Total Expenses</td>
+              <td class="text-end">{{ total_expense|floatformat:2 }}</td>
+            </tr>
+          </tfoot>
+        </table>
+        </div>  {# /table-responsive #}
+      </div>
+    </div>
+  </div>
+
+</div><!-- /row -->
+
+<!-- ── Net Profit / Loss ─────────────────────────────────────── -->
+<div class="card border-0 shadow mt-4
+     {% if net_profit >= 0 %}border-success{% else %}border-danger{% endif %}">
+  <div class="card-body py-3 d-flex justify-content-between align-items-center
+       {% if net_profit >= 0 %}bg-success bg-opacity-10{% else %}bg-danger bg-opacity-10{% endif %}
+       rounded-3">
+    <h5 class="mb-0 fw-bold">
+      {% if net_profit >= 0 %}
+        <i class="bi bi-emoji-smile text-success me-2"></i>Net Profit
+      {% else %}
+        <i class="bi bi-emoji-frown text-danger me-2"></i>Net Loss
+      {% endif %}
+    </h5>
+    <h4 class="mb-0 fw-bold
+         {% if net_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+      ₹{{ net_profit|floatformat:2 }}
+    </h4>
+  </div>
+</div>
+
+<!-- ── Chart ─────────────────────────────────────────────────── -->
+<div class="card border-0 shadow-sm mt-4">
+  <div class="card-header bg-white py-3">
+    <h6 class="mb-0"><i class="bi bi-bar-chart me-2"></i>Income vs Expenses</h6>
+  </div>
+  <div class="card-body">
+    <canvas id="plChart" height="80"></canvas>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  new Chart(document.getElementById('plChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Income', 'Expenses', 'Net Profit'],
+      datasets: [{
+        data: [
+          {{ total_income }},
+          {{ total_expense }},
+          {{ net_profit }}
+        ],
+        backgroundColor: [
+          'rgba(22,163,74,0.7)',
+          'rgba(220,38,38,0.7)',
+          '{{ net_profit|yesno:"rgba(79,70,229,0.7),rgba(220,38,38,0.7)," }}'
+        ],
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { callback: v => '₹' + v.toLocaleString('en-IN') }
+        }
+      }
+    }
+  });
+</script>
+{% endblock %}

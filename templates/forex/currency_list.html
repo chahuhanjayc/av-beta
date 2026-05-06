@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Currencies – Akshaya Vistara{% endblock %}
+{% block page_title %}Currency Management{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between mb-3">
+  <span class="text-muted small">{{ currencies|length }} currencies</span>
+  <a href="{% url 'forex:currency_create' %}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-lg me-1"></i>Add Currency
+  </a>
+</div>
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    {% if currencies %}
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr><th>Code</th><th>Name</th><th>Symbol</th><th>Base?</th><th>Latest Rate</th><th>Active</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for cur in currencies %}
+        <tr>
+          <td class="fw-bold">{{ cur.code }}</td>
+          <td>{{ cur.name }}</td>
+          <td>{{ cur.symbol }}</td>
+          <td>{% if cur.is_base %}<span class="badge bg-primary">Base</span>{% else %}—{% endif %}</td>
+          <td>
+            {% if not cur.is_base %}
+              {% with rate=cur.latest_rate %}
+              1 {{ cur.code }} = <strong>{{ rate }} INR</strong>
+              {% endwith %}
+            {% else %}—{% endif %}
+          </td>
+          <td>{% if cur.is_active %}<i class="bi bi-check-circle text-success"></i>{% else %}—{% endif %}</td>
+          <td class="text-end">
+            <a href="{% url 'forex:currency_edit' pk=cur.pk %}" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-pencil"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-currency-exchange fs-1 d-block mb-2"></i>
+      No currencies. <a href="{% url 'forex:currency_create' %}">Add one</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+<div class="mt-3 d-flex gap-2">
+  <a href="{% url 'forex:exchange_rate_list' %}" class="btn btn-outline-primary btn-sm">
+    <i class="bi bi-graph-up me-1"></i>Exchange Rates
+  </a>
+  <a href="{% url 'forex:forex_position' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-wallet2 me-1"></i>Forex Position
+  </a>
+</div>
+{% endblock %}

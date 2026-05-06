@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Open Orders – Akshaya Vistara{% endblock %}
+{% block page_title %}Open Orders Report{% endblock %}
+
+{% block extra_head %}
+<style>
+  .overdue-row { background: #fff5f5; }
+</style>
+{% endblock %}
+
+{% block content %}
+{# ── Filter ── #}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3">
+    <form class="row g-2 align-items-end" method="get">
+      <div class="col-auto">
+        <label class="form-label small mb-1">Type</label>
+        <select name="type" class="form-select form-select-sm">
+          <option value="">— All Types —</option>
+          <option value="Purchase" {% if order_type == "Purchase" %}selected{% endif %}>Purchase Orders</option>
+          <option value="Sales"    {% if order_type == "Sales"    %}selected{% endif %}>Sales Orders</option>
+        </select>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+        <a href="{% url 'orders:open_orders' %}" class="btn btn-outline-secondary btn-sm ms-1">Clear</a>
+      </div>
+      <div class="col-auto ms-auto">
+        <a href="{% url 'orders:order_create' %}" class="btn btn-primary btn-sm">
+          <i class="bi bi-plus-lg me-1"></i>New Order
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if rows %}
+{# ── Summary ── #}
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="text-muted small">Total Open Orders</div>
+      <div class="fw-bold fs-4">{{ rows|length }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="text-muted small">Overdue</div>
+      {% with overdue_count=rows|length %}
+      <div class="fw-bold fs-4 text-danger">
+        {% for r in rows %}{% if r.overdue %}{% with c=forloop.counter %}{% endwith %}{% endif %}{% endfor %}
+        {{ rows|length }}
+      </div>
+      {% endwith %}
+    </div>
+  </div>
+</div>
+
+{# ── Orders ── #}
+{% for row in rows %}
+<div class="card border-0 shadow-sm mb-3 {% if row.overdue %}border-danger{% endif %}">
+  <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+    <div>
+      <a href="{% url 'orders:order_detail' pk=row.order.pk %}" class="fw-semibold text-decoration-none me-2">
+        {{ row.order.number }}
+      </a>
+      {% if row.order.order_type == "Purchase" %}
+        <span class="badge bg-info-subtle text-info me-1">PO</span>
+      {% else %}
+        <span class="badge bg-success-subtle text-success me-1">SO</span>
+      {% endif %}
+      <span class="badge bg-primary">{{ row.order.status }}</span>
+      {% if row.overdue %}
+        <span class="badge bg-danger ms-1"><i class="bi bi-exclamation-triangle me-1"></i>Overdue</span>
+      {% endif %}
+    </div>
+    <div class="text-end small">
+      <div class="text-muted">{{ row.order.party_ledger.name }}</div>
+      <div>
+        <span class="text-muted">Expected:</span>
+        <strong class="{% if row.overdue %}text-danger{% endif %}">{{ row.order.expected_date|default:"—" }}</strong>
+      </div>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-sm mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Item</th>
+          <th class="text-end">Ordered</th>
+          <th class="text-end">Fulfilled</th>
+          <th class="text-end">Pending</th>
+          <th class="text-end">Rate (₹)</th>
+          <th class="text-end">Pending Amt (₹)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in row.items %}
+        {% if item.pending_qty > 0 %}
+        <tr>
+          <td>{{ item.stock_item.name|default:item.description }}</td>
+          <td class="text-end">{{ item.quantity }}</td>
+          <td class="text-end text-success">{{ item.fulfilled_qty }}</td>
+          <td class="text-end fw-semibold text-warning">{{ item.pending_qty }}</td>
+          <td class="text-end">{{ item.rate|floatformat:2 }}</td>
+          <td class="text-end fw-semibold">{{ item.pending_qty|floatformat:3 }}</td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-footer bg-white text-end small">
+    <span class="text-muted me-2">Order Total: <strong>₹{{ row.order.total_amount|floatformat:2 }}</strong></span>
+    <a href="{% url 'orders:order_detail' pk=row.order.pk %}" class="btn btn-sm btn-outline-primary ms-2">
+      View / Convert
+    </a>
+  </div>
+</div>
+{% endfor %}
+
+{% else %}
+<div class="text-center py-5 text-muted">
+  <i class="bi bi-check-circle fs-1 d-block mb-2 text-success"></i>
+  No open orders. All confirmed orders have been fulfilled.
+  <div class="mt-2">
+    <a href="{% url 'orders:order_create' %}" class="btn btn-primary btn-sm">Create New Order</a>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

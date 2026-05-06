@@ -1,0 +1,430 @@
+{% extends "base.html" %}
+{% block title %}Vouchers – Akshaya Vistara{% endblock %}
+{% block page_title %}Vouchers{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ── Filter panel ── */
+.filter-panel {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+.filter-panel .form-control,
+.filter-panel .form-select {
+  font-size: 0.82rem;
+  padding: 0.3rem 0.55rem;
+  height: auto;
+}
+.filter-panel label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6c757d;
+  margin-bottom: 0.2rem;
+}
+
+/* ── Bulk action bar ── */
+#bulk-bar {
+  display: none;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #0d6efd;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 0.75rem;
+  align-items: center;
+  gap: 0.75rem;
+  box-shadow: 0 2px 8px rgba(13,110,253,.35);
+}
+#bulk-bar.visible { display: flex !important; }
+#bulk-bar .bulk-count {
+  font-weight: 600;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+#bulk-bar .ms-auto { margin-left: auto !important; }
+
+/* ── Table tweaks ── */
+.voucher-table th,
+.voucher-table td {
+  vertical-align: middle;
+  font-size: 0.83rem;
+  padding: 0.42rem 0.65rem;
+}
+.voucher-table th { font-weight: 600; }
+.voucher-table td.cb-cell { width: 36px; text-align: center; }
+.select-row { cursor: pointer; }
+
+/* ── Pagination strip ── */
+.pagination { margin-bottom: 0; }
+.pagination .page-link { font-size: 0.82rem; padding: 0.28rem 0.6rem; }
+
+/* ── Type badges ── */
+.badge-purchase  { background: #fff3cd; color: #856404; }
+.badge-sale      { background: #d1e7dd; color: #0a3622; }
+.badge-payment   { background: #cfe2ff; color: #084298; }
+.badge-receipt   { background: #e2d9f3; color: #432874; }
+.badge-journal   { background: #f8d7da; color: #58151c; }
+.badge-contra    { background: #e2e3e5; color: #41464b; }
+.badge-default   { background: #e9ecef; color: #495057; }
+
+@media print {
+  #sidebar, #topbar, .no-print, .btn, .filter-panel,
+  .pagination-row, #bulk-bar { display: none !important; }
+  #main-content { margin-left: 0 !important; }
+  .page-body { padding: 0 !important; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# ── Top bar: title + company indicator + New Voucher ── #}
+<div class="d-flex justify-content-between align-items-center mb-2 no-print">
+  <div>
+    <h5 class="mb-0">
+      Vouchers
+      <span class="badge bg-secondary ms-1" style="font-size:.7rem;font-weight:500;">
+        <i class="bi bi-building me-1"></i>{{ current_company.name }}
+      </span>
+    </h5>
+    <small class="text-muted">{{ total_count }} voucher{{ total_count|pluralize }} found</small>
+  </div>
+  <div class="d-flex gap-2 align-items-center">
+    {# Company switcher (if user has access to more than one company) #}
+    {% if user_companies|length > 1 %}
+    <div class="dropdown no-print">
+      <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+        <i class="bi bi-arrow-repeat me-1"></i>Switch Company
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        {% for access in user_companies %}
+        <li>
+          <a class="dropdown-item {% if access.company == current_company %}active{% endif %}"
+             href="{% url 'core:switch_company' access.company.pk %}">
+            {{ access.company.name }}
+            <small class="text-muted ms-1">({{ access.role }})</small>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    <a href="{% url 'vouchers:quality' %}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-shield-exclamation me-1"></i>Voucher Quality
+    </a>
+    {% if current_company_role != "Viewer" %}
+    <a href="{% url 'vouchers:export_tally' %}?{{ request.GET.urlencode }}" class="btn btn-outline-success btn-sm">
+      <i class="bi bi-file-earmark-code me-1"></i>Export to Tally (XML)
+    </a>
+    <a href="{% url 'vouchers:create' %}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-lg me-1"></i>New Voucher
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+{# ── Filter panel ── #}
+<form method="get" id="filter-form" class="filter-panel no-print">
+  <div class="row g-2 align-items-end">
+
+    {# ── Company selector (always visible) ── #}
+    <div class="col-sm-3 col-md-2">
+      <label>Company</label>
+      {% if user_companies %}
+      <select class="form-select" onchange="window.location.href='{% url 'core:switch_company' 0 %}'.replace('/0/', '/'+this.value+'/')">
+        {% for access in user_companies %}
+        <option value="{{ access.company.pk }}"
+          {% if access.company == current_company %}selected{% endif %}>
+          {{ access.company.name }}
+        </option>
+        {% endfor %}
+      </select>
+      {% else %}
+      <input type="text" class="form-control" value="{{ current_company.name }}" readonly>
+      {% endif %}
+    </div>
+
+    <div class="col-sm-3 col-md-2">
+      <label for="q">Search</label>
+      <input type="text" id="q" name="q" value="{{ filters.q }}"
+             class="form-control" placeholder="Number or narration…">
+    </div>
+    <div class="col-sm-2 col-md-2">
+      <label for="start_date">From</label>
+      <input type="date" id="start_date" name="start_date"
+             value="{{ filters.start_date }}" class="form-control">
+    </div>
+    <div class="col-sm-2 col-md-2">
+      <label for="end_date">To</label>
+      <input type="date" id="end_date" name="end_date"
+             value="{{ filters.end_date }}" class="form-control">
+    </div>
+    <div class="col-sm-2 col-md-2">
+      <label for="voucher_type">Type</label>
+      <select id="voucher_type" name="voucher_type" class="form-select">
+        <option value="">All Types</option>
+        {% for code, label in voucher_types %}
+        <option value="{{ code }}" {% if filters.voucher_type == code %}selected{% endif %}>
+          {{ label }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-sm-2 col-md-2">
+      <label for="ledger">Ledger</label>
+      <input type="text" id="ledger" name="ledger" value="{{ filters.ledger }}"
+             class="form-control" placeholder="Ledger name…">
+    </div>
+    <div class="col-sm-1 col-md-1 d-flex gap-1">
+      <button type="submit" class="btn btn-primary btn-sm w-100">
+        <i class="bi bi-search"></i>
+      </button>
+      {% if has_filters %}
+      <a href="{% url 'vouchers:list' %}" class="btn btn-outline-secondary btn-sm w-100" title="Clear filters">
+        <i class="bi bi-x-lg"></i>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</form>
+
+{# ── Bulk action bar (appears when rows selected) ── #}
+{% if current_company_role != "Viewer" %}
+<div id="bulk-bar" class="no-print">
+  <span class="bulk-count"><span id="sel-count">0</span> selected</span>
+  <form method="post" action="{% url 'vouchers:bulk_action' %}" id="bulk-form" class="d-flex gap-2 ms-auto">
+    {% csrf_token %}
+    <div id="bulk-hidden-inputs"></div>
+    <button type="submit" name="action" value="export_pdf"
+            class="btn btn-sm btn-light">
+      <i class="bi bi-printer me-1"></i>Print / PDF
+    </button>
+    {% if current_company_role == "Admin" %}
+    <button type="submit" name="action" value="delete"
+            class="btn btn-sm btn-danger"
+            onclick="return confirm('Delete the selected vouchers? This cannot be undone.')">
+      <i class="bi bi-trash me-1"></i>Delete
+    </button>
+    {% endif %}
+  </form>
+</div>
+{% endif %}
+
+{# ── Voucher table ── #}
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover voucher-table mb-0" id="voucher-table">
+        <thead class="table-light">
+          <tr>
+            {% if current_company_role != "Viewer" %}
+            <th class="cb-cell">
+              <input type="checkbox" id="select-all" title="Select all on this page"
+                     class="form-check-input">
+            </th>
+            {% endif %}
+            <th>Number</th>
+            <th>Type</th>
+            <th>Date</th>
+            <th>Narration</th>
+            <th class="text-end">Debit (₹)</th>
+            <th class="text-end">Credit (₹)</th>
+            <th class="text-center">Status</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for v in page_obj %}
+          <tr class="select-row" data-id="{{ v.pk }}" data-url="{% url 'vouchers:detail' v.pk %}">
+            {% if current_company_role != "Viewer" %}
+            <td class="cb-cell" onclick="event.stopPropagation()">
+              <input type="checkbox" class="form-check-input row-cb" value="{{ v.pk }}">
+            </td>
+            {% endif %}
+            <td>
+              <a href="{% url 'vouchers:detail' v.pk %}" class="text-decoration-none fw-semibold">
+                <code>{{ v.number }}</code>
+              </a>
+            </td>
+            <td>
+              {% with t=v.voucher_type|lower %}
+              <span class="badge
+                {% if t == 'purchase' %}badge-purchase
+                {% elif t == 'sale' %}badge-sale
+                {% elif t == 'payment' %}badge-payment
+                {% elif t == 'receipt' %}badge-receipt
+                {% elif t == 'journal' %}badge-journal
+                {% elif t == 'contra' %}badge-contra
+                {% else %}badge-default{% endif %}">
+                {{ v.voucher_type }}
+              </span>
+              {% endwith %}
+            </td>
+            <td class="text-nowrap">{{ v.date|date:"d M Y" }}</td>
+            <td class="text-muted">{{ v.narration|truncatechars:48 }}</td>
+            <td class="text-end">{{ v.total_debit|floatformat:2 }}</td>
+            <td class="text-end">{{ v.total_credit|floatformat:2 }}</td>
+            <td class="text-center">
+              {% if v.is_balanced %}
+                <span class="badge badge-balanced">✓</span>
+              {% else %}
+                <span class="badge badge-unbalanced">!</span>
+              {% endif %}
+            </td>
+            <td class="text-end text-nowrap">
+              <a href="{% url 'vouchers:detail' v.pk %}"
+                 class="btn btn-sm btn-outline-secondary" title="View">
+                <i class="bi bi-eye"></i>
+              </a>
+              {% if current_company_role != "Viewer" and v.status != "APPROVED" %}
+              <a href="{% url 'vouchers:edit' v.pk %}"
+                 class="btn btn-sm btn-outline-primary ms-1" title="Edit">
+                <i class="bi bi-pencil"></i>
+              </a>
+              {% endif %}
+              {% if current_company_role == "Admin" and v.status != "APPROVED" %}
+              <a href="{% url 'vouchers:delete' v.pk %}"
+                 class="btn btn-sm btn-outline-danger ms-1" title="Delete">
+                <i class="bi bi-trash"></i>
+              </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="9" class="text-center text-muted py-5">
+              {% if has_filters %}
+                No vouchers match your filters.
+                <a href="{% url 'vouchers:list' %}">Clear filters</a>
+              {% else %}
+                No vouchers yet.
+                <a href="{% url 'vouchers:create' %}">Create your first voucher.</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{# ── Pagination ── #}
+{% if page_obj.paginator.num_pages > 1 %}
+<nav class="pagination-row d-flex justify-content-between align-items-center mt-3 no-print">
+  <small class="text-muted">
+    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+    &nbsp;·&nbsp; {{ total_count }} record{{ total_count|pluralize }}
+  </small>
+  <ul class="pagination mb-0">
+    {% if page_obj.has_previous %}
+    <li class="page-item">
+      <a class="page-link" href="?page=1{{ filter_qs }}" title="First">«</a>
+    </li>
+    <li class="page-item">
+      <a class="page-link" href="?page={{ page_obj.previous_page_number }}{{ filter_qs }}">‹</a>
+    </li>
+    {% else %}
+    <li class="page-item disabled"><span class="page-link">«</span></li>
+    <li class="page-item disabled"><span class="page-link">‹</span></li>
+    {% endif %}
+
+    {# Show up to 5 page numbers centred around current #}
+    {% for i in page_obj.paginator.page_range %}
+      {% if i >= page_obj.number|add:"-2" and i <= page_obj.number|add:"2" %}
+      <li class="page-item {% if i == page_obj.number %}active{% endif %}">
+        <a class="page-link" href="?page={{ i }}{{ filter_qs }}">{{ i }}</a>
+      </li>
+      {% endif %}
+    {% endfor %}
+
+    {% if page_obj.has_next %}
+    <li class="page-item">
+      <a class="page-link" href="?page={{ page_obj.next_page_number }}{{ filter_qs }}">›</a>
+    </li>
+    <li class="page-item">
+      <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{{ filter_qs }}" title="Last">»</a>
+    </li>
+    {% else %}
+    <li class="page-item disabled"><span class="page-link">›</span></li>
+    <li class="page-item disabled"><span class="page-link">»</span></li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  "use strict";
+
+  const selectAll  = document.getElementById("select-all");
+  const bulkBar    = document.getElementById("bulk-bar");
+  const selCount   = document.getElementById("sel-count");
+  const hiddenWrap = document.getElementById("bulk-hidden-inputs");
+
+  function getChecked() {
+    return Array.from(document.querySelectorAll(".row-cb:checked"));
+  }
+
+  function syncBar() {
+    const checked = getChecked();
+    const n = checked.length;
+    if (!bulkBar) return;
+    if (n > 0) {
+      bulkBar.classList.add("visible");
+      selCount.textContent = n;
+      // Rebuild hidden inputs
+      hiddenWrap.innerHTML = "";
+      checked.forEach(function (cb) {
+        const inp = document.createElement("input");
+        inp.type  = "hidden";
+        inp.name  = "selected_ids";
+        inp.value = cb.value;
+        hiddenWrap.appendChild(inp);
+      });
+    } else {
+      bulkBar.classList.remove("visible");
+    }
+  }
+
+  // Select-all toggle
+  if (selectAll) {
+    selectAll.addEventListener("change", function () {
+      document.querySelectorAll(".row-cb").forEach(function (cb) {
+        cb.checked = selectAll.checked;
+      });
+      syncBar();
+    });
+  }
+
+  // Per-row checkboxes
+  document.querySelectorAll(".row-cb").forEach(function (cb) {
+    cb.addEventListener("change", function () {
+      const total   = document.querySelectorAll(".row-cb").length;
+      const checked = getChecked().length;
+      if (selectAll) selectAll.indeterminate = checked > 0 && checked < total;
+      if (selectAll) selectAll.checked = checked === total;
+      syncBar();
+    });
+  });
+
+  // Clicking a row (not the checkbox cell or action buttons) navigates to detail view
+  document.querySelectorAll("tr.select-row").forEach(function (row) {
+    row.style.cursor = "pointer";
+    row.addEventListener("click", function (e) {
+      if (e.target.closest(".cb-cell") || e.target.closest("a") || e.target.closest("button")) return;
+      const url = row.dataset.url;
+      if (url) window.location.href = url;
+    });
+  });
+})();
+</script>
+{% endblock %}

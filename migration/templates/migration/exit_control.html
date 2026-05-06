@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block title %}Tally Exit Control - Akshaya Vistara{% endblock %}
+{% block page_title %}Tally Exit Control{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end flex-wrap gap-2 mb-3">
+  <form method="post" class="d-inline">
+    {% csrf_token %}
+    <input type="hidden" name="q" value="{{ q }}">
+    <input type="hidden" name="band" value="{{ band_filter }}">
+    <button type="submit" class="btn btn-outline-danger btn-sm">
+      <i class="bi bi-list-check me-1"></i>Create Exit Tasks
+    </button>
+  </form>
+  <a href="{% url 'migration:exit_control' %}?export=csv{% if export_query %}&{{ export_query }}{% endif %}" class="btn btn-outline-primary btn-sm">
+    <i class="bi bi-download me-1"></i>Export CSV
+  </a>
+  <a href="{% url 'migration:upload' %}" class="btn btn-primary btn-sm">
+    <i class="bi bi-cloud-upload me-1"></i>New Import
+  </a>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Average Exit Score</div>
+        <div class="h3 mb-0 {% if totals.avg_score >= 90 %}text-success{% elif totals.avg_score >= 75 %}text-primary{% elif totals.avg_score >= 55 %}text-warning{% else %}text-danger{% endif %}">
+          {{ totals.avg_score }}%
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Blocked Clients</div>
+        <div class="h3 mb-0 text-danger">{{ totals.blocked }}</div>
+        <div class="small text-muted">{{ totals.clients }} visible clients</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Open Sessions</div>
+        <div class="h3 mb-0 text-warning">{{ totals.open_sessions }}</div>
+        <div class="small text-muted">{{ totals.confirmed_sessions }} confirmed</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Ready / Controlled</div>
+        <div class="h3 mb-0 text-success">{{ totals.ready|add:totals.controlled }}</div>
+        <div class="small text-muted">{{ totals.writable_clients }} writable</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<form method="get" class="card border-0 shadow-sm mb-3">
+  <div class="card-body">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label small text-muted" for="exit-q">Search</label>
+        <input id="exit-q" type="search" class="form-control form-control-sm" name="q" value="{{ q }}" placeholder="Client name or GSTIN">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small text-muted" for="exit-band">Band</label>
+        <select id="exit-band" class="form-select form-select-sm" name="band">
+          {% for value,label in band_options %}
+            <option value="{{ value }}" {% if band_filter == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4 d-flex gap-2">
+        <button type="submit" class="btn btn-primary btn-sm">
+          <i class="bi bi-funnel me-1"></i>Apply
+        </button>
+        <a href="{% url 'migration:exit_control' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+      </div>
+    </div>
+  </div>
+</form>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h6 class="mb-0"><i class="bi bi-box-arrow-right me-2"></i>Client Exit Queue</h6>
+    <span class="small text-muted">Sorted by lowest exit score</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Client</th>
+          <th class="text-end">Exit</th>
+          <th class="text-end">Migration</th>
+          <th class="text-end">Parallel Run</th>
+          <th>Latest Session</th>
+          <th>Top Gaps</th>
+          <th>Connector</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td>
+              <div class="fw-semibold">{{ row.company.name }}</div>
+              <div class="small text-muted">{{ row.company.gstin|default:"No GSTIN" }}</div>
+              {% if not row.can_manage %}
+                <span class="badge bg-secondary-subtle text-secondary mt-1">Read-only</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <span class="badge {{ row.badge_class }}">{{ row.exit_score }}% {{ row.band }}</span>
+              <div class="small text-muted">Ops {{ row.operating_score }}%</div>
+            </td>
+            <td class="text-end">
+              <div class="{% if row.cleanup_score < 55 or row.sync_score < 55 %}text-danger{% elif row.cleanup_score < 75 or row.sync_score < 75 %}text-warning{% else %}text-success{% endif %}">
+                {{ row.cleanup_score }} / {{ row.sync_score }}
+              </div>
+              <div class="small text-muted">cleanup / sync</div>
+            </td>
+            <td class="text-end">
+              <span class="badge {{ row.parallel_run.badge_class }}">{{ row.parallel_run.score }}% {{ row.parallel_run.band }}</span>
+              <div class="small text-muted">{{ row.parallel_run.critical_count }} critical, {{ row.parallel_run.high_count }} high</div>
+            </td>
+            <td style="min-width: 230px;">
+              {% if row.latest %}
+                <a href="{{ row.latest_url }}" class="fw-semibold text-decoration-none">
+                  Session #{{ row.latest.pk }}
+                </a>
+                <div class="small text-muted">{{ row.latest.get_source_system_display }} · {{ row.latest.get_sync_mode_display }}</div>
+                <div class="small text-muted">{{ row.latest.created_at|date:"d M Y, h:i A" }}</div>
+                <span class="badge {% if row.latest.status == 'confirmed' %}bg-success{% elif row.latest.status == 'failed' %}bg-danger{% elif row.latest.status == 'parsed' %}bg-info{% else %}bg-secondary{% endif %}">
+                  {{ row.latest.get_status_display }}
+                </span>
+                {% if row.approval_gate.required %}
+                  <span class="badge {% if row.approval_gate.can_confirm %}bg-success{% else %}bg-danger{% endif %}">
+                    {{ row.approval_gate.status_label }}
+                  </span>
+                {% endif %}
+              {% else %}
+                <span class="fw-semibold text-danger">No import session</span>
+                <div class="small text-muted">Upload a Tally export.</div>
+              {% endif %}
+            </td>
+            <td style="min-width: 280px;">
+              {% for issue in row.top_gaps %}
+                <span class="badge {% if issue.severity == 'critical' %}bg-danger{% elif issue.severity == 'high' %}bg-warning text-dark{% elif issue.severity == 'medium' %}bg-info text-dark{% else %}bg-secondary{% endif %} me-1 mb-1">
+                  {{ issue.title }}
+                </span>
+              {% empty %}
+                <span class="badge bg-success-subtle text-success">No material gap</span>
+              {% endfor %}
+              <div class="small text-muted mt-1">{{ row.session_count }} session(s), {{ row.confirmed_count }} confirmed</div>
+            </td>
+            <td>
+              <span class="badge {{ row.tally_connector.badge_class }}">{{ row.tally_connector.label }}</span>
+            </td>
+            <td class="text-end">
+              <a href="{{ row.sessions_url }}" class="btn btn-sm btn-outline-secondary">Sessions</a>
+              {% if row.latest %}
+                <a href="{{ row.latest_url }}" class="btn btn-sm btn-outline-primary">Open</a>
+              {% else %}
+                <a href="{{ row.upload_url }}" class="btn btn-sm btn-primary">Upload</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="8" class="text-center text-muted py-5">No clients match the current filter.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

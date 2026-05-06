@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% block title %}Outstanding Statement – Akshaya Vistara{% endblock %}
+{% block page_title %}Outstanding Statement{% endblock %}
+
+{% block extra_head %}
+<style>
+.filter-bar { background:#f8f9fa; border:1px solid #e9ecef; border-radius:.5rem; padding:.65rem 1rem; margin-bottom:1rem; }
+[data-bs-theme="dark"] .summary-card { background: var(--card-bg); border: 1px solid var(--border-color) !important; }
+[data-bs-theme="dark"] .summary-card .label { color: #8fb4c8; }
+[data-bs-theme="dark"] .badge-overdue { background: rgba(239,68,68,.18); color: #fda4af; }
+[data-bs-theme="dark"] .badge-current { background: rgba(52,211,153,.18); color: #86efac; }
+[data-bs-theme="dark"] .badge-no-due { background: rgba(121,174,200,.16); color: #c5e4f2; }
+.filter-bar label { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#6c757d; margin-bottom:.15rem; }
+.filter-bar .form-select { font-size:.82rem; padding:.28rem .55rem; }
+.os-table th, .os-table td { font-size:.83rem; vertical-align:middle; padding:.42rem .65rem; }
+.os-table th { font-weight:600; }
+.os-email-input { width:13rem; max-width:36vw; }
+.progress-bar-settled { background:#198754; }
+.badge-overdue   { background:#f8d7da; color:#58151c; }
+.badge-critical  { background:#dc3545; color:#fff; }
+.badge-due-soon  { background:#fff3cd; color:#664d03; }
+.badge-current   { background:#d1e7dd; color:#0a3622; }
+.badge-no-due    { background:#e9ecef; color:#495057; }
+.summary-card .value { font-size:1.3rem; font-weight:700; }
+.summary-card .label { font-size:.72rem; color:#6c757d; text-transform:uppercase; letter-spacing:.06em; }
+@media print {
+  #sidebar,#topbar,.no-print,.btn,.filter-bar { display:none!important; }
+  #main-content { margin-left:0!important; }
+  .page-body { padding:0!important; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# ── Summary cards ── #}
+<div class="row g-3 mb-3 no-print">
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm summary-card">
+      <div class="card-body py-3">
+        <div class="label">Total Invoiced</div>
+        <div class="value">₹{{ total_invoiced|floatformat:2 }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm summary-card">
+      <div class="card-body py-3">
+        <div class="label">Settled</div>
+        <div class="value text-success">₹{{ total_settled|floatformat:2 }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm summary-card">
+      <div class="card-body py-3">
+        <div class="label">Outstanding Balance</div>
+        <div class="value text-danger">₹{{ total_outstanding|floatformat:2 }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm summary-card">
+      <div class="card-body py-3">
+        <div class="label">Collection Risk</div>
+        <div class="value text-danger">{{ overdue_count }} overdue</div>
+        <div class="small text-muted">Rs.{{ overdue_amount|floatformat:2 }} overdue, {{ due_soon_count }} due soon</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ── Filter bar ── #}
+<form method="get" class="filter-bar no-print">
+  <div class="row g-2 align-items-end">
+    <div class="col-sm-3">
+      <label>Voucher Type</label>
+      <select name="type" class="form-select" onchange="this.form.submit()">
+        <option value="Sales"    {% if type_filter == "Sales"    %}selected{% endif %}>Sales (Receivables)</option>
+        <option value="Purchase" {% if type_filter == "Purchase" %}selected{% endif %}>Purchase (Payables)</option>
+        <option value="All"      {% if type_filter == "All"      %}selected{% endif %}>All</option>
+      </select>
+    </div>
+    <div class="col-sm-3">
+      <label>Status</label>
+      <select name="status" class="form-select" onchange="this.form.submit()">
+        <option value="outstanding" {% if status_filter == "outstanding" %}selected{% endif %}>Outstanding Only</option>
+        <option value="settled"     {% if status_filter == "settled"     %}selected{% endif %}>Settled Only</option>
+        <option value="all"         {% if status_filter == "all"         %}selected{% endif %}>All</option>
+      </select>
+    </div>
+    <div class="col-sm-2">
+      <label>&nbsp;</label>
+      <button type="button" onclick="window.print()" class="btn btn-outline-secondary btn-sm w-100">
+        <i class="bi bi-printer me-1"></i>Print
+      </button>
+    </div>
+    <div class="col-sm-2">
+      <label>&nbsp;</label>
+      <a class="btn btn-outline-success btn-sm w-100"
+         href="?type={{ type_filter }}&status={{ status_filter }}&export=csv">
+        <i class="bi bi-download me-1"></i>CSV
+      </a>
+    </div>
+    {% if type_filter == "Sales" and overdue_count %}
+    <div class="col-sm-2">
+      <label>&nbsp;</label>
+      <button type="submit"
+              form="collection-task-form"
+              class="btn btn-outline-primary btn-sm w-100"
+              title="Create follow-up tasks for overdue sales invoices">
+        <i class="bi bi-list-check me-1"></i>Tasks
+      </button>
+    </div>
+    {% endif %}
+  </div>
+</form>
+
+<form id="collection-task-form" method="post" action="{% url 'vouchers:collection_tasks' %}" class="d-none">
+  {% csrf_token %}
+  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+</form>
+
+{# ── Main table ── #}
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover os-table mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Invoice No.</th>
+            <th>Party</th>
+            <th>Type</th>
+            <th>Date</th>
+            <th>Due Date</th>
+            <th class="text-end">Invoice (₹)</th>
+            <th class="text-end">Settled (₹)</th>
+            <th class="text-end">Outstanding (₹)</th>
+            <th>Settlement</th>
+            <th class="text-end no-print">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td>
+              <a href="{% url 'vouchers:detail' row.voucher.pk %}"
+                 class="text-decoration-none fw-semibold">
+                <code>{{ row.voucher.number }}</code>
+              </a>
+            </td>
+            <td>
+              {% if row.party_name %}
+                <div class="fw-semibold">{{ row.party_name }}</div>
+                {% if row.party_email %}
+                  <a class="small text-decoration-none" href="mailto:{{ row.party_email }}">{{ row.party_email }}</a>
+                {% else %}
+                  <span class="small text-muted">No email saved</span>
+                {% endif %}
+              {% else %}
+                <span class="text-muted">-</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge {% if row.voucher.voucher_type == 'Sales' %}bg-success bg-opacity-10 text-success{% else %}bg-warning bg-opacity-10 text-warning-emphasis{% endif %}">
+                {{ row.voucher.voucher_type }}
+              </span>
+            </td>
+            <td class="text-nowrap">{{ row.voucher.date|date:"d M Y" }}</td>
+            <td class="text-nowrap">
+              {% if row.voucher.due_date %}
+                <span class="badge {% if row.collection_status == 'critical' %}badge-critical{% elif row.collection_status == 'overdue' %}badge-overdue{% elif row.collection_status == 'due_soon' %}badge-due-soon{% else %}badge-current{% endif %}">
+                  {{ row.voucher.due_date|date:"d M Y" }}
+                  {% if row.is_overdue %} - {{ row.days_overdue }}d overdue{% elif row.collection_status == 'due_soon' %} - {{ row.days_to_due }}d left{% endif %}
+                </span>
+              {% else %}
+                <span class="badge badge-no-due text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="text-end font-monospace">{{ row.invoice_total|floatformat:2 }}</td>
+            <td class="text-end font-monospace text-success">{{ row.settled|floatformat:2 }}</td>
+            <td class="text-end font-monospace {% if not row.fully_settled %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+              {% if row.fully_settled %}—{% else %}{{ row.outstanding|floatformat:2 }}{% endif %}
+            </td>
+            <td style="min-width:110px;">
+              {% if row.invoice_total > 0 %}
+              {% widthratio row.settled row.invoice_total 100 as pct %}
+              <div class="progress" style="height:6px;" title="{{ pct }}% settled">
+                <div class="progress-bar progress-bar-settled"
+                     style="width:{% if row.fully_settled %}100{% else %}{{ pct }}{% endif %}%"></div>
+              </div>
+              <div style="font-size:.7rem; color:var(--text-muted); margin-top:.15rem;">{{ pct }}% settled</div>
+              {% endif %}
+            </td>
+            <td class="text-end text-nowrap no-print">
+              {% if row.voucher.voucher_type == 'Sales' and not row.fully_settled %}
+              <form method="post"
+                    action="{% url 'vouchers:payment_reminder' row.voucher.pk %}"
+                    class="d-inline-flex align-items-center gap-1 me-1">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <input type="email"
+                       name="recipient_email"
+                       value="{{ row.party_email }}"
+                       class="form-control form-control-sm os-email-input"
+                       placeholder="client@email.com"
+                       aria-label="Client email for reminder">
+                <button type="submit"
+                        class="btn btn-sm btn-outline-primary"
+                        title="Email payment reminder">
+                  <i class="bi bi-envelope"></i>
+                </button>
+              </form>
+              {% endif %}
+              <a href="{% url 'vouchers:detail' row.voucher.pk %}"
+                 class="btn btn-sm btn-outline-secondary" title="View">
+                <i class="bi bi-eye"></i>
+              </a>
+              <a href="{% url 'vouchers:invoice_pdf' row.voucher.pk %}"
+                 class="btn btn-sm btn-outline-danger ms-1" title="Download PDF" target="_blank">
+                <i class="bi bi-file-earmark-pdf"></i>
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="10" class="text-center text-muted py-5">
+              <i class="bi bi-check-circle d-block mb-2" style="font-size:2rem;opacity:.3;"></i>
+              No vouchers match the selected filters.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        {% if rows %}
+        <tfoot class="table-light fw-bold">
+          <tr>
+            <td colspan="5">Total</td>
+            <td class="text-end font-monospace">{{ total_invoiced|floatformat:2 }}</td>
+            <td class="text-end font-monospace text-success">{{ total_settled|floatformat:2 }}</td>
+            <td class="text-end font-monospace text-danger">{{ total_outstanding|floatformat:2 }}</td>
+            <td colspan="2"></td>
+          </tr>
+        </tfoot>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

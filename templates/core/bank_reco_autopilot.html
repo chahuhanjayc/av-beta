@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+
+{% block title %}Bank Reco Autopilot - Akshaya Vistara{% endblock %}
+{% block page_title %}Bank Reco Autopilot{% endblock %}
+
+{% block extra_head %}
+<style>
+  .bank-reco-filter {
+    background: var(--surface-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 0.85rem 1rem;
+  }
+  .bank-reco-filter label {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+  }
+  .bank-reco-actions {
+    flex-wrap: wrap;
+  }
+  .bank-company-list {
+    max-height: 28rem;
+    overflow: auto;
+  }
+  .statement-ref {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 0.75rem;
+  }
+  @media (max-width: 767.98px) {
+    .bank-reco-actions .btn,
+    .bank-reco-actions form,
+    .bank-reco-actions form .btn {
+      width: 100%;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h5 class="mb-1">Bank Reco Autopilot</h5>
+    <small class="text-muted">Find unreconciled bank work, track client evidence, run auto-match, and create review tasks.</small>
+  </div>
+  <div class="d-flex gap-2 bank-reco-actions">
+    <a href="?{{ export_query }}" class="btn btn-outline-success btn-sm">
+      <i class="bi bi-download me-1"></i>CSV
+    </a>
+    <a href="?{{ review_pack_query }}" class="btn btn-outline-dark btn-sm">
+      <i class="bi bi-archive me-1"></i>Review Pack
+    </a>
+    <a href="{% url 'core:bank_statement_list' %}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-bank me-1"></i>Statements
+    </a>
+    <a href="{% url 'core:bank_reconciliation_report' %}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-file-earmark-check me-1"></i>Summary
+    </a>
+  </div>
+</div>
+
+<form method="get" class="bank-reco-filter mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-4 col-xl-3">
+      <label for="company">Workspace</label>
+      <select id="company" name="company" class="form-select form-select-sm">
+        <option value="">All assigned workspaces</option>
+        {% for company in companies %}
+          <option value="{{ company.pk }}" {% if selected_company_id|stringformat:"s" == company.pk|stringformat:"s" %}selected{% endif %}>{{ company.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-3 col-xl-2">
+      <label for="as_of">As Of</label>
+      <input id="as_of" type="date" name="as_of" value="{{ as_of_date|date:'Y-m-d' }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-6 col-md-3 col-xl-2">
+      <label for="focus">Focus</label>
+      <select id="focus" name="focus" class="form-select form-select-sm">
+        {% for value, label in focus_choices %}
+          <option value="{{ value }}" {% if focus == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-primary btn-sm w-100">
+        <i class="bi bi-funnel me-1"></i>Apply
+      </button>
+    </div>
+  </div>
+</form>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Reco Score</div>
+        <div class="h4 mb-0 {% if totals.autopilot_score >= 80 %}text-success{% elif totals.autopilot_score >= 50 %}text-warning{% else %}text-danger{% endif %}">
+          {{ totals.autopilot_score }}%
+        </div>
+        <div class="small text-muted">{{ totals.company_count }} workspace(s)</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Pending Bank Rows</div>
+        <div class="h4 mb-0 {% if totals.pending_count %}text-danger{% else %}text-success{% endif %}">
+          {{ totals.pending_count }}
+        </div>
+        <div class="small text-muted">Rs. {{ totals.pending_amount|floatformat:2 }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Auto-Ready</div>
+        <div class="h4 mb-0 text-primary">{{ totals.high_confidence_count }}</div>
+        <div class="small text-muted">{{ totals.auto_postable_count }} ready to post</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Blockers</div>
+        <div class="h4 mb-0 {% if totals.duplicate_count or totals.no_statement_count or totals.missing_bank_ledger %}text-danger{% else %}text-success{% endif %}">
+          {{ totals.duplicate_count|add:totals.no_statement_count|add:totals.missing_bank_ledger }}
+        </div>
+        <div class="small text-muted">{{ totals.client_request_open_count }} waiting, {{ totals.client_request_uploaded_count }} uploaded</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-xl-4">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-building-check me-2"></i>Client Bank Readiness</h6>
+        <span class="small text-muted">{{ totals.attention_companies }} need work</span>
+      </div>
+      <div class="list-group list-group-flush bank-company-list">
+        {% for row in company_rows|slice:":30" %}
+          <div class="list-group-item">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div>
+                <div class="fw-semibold">{{ row.company.name }}</div>
+                <div class="small text-muted">
+                  {% if row.latest_statement_date %}Latest {{ row.latest_statement_date|date:"d M Y" }}{% else %}No upload yet{% endif %}
+                </div>
+              </div>
+              <span class="badge bg-{{ row.status_class }}-subtle text-{{ row.status_class }}">{{ row.status_label }}</span>
+            </div>
+            <div class="row g-2 small mt-2">
+              <div class="col-6 d-flex justify-content-between"><span>Rows</span><strong>{{ row.row_count }}</strong></div>
+              <div class="col-6 d-flex justify-content-between"><span>Pending</span><strong>{{ row.pending_count }}</strong></div>
+              <div class="col-6 d-flex justify-content-between"><span>Duplicates</span><strong>{{ row.duplicate_count }}</strong></div>
+              <div class="col-6 d-flex justify-content-between"><span>Postable</span><strong>{{ row.auto_postable_count }}</strong></div>
+              <div class="col-6 d-flex justify-content-between"><span>Client</span><strong>{{ row.client_request_open_count }}/{{ row.client_request_uploaded_count }}</strong></div>
+            </div>
+            <div class="d-flex gap-2 mt-2">
+              <a href="{{ row.action_url }}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-arrow-right-circle me-1"></i>Open
+              </a>
+              <a href="{{ row.upload_url }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-upload me-1"></i>Upload
+              </a>
+              {% if row.client_request_count %}
+                <a href="{{ row.client_request_url }}" class="btn btn-sm btn-outline-success">
+                  <i class="bi bi-inbox me-1"></i>Requests
+                </a>
+              {% endif %}
+            </div>
+          </div>
+        {% empty %}
+          <div class="list-group-item text-center text-muted py-4">No clients match this bank focus.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-8">
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="as_of" value="{{ as_of_date|date:'Y-m-d' }}">
+      <input type="hidden" name="focus" value="{{ focus }}">
+      {% if selected_company_id %}<input type="hidden" name="company" value="{{ selected_company_id }}">{% endif %}
+      <div class="card">
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+          <h6 class="mb-0"><i class="bi bi-bank me-2"></i>Statement Exception Queue</h6>
+          <div class="d-flex gap-2 bank-reco-actions">
+            <button type="submit" name="action" value="auto_match" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-lightning-charge me-1"></i>Run Auto-Match
+            </button>
+            <button type="submit" name="action" value="post_auto_ready" class="btn btn-sm btn-primary">
+              <i class="bi bi-journal-check me-1"></i>Post Auto-Ready
+            </button>
+            <button type="submit" name="action" value="create_tasks" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-list-check me-1"></i>Create Tasks
+            </button>
+            <button type="submit" name="action" value="ask_client" class="btn btn-sm btn-outline-success">
+              <i class="bi bi-send me-1"></i>Ask Client
+            </button>
+            <button type="submit" name="action" value="close_evidence" class="btn btn-sm btn-outline-dark">
+              <i class="bi bi-check2-circle me-1"></i>Close Evidence
+            </button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3" style="width: 38px;">
+                  <input type="checkbox" class="form-check-input" onclick="document.querySelectorAll('.bank-reco-check').forEach(cb => cb.checked = this.checked)">
+                </th>
+                <th>Statement</th>
+                <th>Status</th>
+                <th class="text-end">Pending</th>
+                <th class="text-end">Auto</th>
+                <th class="text-end">Duplicates</th>
+                <th class="text-end pe-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in statement_rows %}
+                <tr>
+                  <td class="ps-3">
+                    <input type="checkbox" class="form-check-input bank-reco-check" name="work_ids" value="{{ row.selection_key }}">
+                    {% if row.statement %}
+                      <input type="hidden" name="statement_ids" value="{{ row.statement.pk }}" class="statement-id-field">
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="fw-semibold">{{ row.company.name }}</div>
+                    <div class="small text-muted statement-ref">
+                      {% if row.statement %}
+                        {{ row.latest_statement_date|date:"d M Y" }} | {{ row.bank_account_name|default:"Missing bank ledger" }}
+                      {% else %}
+                        No bank statement uploaded
+                      {% endif %}
+                    </div>
+                    {% if row.task_exists %}
+                      <span class="badge bg-info-subtle text-info">Task ready</span>
+                    {% endif %}
+                    {% if row.client_request_count %}
+                      {% if row.client_request_open_count %}
+                        <span class="badge bg-warning-subtle text-warning">{{ row.client_request_open_count }} waiting</span>
+                      {% endif %}
+                      {% if row.client_request_uploaded_count %}
+                        <span class="badge bg-success-subtle text-success">{{ row.client_request_uploaded_count }} uploaded</span>
+                      {% endif %}
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="badge bg-{{ row.status_class }}-subtle text-{{ row.status_class }}">{{ row.status_label }}</span>
+                    {% if row.stale_count %}
+                      <div class="small text-danger">{{ row.stale_count }} stale row(s)</div>
+                    {% endif %}
+                    {% if row.missing_bank_ledger %}
+                      <div class="small text-danger">Map bank account ledger</div>
+                    {% endif %}
+                  </td>
+                  <td class="text-end">
+                    <div class="fw-semibold">{{ row.pending_count }}</div>
+                    <div class="small text-muted">Rs. {{ row.pending_amount|floatformat:2 }}</div>
+                  </td>
+                  <td class="text-end">
+                    <div class="fw-semibold text-primary">{{ row.high_confidence_count }}</div>
+                    <div class="small text-muted">{{ row.auto_postable_count }} postable</div>
+                  </td>
+                  <td class="text-end">
+                    <span class="{% if row.duplicate_count %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+                      {{ row.duplicate_count }}
+                    </span>
+                  </td>
+                  <td class="text-end pe-3">
+                    <div class="btn-group btn-group-sm">
+                      <a href="{{ row.action_url }}" class="btn btn-outline-primary" title="Open reconciliation">
+                        <i class="bi bi-arrow-right-circle"></i>
+                      </a>
+                      <a href="{{ row.upload_url }}" class="btn btn-outline-secondary" title="Upload bank statement">
+                        <i class="bi bi-upload"></i>
+                      </a>
+                      {% if row.client_request_count %}
+                      <a href="{{ row.client_request_url }}" class="btn btn-outline-success" title="Open client requests">
+                        <i class="bi bi-inbox"></i>
+                      </a>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="7" class="text-center text-muted py-5">No bank reconciliation exceptions match this focus.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.addEventListener("submit", function(event) {
+  const form = event.target;
+  if (!form.querySelector(".bank-reco-check")) return;
+  form.querySelectorAll(".statement-id-field").forEach((input) => input.disabled = true);
+  form.querySelectorAll(".bank-reco-check:checked").forEach((checkbox) => {
+    const hidden = checkbox.closest("td").querySelector(".statement-id-field");
+    if (hidden) hidden.disabled = false;
+  });
+});
+</script>
+{% endblock %}

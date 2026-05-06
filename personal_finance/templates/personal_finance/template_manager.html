@@ -1,0 +1,93 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Templates - SpendSight{% endblock %}
+{% block page_title %}Quick Templates{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-header bg-white py-3"><h6 class="mb-0 fw-bold">Saved Templates</h6></div>
+      <div class="card-body">
+        <div class="row g-3">
+          {% for template in templates %}
+          <div class="col-md-6">
+            <div class="border rounded-3 p-3 h-100">
+              <div class="d-flex justify-content-between align-items-start gap-2">
+                <div>
+                  <div class="fw-semibold">{{ template.name }}</div>
+                  <div class="small text-muted">{{ template.category.name }}{% if template.item_name %} - {{ template.item_name }}{% endif %}</div>
+                  <div class="small mt-2">{{ currency_symbol }}{{ template.amount|floatformat:2 }} | {{ template.payment_method }}</div>
+                </div>
+                <div class="d-flex flex-column gap-2">
+                  <a href="{% url 'personal_finance:template_use' template.pk %}" class="btn btn-sm btn-primary">Use</a>
+                  <form method="post" action="{% url 'personal_finance:template_delete' template.pk %}" onsubmit="return confirm('Delete this template?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% empty %}
+          <div class="col-12 text-center py-5 text-muted">No templates yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-white py-3"><h6 class="mb-0 fw-bold">Create Template</h6></div>
+      <div class="card-body">
+        <form method="post" class="row g-3">
+          {% csrf_token %}
+          <div class="col-12">
+            <label class="form-label fw-semibold">Template Name</label>
+            <input type="text" name="name" class="form-control" required>
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Category</label>
+            <select name="category" class="form-select" required>
+              {% for cat in categories %}
+              <option value="{{ cat.id }}">{{ cat.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Item Name</label>
+            <input type="text" name="item_name" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Amount</label>
+            <div class="input-group"><span class="input-group-text">{{ currency_symbol }}</span><input type="number" step="0.01" name="amount" class="form-control"></div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Payment Method</label>
+            <select name="payment_method" class="form-select">
+              {% for method in payment_methods %}
+              <option value="{{ method }}">{{ method }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Quantity</label>
+            <input type="number" step="0.001" name="quantity" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Unit</label>
+            <select name="unit" class="form-select">
+              <option value="">No unit</option>
+              {% for unit in unit_options %}
+              <option value="{{ unit }}">{{ unit }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12"><button type="submit" class="btn btn-primary w-100">Save Template</button></div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

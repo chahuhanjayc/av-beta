@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Accounting Close - Akshaya Vistara{% endblock %}
+{% block page_title %}Accounting Close Workbench{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h5 class="mb-0">Accounting Close Workbench</h5>
+    <small class="text-muted">{{ selected_company.name }} | {{ period_start|date:"M Y" }}</small>
+  </div>
+  <form method="get" class="d-flex gap-2 align-items-center">
+    <select name="company" class="form-select form-select-sm">
+      {% for company in companies %}
+        <option value="{{ company.pk }}" {% if company.pk == selected_company.pk %}selected{% endif %}>{{ company.name }}</option>
+      {% endfor %}
+    </select>
+    <input type="month" name="period" value="{{ period_value }}" class="form-control form-control-sm">
+    <button type="submit" class="btn btn-sm btn-outline-primary">
+      <i class="bi bi-funnel"></i> Apply
+    </button>
+    <a href="?{{ export_query }}" class="btn btn-sm btn-outline-success">
+      <i class="bi bi-download"></i> CSV
+    </a>
+  </form>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Close Score</div>
+        <div class="h3 mb-0 {% if report.score >= 90 %}text-success{% elif report.score >= 70 %}text-warning{% else %}text-danger{% endif %}">
+          {{ report.score }}%
+        </div>
+        <div class="small text-muted">{{ report.close_status }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Critical</div>
+        <div class="h3 mb-0 text-danger">{{ report.critical_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Warnings</div>
+        <div class="h3 mb-0 text-warning">{{ report.warning_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Approved Vouchers</div>
+        <div class="h3 mb-0">{{ report.approved_voucher_count }}</div>
+        <div class="small text-muted">of {{ report.voucher_count }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-8">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-clipboard-check me-2"></i>Close Checks</h6>
+        {% if report.issues %}
+          <form method="post" class="m-0">
+            {% csrf_token %}
+            <input type="hidden" name="period" value="{{ period_value }}">
+            <input type="hidden" name="company_id" value="{{ selected_company.pk }}">
+            <button type="submit" name="action" value="create_tasks" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-list-check"></i> Create Tasks
+            </button>
+          </form>
+        {% endif %}
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Check</th>
+              <th>Status</th>
+              <th class="text-end">Count</th>
+              <th class="text-end">Amount</th>
+              <th class="text-end pe-3">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for check in report.checks %}
+              <tr>
+                <td class="ps-3">
+                  <div class="fw-semibold">{{ check.title }}</div>
+                  <div class="small text-muted">{{ check.description }}</div>
+                </td>
+                <td>
+                  <span class="badge {% if check.severity == 'critical' %}bg-danger{% elif check.severity == 'warning' %}bg-warning text-dark{% else %}bg-success-subtle text-success{% endif %}">
+                    {% if check.severity == 'critical' %}Critical{% elif check.severity == 'warning' %}Warning{% else %}Clear{% endif %}
+                  </span>
+                </td>
+                <td class="text-end">{{ check.count }}</td>
+                <td class="text-end">
+                  {% if check.amount %}Rs.{{ check.amount|floatformat:2 }}{% else %}-{% endif %}
+                </td>
+                <td class="text-end pe-3">
+                  <a href="{{ check.action_url }}" class="btn btn-xs btn-outline-secondary">{{ check.action_label }}</a>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="5" class="text-center text-muted py-4">No close checks available.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-4">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Close Blockers</h6>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for issue in report.issues %}
+          <a href="{{ issue.action_url }}" class="list-group-item list-group-item-action">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div>
+                <div class="fw-semibold">{{ issue.title }}</div>
+                <div class="small text-muted">{{ issue.description }}</div>
+              </div>
+              <span class="badge {% if issue.severity == 'critical' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                {{ issue.count }}
+              </span>
+            </div>
+          </a>
+        {% empty %}
+          <div class="list-group-item text-muted">No blockers for this period.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-box-arrow-up-right me-2"></i>Close Pack</h6>
+      </div>
+      <div class="list-group list-group-flush">
+        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" href="{% url 'reports:trial_balance_simple' %}">
+          Trial Balance <i class="bi bi-chevron-right"></i>
+        </a>
+        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" href="{% url 'reports:profit_loss_simple' %}">
+          Profit &amp; Loss <i class="bi bi-chevron-right"></i>
+        </a>
+        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" href="{% url 'reports:balance_sheet_simple' %}">
+          Balance Sheet <i class="bi bi-chevron-right"></i>
+        </a>
+        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" href="{% url 'reports:gst_report' %}">
+          GST Report <i class="bi bi-chevron-right"></i>
+        </a>
+        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" href="{% url 'core:audit_log' %}">
+          Audit Trail <i class="bi bi-chevron-right"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

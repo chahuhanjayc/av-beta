@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}Connected Banking Feed - Akshaya Vistara{% endblock %}
+{% block page_title %}Connected Banking Feed Import{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h5 class="mb-1">Connected Banking Feed Import</h5>
+    <div class="text-muted small">Bank feed to reconciliation autopilot</div>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{% url 'core:bank_reco_autopilot' %}" class="btn btn-sm btn-outline-primary">
+      <i class="bi bi-magic"></i> Reco Autopilot
+    </a>
+    <a href="{% url 'core:bank_statement_list' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-bank"></i> Statements
+    </a>
+    <a href="{% url 'integrations:statutory_control' %}" class="btn btn-sm btn-outline-dark">
+      <i class="bi bi-router"></i> Control Room
+    </a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Import Feed</h6>
+        <span class="badge bg-primary">CSV</span>
+      </div>
+      <div class="card-body">
+        <form method="post" enctype="multipart/form-data" class="vstack gap-3">
+          {% csrf_token %}
+          <div>
+            <label class="form-label small text-muted mb-1">Provider / Adapter</label>
+            <input type="text" name="provider_name" class="form-control" value="{{ provider_name }}" placeholder="HDFC, ICICI, RazorpayX, Manual CSV">
+          </div>
+          <div>
+            <label class="form-label small text-muted mb-1">Bank Ledger</label>
+            <select name="account_ledger" class="form-select" required>
+              <option value="">Select bank ledger</option>
+              {% for ledger in bank_ledgers %}
+                <option value="{{ ledger.pk }}" {% if selected_ledger_id == ledger.pk|stringformat:"s" %}selected{% endif %}>{{ ledger.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="form-label small text-muted mb-1">Statement Date</label>
+            <input type="date" name="statement_date" class="form-control" value="{{ statement_date }}" required>
+          </div>
+          <div>
+            <label class="form-label small text-muted mb-1">Feed File</label>
+            <input type="file" name="feed_file" class="form-control" accept=".csv" required>
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-cloud-upload"></i> Import and Auto-Match
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Connector Status</h6>
+        {% if connector %}
+          <span class="badge {{ connector.status_badge_class }}">{{ connector.get_status_display }}</span>
+        {% else %}
+          <span class="badge bg-secondary">Not Set</span>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        <div class="row g-2">
+          <div class="col-sm-6">
+            <div class="border rounded p-2 h-100">
+              <div class="text-muted small">Provider</div>
+              <div class="fw-semibold">{{ connector.provider_name|default:provider_name }}</div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="border rounded p-2 h-100">
+              <div class="text-muted small">Last Success</div>
+              <div class="fw-semibold">{{ connector.last_success_at|date:"d M Y H:i"|default:"Never" }}</div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="border rounded p-2 h-100">
+              <div class="text-muted small">Mode</div>
+              <div class="fw-semibold">{{ connector.get_mode_display|default:"Manual / Portal Upload" }}</div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="border rounded p-2 h-100">
+              <div class="text-muted small">Last Error</div>
+              <div class="fw-semibold text-truncate">{{ connector.last_error|default:"None" }}</div>
+            </div>
+          </div>
+        </div>
+
+        <hr>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="mb-0">Recent Statements</h6>
+          <span class="text-muted small">{{ recent_statements|length }} shown</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Statement</th>
+                <th>Ledger</th>
+                <th class="text-end">Rows</th>
+                <th class="text-end">Pending</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for statement in recent_statements %}
+                <tr>
+                  <td>
+                    <a href="{% url 'core:bank_statement_detail' statement.pk %}" class="text-decoration-none">
+                      {{ statement.statement_date|date:"d M Y" }}
+                    </a>
+                  </td>
+                  <td>{{ statement.account_ledger.name|default:"-" }}</td>
+                  <td class="text-end">{{ statement.total_rows }}</td>
+                  <td class="text-end">{{ statement.pending_rows }}</td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="4" class="text-center text-muted py-3">No bank statements imported yet.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mt-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h6 class="mb-0">Bank Feed Activity</h6>
+    <span class="text-muted small">Latest integration logs</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th class="ps-3">Time</th>
+          <th>Provider</th>
+          <th>Status</th>
+          <th class="text-end">Rows</th>
+          <th class="text-end">Auto-Matched</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in recent_logs %}
+          <tr>
+            <td class="ps-3">{{ log.created_at|date:"d M H:i" }}</td>
+            <td>{{ log.provider }}</td>
+            <td>
+              {% if log.status == "success" %}
+                <span class="badge bg-success-subtle text-success">{{ log.response_code|default:"success" }}</span>
+              {% elif log.status == "config_error" %}
+                <span class="badge bg-warning-subtle text-warning">Config</span>
+              {% else %}
+                <span class="badge bg-danger-subtle text-danger">Failed</span>
+              {% endif %}
+            </td>
+            <td class="text-end">{{ log.response_payload.row_count|default:"-" }}</td>
+            <td class="text-end">{{ log.response_payload.auto_matched|default:"-" }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5" class="text-center text-muted py-4">No bank feed activity yet.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

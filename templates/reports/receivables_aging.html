@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Receivables Aging – Akshaya Vistara{% endblock %}
+{% block page_title %}Receivables Aging{% endblock %}
+
+{% block content %}
+
+<!-- ── Date filter ───────────────────────────────────────────── -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-auto">
+        <label class="form-label small fw-semibold mb-1">As of Date</label>
+        <input type="date" name="as_of_date" class="form-control form-control-sm"
+               value="{{ as_of_date|date:'Y-m-d' }}" />
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-primary btn-sm" type="submit">
+          <i class="bi bi-funnel me-1"></i> Apply
+        </button>
+      </div>
+      <div class="col-auto ms-auto d-flex gap-2">
+        <a class="btn btn-outline-success btn-sm"
+           href="?as_of_date={{ as_of_date|date:'Y-m-d' }}&export=csv">
+          <i class="bi bi-download me-1"></i> CSV
+        </a>
+        <button class="btn btn-outline-secondary btn-sm" type="button" onclick="window.print()">
+          <i class="bi bi-printer me-1"></i> Print
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Report header ─────────────────────────────────────────── -->
+<div class="text-center mb-4">
+  <h4 class="fw-bold">{{ current_company.name }}</h4>
+  <h5 class="text-muted">Receivables Aging Report</h5>
+  <p class="text-muted small mb-0">As of {{ as_of_date|date:"d M Y" }}</p>
+</div>
+
+<!-- ── Summary cards ─────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm p-3 border-start border-4 border-success">
+      <div class="text-muted small">Current (0–30 days)</div>
+      <div class="fs-4 fw-bold text-success">₹{{ totals.current|floatformat:2 }}</div>
+      <div class="text-muted small">{{ buckets.current|length }} invoice(s)</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm p-3 border-start border-4 border-warning">
+      <div class="text-muted small">31–60 Days</div>
+      <div class="fs-4 fw-bold text-warning">₹{{ totals.thirty|floatformat:2 }}</div>
+      <div class="text-muted small">{{ buckets.thirty|length }} invoice(s)</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm p-3 border-start border-4 border-orange"
+         style="border-color:#f97316 !important;">
+      <div class="text-muted small">61–90 Days</div>
+      <div class="fs-4 fw-bold" style="color:#f97316;">₹{{ totals.sixty|floatformat:2 }}</div>
+      <div class="text-muted small">{{ buckets.sixty|length }} invoice(s)</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm p-3 border-start border-4 border-danger">
+      <div class="text-muted small">90+ Days (Critical)</div>
+      <div class="fs-4 fw-bold text-danger">₹{{ totals.ninety|floatformat:2 }}</div>
+      <div class="text-muted small">{{ buckets.ninety|length }} invoice(s)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Aging Bar Chart ────────────────────────────────────────── -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white py-3">
+    <h6 class="mb-0"><i class="bi bi-bar-chart-fill me-2"></i>Aging Distribution</h6>
+  </div>
+  <div class="card-body">
+    <canvas id="agingChart" height="60"></canvas>
+  </div>
+</div>
+
+<!-- ── Detailed Tables ─────────────────────────────────────────── -->
+
+{% with entries=buckets.current %}
+{% include "reports/_aging_table.html" with entries=entries label="Current (0–30 Days)" row_class="table-success" %}
+{% endwith %}
+
+{% with entries=buckets.thirty %}
+{% include "reports/_aging_table.html" with entries=entries label="31–60 Days" row_class="table-warning" %}
+{% endwith %}
+
+{% with entries=buckets.sixty %}
+{% include "reports/_aging_table.html" with entries=entries label="61–90 Days" row_class="" %}
+{% endwith %}
+
+{% with entries=buckets.ninety %}
+{% include "reports/_aging_table.html" with entries=entries label="90+ Days (Critical)" row_class="table-danger" %}
+{% endwith %}
+
+<!-- ── Grand Total ─────────────────────────────────────────────── -->
+<div class="card border-0 shadow mt-2">
+  <div class="card-body py-3 bg-dark text-white rounded-3 d-flex justify-content-between align-items-center">
+    <h6 class="mb-0 fw-bold">Total Outstanding Receivables</h6>
+    <h4 class="mb-0 fw-bold">₹{{ totals.grand|floatformat:2 }}</h4>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  new Chart(document.getElementById('agingChart'), {
+    type: 'bar',
+    data: {
+      labels: ['0–30 Days', '31–60 Days', '61–90 Days', '90+ Days'],
+      datasets: [{
+        label: 'Outstanding (₹)',
+        data: [
+          {{ totals.current }},
+          {{ totals.thirty }},
+          {{ totals.sixty }},
+          {{ totals.ninety }}
+        ],
+        backgroundColor: [
+          'rgba(22,163,74,0.7)',
+          'rgba(234,179,8,0.7)',
+          'rgba(249,115,22,0.7)',
+          'rgba(220,38,38,0.8)',
+        ],
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { callback: v => '₹' + v.toLocaleString('en-IN') }
+        }
+      }
+    }
+  });
+</script>
+{% endblock %}

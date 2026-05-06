@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register – Akshaya Vistara</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <script>
+    (function() {
+      const theme = localStorage.getItem('theme') || 'light';
+      document.documentElement.setAttribute('data-bs-theme', theme);
+    })();
+  </script>
+  <style>
+    :root {
+      --body-bg: #f5f6fa;
+      --card-bg: #ffffff;
+      --border-color: #e2e8f0;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --input-bg: #ffffff;
+      --input-border: #cbd5e1;
+      --accent: #4f46e5;
+    }
+    [data-bs-theme="dark"] {
+      --body-bg: #1b1b1b;
+      --card-bg: #242424;
+      --border-color: #3b3b3b;
+      --text-main: #f5f5f5;
+      --text-muted: #b5b5b5;
+      --input-bg: #1a1a1a;
+      --input-border: #4a4a4a;
+      --accent: #79aec8;
+      color-scheme: dark;
+    }
+    body { background: var(--body-bg); color: var(--text-main); }
+    .auth-card { max-width: 480px; margin: 4rem auto; }
+    .brand-logo { font-size:2rem; font-weight:700; color:var(--accent); }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color) !important;
+      color: var(--text-main);
+    }
+    .form-control,
+    input,
+    select,
+    textarea {
+      background-color: var(--input-bg) !important;
+      border-color: var(--input-border) !important;
+      color: var(--text-main) !important;
+    }
+    .text-muted { color: var(--text-muted) !important; }
+    hr { border-color: var(--border-color); opacity: 1; }
+  </style>
+</head>
+<body>
+  <div class="auth-card">
+    <div class="text-center mb-4">
+      <div class="brand-logo"><i class="bi bi-bar-chart-fill me-2"></i>Akshaya Vistara</div>
+      <p class="text-muted">Create a new account</p>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-4">
+      <div class="card-body p-4">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% if invite_code %}
+            <input type="hidden" name="invite_code" value="{{ invite_code }}">
+          {% endif %}
+          <div class="row g-3">
+            <div class="col-6">
+              <label class="form-label">First Name</label>
+              {{ form.first_name }}
+            </div>
+            <div class="col-6">
+              <label class="form-label">Last Name</label>
+              {{ form.last_name }}
+            </div>
+          </div>
+          <div class="mb-3 mt-3">
+            <label class="form-label">Email Address</label>
+            {{ form.email }}
+            {% if form.email.errors %}<div class="text-danger small">{{ form.email.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Password</label>
+            {{ form.password1 }}
+            {% if form.password1.errors %}<div class="text-danger small">{{ form.password1.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Confirm Password</label>
+            {{ form.password2 }}
+            {% if form.password2.errors %}<div class="text-danger small">{{ form.password2.errors.0 }}</div>{% endif %}
+          </div>
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-person-plus me-1"></i> Create Account
+          </button>
+        </form>
+        <hr />
+        <p class="text-center mb-0 small">
+          Already have an account? <a href="{% url 'accounts:login' %}">Sign in</a>
+        </p>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

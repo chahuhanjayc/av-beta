@@ -1,0 +1,104 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: akshaya_vistara_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-akshaya_vistara_db}
+      POSTGRES_USER: ${POSTGRES_USER:-akshaya_vistara_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Please set POSTGRES_PASSWORD in .env.docker}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-akshaya_vistara_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - akshaya_vistara_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: akshaya_vistara_redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - akshaya_vistara_net
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: akshaya_vistara_web
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    volumes:
+      - ./staticfiles:/app/staticfiles
+      - ./media:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - akshaya_vistara_net
+    expose:
+      - "8000"
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: akshaya_vistara_worker
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    command: ["celery", "-A", "akshaya_vistara", "worker", "--loglevel=info"]
+    environment:
+      RUN_COLLECTSTATIC: "false"
+      RUN_MIGRATIONS: "false"
+    volumes:
+      - ./media:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - akshaya_vistara_net
+
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: akshaya_vistara_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      # - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./staticfiles:/staticfiles:ro
+    depends_on:
+      - web
+    networks:
+      - akshaya_vistara_net
+
+volumes:
+  postgres_data:
+    name: akshaya_vistara_postgres_data
+  redis_data:
+    name: akshaya_vistara_redis_data
+
+networks:
+  akshaya_vistara_net:
+    name: akshaya_vistara_network
+    driver: bridge

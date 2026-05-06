@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Compliance Filings - Akshaya Vistara{% endblock %}
+{% block page_title %}Compliance Filings{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h5 class="mb-0">Compliance Filings</h5>
+    <small class="text-muted">GST, TDS, ITR, MCA, IMS, and tax audit work across clients</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="?{{ export_query }}" class="btn btn-sm btn-outline-success">
+      <i class="bi bi-download"></i> CSV
+    </a>
+    <a href="{% url 'core:compliance_calendar' %}" class="btn btn-sm btn-outline-primary">
+      <i class="bi bi-calendar-plus"></i> Generate Calendar
+    </a>
+    <a href="{% url 'core:compliance_filing_create' %}" class="btn btn-sm btn-primary">
+      <i class="bi bi-plus-lg"></i> New Filing
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg">
+    <div class="card"><div class="card-body py-3">
+      <div class="text-muted small text-uppercase fw-semibold">Open</div>
+      <div class="h5 mb-0">{{ summary.open }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg">
+    <div class="card"><div class="card-body py-3">
+      <div class="text-muted small text-uppercase fw-semibold">Overdue</div>
+      <div class="h5 mb-0 text-danger">{{ summary.overdue }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg">
+    <div class="card"><div class="card-body py-3">
+      <div class="text-muted small text-uppercase fw-semibold">Client Pending</div>
+      <div class="h5 mb-0 text-warning">{{ summary.client_pending }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg">
+    <div class="card"><div class="card-body py-3">
+      <div class="text-muted small text-uppercase fw-semibold">Review</div>
+      <div class="h5 mb-0 text-primary">{{ summary.review }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg">
+    <div class="card"><div class="card-body py-3">
+      <div class="text-muted small text-uppercase fw-semibold">Filed</div>
+      <div class="h5 mb-0 text-success">{{ summary.filed }}</div>
+    </div></div>
+  </div>
+</div>
+
+<form method="get" class="row g-2 align-items-end mb-3">
+  <div class="col-md-3">
+    <label class="form-label small text-muted">Search</label>
+    <input type="search" class="form-control form-control-sm" name="q" value="{{ q }}" placeholder="Client, filing, ARN">
+  </div>
+  <div class="col-md-2">
+    <label class="form-label small text-muted">Status</label>
+    <select name="status" class="form-select form-select-sm">
+      <option value="open" {% if status_filter == "open" %}selected{% endif %}>Open Work</option>
+      {% for value, label in status_choices %}
+        <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+      <option value="" {% if status_filter == "" %}selected{% endif %}>All</option>
+    </select>
+  </div>
+  <div class="col-md-2">
+    <label class="form-label small text-muted">Type</label>
+    <select name="type" class="form-select form-select-sm">
+      <option value="">All Types</option>
+      {% for value, label in filing_types %}
+        <option value="{{ value }}" {% if type_filter == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-2">
+    <label class="form-label small text-muted">Owner</label>
+    <select name="assigned" class="form-select form-select-sm">
+      <option value="">All</option>
+      <option value="me" {% if assigned_filter == "me" %}selected{% endif %}>Assigned/review by me</option>
+      <option value="unassigned" {% if assigned_filter == "unassigned" %}selected{% endif %}>Unassigned</option>
+    </select>
+  </div>
+  <div class="col-md-3">
+    <button type="submit" class="btn btn-sm btn-outline-primary">Apply</button>
+    <a href="{% url 'core:compliance_filings' %}" class="btn btn-sm btn-outline-secondary">Reset</a>
+  </div>
+</form>
+
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3">Filing</th>
+            <th>Client</th>
+            <th>Type</th>
+            <th>Owner</th>
+            <th>Reviewer</th>
+            <th>Due</th>
+            <th>Status</th>
+            <th class="text-end pe-3">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for filing in filings %}
+          <tr>
+            <td class="ps-3">
+              <a href="{% url 'core:compliance_filing_update' filing.pk %}" class="fw-semibold text-decoration-none">{{ filing.title }}</a>
+              {% if filing.arn_ack_number %}<div class="small text-muted">{{ filing.arn_ack_number }}</div>{% endif %}
+            </td>
+            <td>{{ filing.company.name }}</td>
+            <td><span class="badge bg-secondary-subtle text-secondary">{{ filing.get_filing_type_display }}</span></td>
+            <td>{{ filing.assigned_to.email|default:"Unassigned" }}</td>
+            <td>{{ filing.reviewer.email|default:"-" }}</td>
+            <td class="{% if filing.due_date and filing.due_date < today and filing.is_open %}text-danger fw-semibold{% endif %}">
+              {{ filing.due_date|date:"d M Y"|default:"-" }}
+            </td>
+            <td>
+              <span class="badge {% if filing.status == 'filed' %}bg-success{% elif filing.status == 'blocked' or filing.status == 'client_pending' %}bg-warning text-dark{% elif filing.status == 'ready_for_review' %}bg-info text-dark{% else %}bg-primary-subtle text-primary{% endif %}">
+                {{ filing.get_status_display }}
+              </span>
+            </td>
+            <td class="text-end pe-3">
+              {% if filing.is_open %}
+              <form method="post" action="{% url 'core:compliance_filing_set_status' filing.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" name="status" value="ready_for_review" class="btn btn-xs btn-outline-primary">Review</button>
+              </form>
+              <form method="post" action="{% url 'core:compliance_filing_set_status' filing.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" name="status" value="filed" class="btn btn-xs btn-outline-success">Filed</button>
+              </form>
+              {% else %}
+              <form method="post" action="{% url 'core:compliance_filing_set_status' filing.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" name="status" value="in_progress" class="btn btn-xs btn-outline-secondary">Reopen</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="8" class="text-center text-muted py-4">No filings match this view.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

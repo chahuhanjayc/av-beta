@@ -1,0 +1,394 @@
+{% extends "base.html" %}
+
+{% block title %}Statutory Evidence Center - Akshaya Vistara{% endblock %}
+{% block page_title %}Statutory Evidence{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h5 class="mb-0">Statutory Evidence Center</h5>
+    <small class="text-muted">Audit trail for generated statutory files, hashes, provider calls, portal captures, and failed integration attempts.</small>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <form method="post" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" name="action" value="seal_vault" class="btn btn-primary btn-sm">
+        <i class="bi bi-shield-check"></i> Seal Evidence Vault
+      </button>
+    </form>
+    <form method="post" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" name="action" value="sync_vault_tasks" class="btn btn-outline-danger btn-sm" {% if not vault_verification.has_taskable_issues %}disabled{% endif %}>
+        <i class="bi bi-list-check"></i> Sync Vault Tasks
+      </button>
+    </form>
+    <a href="{% url 'integrations:e_invoice_cockpit' %}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-receipt"></i> E-Invoice
+    </a>
+    <a href="{% url 'integrations:e_way_bill_cockpit' %}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-truck"></i> E-Way
+    </a>
+    <a href="{% url 'integrations:dashboard' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-plug"></i> Connectors
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-2">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Exports</div>
+        <div class="h3 mb-0">{{ summary.exports }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Requests</div>
+        <div class="h3 mb-0">{{ summary.requests }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Successes</div>
+        <div class="h3 mb-0 text-success">{{ summary.successes }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Failures</div>
+        <div class="h3 mb-0 text-danger">{{ summary.failures }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Config Errors</div>
+        <div class="h3 mb-0 text-warning">{{ summary.config_errors }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Attention</div>
+        <div class="h3 mb-0 text-danger">{{ summary.attention }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Vault</div>
+        <div class="h3 mb-0">
+          <span class="badge {{ vault_verification.badge_class }}">{{ vault_verification.status }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Chain Entries</div>
+        <div class="h3 mb-0">{{ summary.vault_entries }}</div>
+        <div class="small text-muted">{{ summary.vault_issues }} issue(s)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<form method="get" class="border rounded p-3 mb-3 bg-body">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-2">
+      <label class="form-label small text-muted mb-1" for="start_date">From</label>
+      <input type="date" class="form-control form-control-sm" id="start_date" name="start_date" value="{{ start_date|date:'Y-m-d' }}">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small text-muted mb-1" for="end_date">To</label>
+      <input type="date" class="form-control form-control-sm" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small text-muted mb-1" for="type">Type</label>
+      <select class="form-select form-select-sm" id="type" name="type">
+        <option value="all" {% if evidence_type == "all" %}selected{% endif %}>All Evidence</option>
+        <option value="exports" {% if evidence_type == "exports" %}selected{% endif %}>Exports Only</option>
+        <option value="requests" {% if evidence_type == "requests" %}selected{% endif %}>Requests Only</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small text-muted mb-1" for="export_type">Export Type</label>
+      <select class="form-select form-select-sm" id="export_type" name="export_type">
+        <option value="">All exports</option>
+        {% for value, label in export_type_choices %}
+          <option value="{{ value }}" {% if export_type == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small text-muted mb-1" for="service">Service</label>
+      <select class="form-select form-select-sm" id="service" name="service">
+        <option value="">All services</option>
+        {% for value, label in service_choices %}
+          <option value="{{ value }}" {% if service == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small text-muted mb-1" for="q">Search</label>
+      <input type="text" class="form-control form-control-sm" id="q" name="q" value="{{ q }}" placeholder="File, hash, voucher">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small text-muted mb-1" for="export_status">Export Status</label>
+      <select class="form-select form-select-sm" id="export_status" name="export_status">
+        <option value="">Any</option>
+        {% for value, label in export_status_choices %}
+          <option value="{{ value }}" {% if export_status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small text-muted mb-1" for="request_status">Request Status</label>
+      <select class="form-select form-select-sm" id="request_status" name="request_status">
+        <option value="">Any</option>
+        {% for value, label in request_status_choices %}
+          <option value="{{ value }}" {% if request_status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-8 d-flex flex-wrap gap-2">
+      <button class="btn btn-primary btn-sm" type="submit">
+        <i class="bi bi-funnel"></i> Apply
+      </button>
+      <a class="btn btn-outline-secondary btn-sm" href="{% url 'integrations:evidence_center' %}">
+        <i class="bi bi-x-lg"></i> Reset
+      </a>
+      <a class="btn btn-outline-success btn-sm" href="?{{ csv_query }}">
+        <i class="bi bi-download"></i> CSV Handover
+      </a>
+    </div>
+  </div>
+</form>
+
+<div class="row g-3 mb-3">
+  <div class="col-xl-5">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center gap-2">
+        <div>
+          <h6 class="mb-0"><i class="bi bi-shield-lock me-2"></i>Immutable Evidence Vault</h6>
+          <div class="small text-muted text-truncate" style="max-width: 28rem;">{{ vault_verification.ledger_path }}</div>
+        </div>
+        <span class="badge {{ vault_verification.badge_class }}">{{ vault_verification.status }}</span>
+      </div>
+      <div class="card-body">
+        <div class="row g-2">
+          <div class="col-4">
+            <div class="text-muted small text-uppercase fw-semibold">Entries</div>
+            <div class="h4 mb-0">{{ vault_verification.entries }}</div>
+          </div>
+          <div class="col-4">
+            <div class="text-muted small text-uppercase fw-semibold">Critical</div>
+            <div class="h4 mb-0 text-danger">{{ vault_verification.critical_count }}</div>
+          </div>
+          <div class="col-4">
+            <div class="text-muted small text-uppercase fw-semibold">Warnings</div>
+            <div class="h4 mb-0 text-warning">{{ vault_verification.warning_count }}</div>
+          </div>
+        </div>
+        {% if vault_verification.head_hash %}
+          <div class="small text-muted text-truncate mt-3">Head hash {{ vault_verification.head_hash }}</div>
+        {% endif %}
+      </div>
+      <div class="list-group list-group-flush">
+        {% for issue in vault_verification.issues|slice:":5" %}
+          <div class="list-group-item">
+            <div class="d-flex justify-content-between gap-3">
+              <div>
+                <div class="fw-semibold">Sequence {{ issue.sequence }}</div>
+                <div class="small text-muted">{{ issue.message }}</div>
+              </div>
+              <span class="badge align-self-start {% if issue.severity == 'critical' %}bg-danger{% else %}bg-warning text-dark{% endif %}">{{ issue.code }}</span>
+            </div>
+          </div>
+        {% empty %}
+          <div class="list-group-item text-center text-muted py-4">
+            Vault chain and sealed artifact hashes are clean.
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-7">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-journal-check me-2"></i>Latest Sealed Evidence</h6>
+        <span class="text-muted small">Latest {{ vault_entries|length }} entries</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Seq</th>
+              <th>Category</th>
+              <th>Evidence</th>
+              <th>Hash</th>
+              <th class="text-end pe-3">Sealed</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for entry in vault_entries|slice:":12" %}
+              <tr>
+                <td class="ps-3">{{ entry.sequence }}</td>
+                <td>{{ entry.category }}</td>
+                <td>
+                  <div class="fw-semibold">{{ entry.title }}</div>
+                  <div class="small text-muted">{{ entry.source_model }} #{{ entry.source_id }}</div>
+                </td>
+                <td><code class="small">{{ entry.artifact.sha256|truncatechars:24 }}</code></td>
+                <td class="text-end pe-3">
+                  <div class="small">{{ entry.created_at|slice:":16" }}</div>
+                  <div class="small text-muted">{{ entry.sealed_by|default:"System" }}</div>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="5" class="text-center text-muted py-4">No evidence has been sealed into the vault yet.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <h6 class="mb-0"><i class="bi bi-file-earmark-check me-2"></i>Statutory Export Logs</h6>
+    <span class="text-muted small">Latest {{ export_logs|length }} records</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th class="ps-3">Export</th>
+          <th>Period</th>
+          <th>Status</th>
+          <th>Rows / Amount</th>
+          <th>Hash</th>
+          <th class="text-end pe-3">Generated</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in export_logs %}
+          <tr>
+            <td class="ps-3">
+              <div class="fw-semibold">{{ log.get_export_type_display }}</div>
+              <div class="small text-muted">{{ log.file_name }}</div>
+              {% if log.portal_reference %}<div class="small text-muted">Portal ref: {{ log.portal_reference }}</div>{% endif %}
+            </td>
+            <td>
+              {% if log.period_start or log.period_end %}
+                <div class="small">{{ log.period_start|date:"d M Y"|default:"-" }} to {{ log.period_end|date:"d M Y"|default:"-" }}</div>
+              {% else %}
+                <span class="text-muted small">No period</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if log.status == "rejected" %}
+                <span class="badge bg-danger">{{ log.get_status_display }}</span>
+              {% elif log.status == "accepted" %}
+                <span class="badge bg-success">{{ log.get_status_display }}</span>
+              {% elif log.status == "submitted" %}
+                <span class="badge bg-primary">{{ log.get_status_display }}</span>
+              {% else %}
+                <span class="badge bg-secondary">{{ log.get_status_display }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="small">{{ log.row_count }} rows</div>
+              <div class="small text-muted">{{ log.amount_total|floatformat:2 }}</div>
+            </td>
+            <td><code class="small">{{ log.file_sha256|truncatechars:24 }}</code></td>
+            <td class="text-end pe-3">
+              <div class="small">{{ log.created_at|date:"d M H:i" }}</div>
+              <div class="small text-muted">{{ log.generated_by.email|default:"System" }}</div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" class="text-center text-muted py-4">No statutory export logs match this filter.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <h6 class="mb-0"><i class="bi bi-activity me-2"></i>Integration Request Logs</h6>
+    <span class="text-muted small">Latest {{ request_logs|length }} records</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th class="ps-3">Service</th>
+          <th>Provider</th>
+          <th>Status</th>
+          <th>Voucher / Request</th>
+          <th>Digest / Error</th>
+          <th class="text-end pe-3">Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in request_logs %}
+          <tr>
+            <td class="ps-3">
+              <div class="fw-semibold">{{ log.get_service_display }}</div>
+              <div class="small text-muted">{{ log.requested_by.email|default:"System" }}</div>
+            </td>
+            <td>{{ log.provider }}</td>
+            <td>
+              {% if log.status == "success" %}
+                <span class="badge bg-success">Success</span>
+              {% elif log.status == "config_error" %}
+                <span class="badge bg-warning text-dark">Config Error</span>
+              {% else %}
+                <span class="badge bg-danger">Failed</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if log.voucher %}
+                <a href="{% url 'vouchers:detail' log.voucher.pk %}" class="text-decoration-none">{{ log.voucher.number }}</a>
+              {% else %}
+                <code class="small">{{ log.request_id|truncatechars:18 }}</code>
+              {% endif %}
+            </td>
+            <td>
+              {% if log.error_message %}
+                <div class="small text-danger">{{ log.error_message|truncatechars:110 }}</div>
+              {% else %}
+                <code class="small">{{ log.request_digest|truncatechars:24 }}</code>
+              {% endif %}
+            </td>
+            <td class="text-end pe-3">{{ log.created_at|date:"d M H:i" }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" class="text-center text-muted py-4">No integration request logs match this filter.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

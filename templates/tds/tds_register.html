@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}TDS Register – Akshaya Vistara{% endblock %}
+{% block page_title %}TDS / TCS Summary Register{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3">
+    <form class="row g-2 align-items-end" method="get">
+      <div class="col-auto">
+        <label class="form-label small mb-1">Financial Year</label>
+        <select name="fy" class="form-select form-select-sm" style="min-width:110px">
+          <option value="">— All —</option>
+          {% for f in fy_list %}<option value="{{ f }}" {% if fy == f %}selected{% endif %}>{{ f }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+      </div>
+      <div class="col-auto ms-auto">
+        <a href="?fy={{ fy }}&export=csv" class="btn btn-outline-success btn-sm"><i class="bi bi-download me-1"></i>CSV</a>
+        <a href="{% url 'tds:entry_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>New Entry</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# Summary totals #}
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="text-muted small">Total TDS/TCS</div>
+      <div class="fw-bold fs-5">₹{{ total_tds|floatformat:2 }}</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="text-muted small">Deposited</div>
+      <div class="fw-bold fs-5 text-success">₹{{ total_deposited|floatformat:2 }}</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="text-muted small">Pending Deposit</div>
+      <div class="fw-bold fs-5 {% if total_payable > 0 %}text-danger{% else %}text-muted{% endif %}">
+        ₹{{ total_payable|floatformat:2 }}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if summary %}
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Nature</th><th>Section</th><th>Description</th>
+          <th class="text-end">Entries</th>
+          <th class="text-end">Total TDS (₹)</th>
+          <th class="text-end text-success">Deposited (₹)</th>
+          <th class="text-end text-danger">Payable (₹)</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in summary %}
+        <tr>
+          <td><span class="badge {% if r.section.nature == 'TDS' %}bg-primary{% else %}bg-warning text-dark{% endif %}">{{ r.section.nature }}</span></td>
+          <td class="fw-semibold">{{ r.section.section_code }}</td>
+          <td>{{ r.section.description|truncatechars:55 }}</td>
+          <td class="text-end">{{ r.count }}</td>
+          <td class="text-end">{{ r.total|floatformat:2 }}</td>
+          <td class="text-end text-success">{{ r.deposited|floatformat:2 }}</td>
+          <td class="text-end {% if r.payable > 0 %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+            {{ r.payable|floatformat:2 }}
+          </td>
+          <td>
+            <a href="{% url 'tds:entry_list' %}?section={{ r.section.pk }}&deposited=0" class="btn btn-sm btn-outline-danger" title="View Pending">
+              <i class="bi bi-eye"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot class="table-light fw-semibold">
+        <tr>
+          <td colspan="4">Total</td>
+          <td class="text-end">{{ total_tds|floatformat:2 }}</td>
+          <td class="text-end text-success">{{ total_deposited|floatformat:2 }}</td>
+          <td class="text-end {% if total_payable > 0 %}text-danger{% endif %}">{{ total_payable|floatformat:2 }}</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="text-center py-5 text-muted">
+  <i class="bi bi-receipt fs-1 d-block mb-2"></i>No TDS/TCS entries for the selected period.
+</div>
+{% endif %}
+{% endblock %}

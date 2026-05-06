@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+{% block title %}Market Proof Pack - Akshaya Vistara{% endblock %}
+{% block page_title %}Market Proof Pack{% endblock %}
+
+{% block extra_head %}
+<style>
+.proof-score {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.proof-filter {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+.proof-gate {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.proof-table td {
+  vertical-align: middle;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end flex-wrap gap-2 mb-3">
+  <form method="post" class="d-inline">
+    {% csrf_token %}
+    <input type="hidden" name="q" value="{{ q }}">
+    <input type="hidden" name="band" value="{{ band_filter }}">
+    <button type="submit" class="btn btn-outline-danger btn-sm">
+      <i class="bi bi-list-check me-1"></i>Create Proof Tasks
+    </button>
+  </form>
+  <a href="{% url 'core:market_proof_pack' %}?export=csv{% if export_query %}&{{ export_query }}{% endif %}" class="btn btn-outline-primary btn-sm">
+    <i class="bi bi-download me-1"></i>Export CSV
+  </a>
+  <a href="{% url 'core:market_proof_evidence_pack' %}{% if export_query %}?{{ export_query }}{% endif %}" class="btn btn-outline-primary btn-sm">
+    <i class="bi bi-file-earmark-lock me-1"></i>Evidence Pack
+  </a>
+  <a href="{% url 'core:market_external_evidence' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-journal-check me-1"></i>External Evidence
+  </a>
+  <a href="{% url 'core:pilot_feedback_register' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-chat-square-text me-1"></i>Pilot Feedback
+  </a>
+  <a href="{% url 'core:market_case_studies' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-megaphone me-1"></i>Case Studies
+  </a>
+  <a href="{% url 'integrations:provider_readiness' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-plug me-1"></i>Provider Readiness
+  </a>
+  <a href="{% url 'core:production_trust_center' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-shield-lock me-1"></i>Production Trust
+  </a>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Product Depth</div>
+        <div class="proof-score {% if totals.overall_score >= 92 %}text-success{% elif totals.overall_score >= 78 %}text-primary{% elif totals.overall_score >= 60 %}text-warning{% else %}text-danger{% endif %}">
+          {{ totals.overall_score }}%
+        </div>
+        <div class="small text-muted">Client proof {{ totals.client_avg_score }}% | platform {{ platform.score }}%</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Market Ready</div>
+        <div class="proof-score text-success">{{ totals.market_ready }}</div>
+        <div class="small text-muted">{{ totals.proven_pilot }} proven pilot{{ totals.proven_pilot|pluralize }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">External Blockers</div>
+        <div class="proof-score {% if totals.critical_gates %}text-danger{% else %}text-success{% endif %}">{{ totals.critical_gates }}</div>
+        <div class="small text-muted">{{ totals.warning_gates }} warning gate{{ totals.warning_gates|pluralize }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Proof Signals</div>
+        <div class="proof-score text-primary">{{ totals.proof_signals }}</div>
+        <div class="small text-muted">{{ totals.publishable_case_studies }} publishable, {{ totals.verified_external_evidence }} verified external, {{ totals.external_evidence_missing }} evidence gap{{ totals.external_evidence_missing|pluralize }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h6 class="mb-0"><i class="bi bi-shield-check me-2"></i>Platform Proof</h6>
+    <span class="badge {{ platform.badge_class }}">{{ platform.score }}% {{ platform.band }}</span>
+  </div>
+  <div class="card-body">
+    <div class="row g-2">
+      {% for gate in platform.gates %}
+        <div class="col-md-6 col-xl-4">
+          <a href="{{ gate.action_url }}" class="d-block text-decoration-none border rounded p-2 h-100">
+            <div class="d-flex justify-content-between gap-2">
+              <span class="fw-semibold text-body">{{ gate.title }}</span>
+              <span class="badge {% if gate.passed %}bg-success{% elif gate.severity == 'critical' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                {% if gate.passed %}Clear{% else %}{{ gate.severity|title }}{% endif %}
+              </span>
+            </div>
+            <div class="small text-muted mt-1">{{ gate.detail }}</div>
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<form method="get" class="proof-filter mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-5">
+      <label class="form-label small text-muted" for="proof-q">Search</label>
+      <input id="proof-q" type="search" class="form-control form-control-sm" name="q" value="{{ q }}" placeholder="Client name or GSTIN">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small text-muted" for="proof-band">Proof Band</label>
+      <select id="proof-band" class="form-select form-select-sm" name="band">
+        {% for value,label in band_options %}
+          <option value="{{ value }}" {% if band_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-4 d-flex gap-2">
+      <button type="submit" class="btn btn-primary btn-sm">
+        <i class="bi bi-funnel me-1"></i>Apply
+      </button>
+      <a href="{% url 'core:market_proof_pack' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+    </div>
+  </div>
+</form>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h6 class="mb-0"><i class="bi bi-award me-2"></i>Client Proof Queue</h6>
+    <span class="small text-muted">Pilot, provider, statutory, usage, and closure evidence</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover proof-table mb-0">
+      <thead class="table-light">
+        <tr>
+          <th class="ps-3">Client</th>
+          <th class="text-end">Proof</th>
+          <th>Missing Evidence</th>
+          <th class="text-end">Pilot</th>
+          <th class="text-end">Provider</th>
+          <th class="text-end">Live Evidence</th>
+          <th class="pe-3"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td class="ps-3">
+              <a href="{% url 'core:client_360' row.company.pk %}" class="fw-semibold text-decoration-none">{{ row.company.name }}</a>
+              <div class="small text-muted">{{ row.company.gstin|default:"No GSTIN" }}</div>
+              <div class="small text-muted">{{ row.proof_signal_count }} evidence signal{{ row.proof_signal_count|pluralize }}</div>
+            </td>
+            <td class="text-end">
+              <span class="badge {{ row.badge_class }}">{{ row.score }}% {{ row.band }}</span>
+              <div class="small text-muted">{{ row.passed_count }}/{{ row.total_gates }} gates</div>
+              <div class="small text-muted">{{ row.open_market_tasks }} open proof task{{ row.open_market_tasks|pluralize }}</div>
+            </td>
+            <td style="min-width: 290px;">
+              {% for gate in row.top_gates %}
+                <a href="{{ gate.action_url }}" class="proof-gate text-decoration-none me-1 mb-1 {% if gate.severity == 'critical' %}bg-danger-subtle text-danger{% elif gate.severity == 'warning' %}bg-warning-subtle text-warning{% else %}bg-info-subtle text-info{% endif %}">
+                  {{ gate.title }}
+                </a>
+              {% empty %}
+                <span class="badge bg-success-subtle text-success">Proof complete</span>
+              {% endfor %}
+              {% if row.critical_count or row.warning_count %}
+                <div class="small text-muted mt-1">{{ row.critical_count }} critical, {{ row.warning_count }} warning</div>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <div>{{ row.feedback_signals.recent_feedback_count }} feedback / 30d</div>
+              <div class="small text-muted">{{ row.feedback_signals.open_blocker_count }} blocker{{ row.feedback_signals.open_blocker_count|pluralize }}</div>
+              <div class="small text-muted">confidence {{ row.feedback_signals.avg_confidence }}/10</div>
+              <div class="small text-muted">{{ row.case_study_signals.publishable_count }} publishable case stud{{ row.case_study_signals.publishable_count|pluralize:"y,ies" }}</div>
+              <div class="small text-muted">{{ row.external_evidence_signals.verified_count }}/{{ row.external_evidence_signals.required_category_count }} external proof</div>
+            </td>
+            <td class="text-end">
+              <div>{{ row.provider.score }}% {{ row.provider.status_label }}</div>
+              <div class="small text-muted">{{ row.provider.certification.ready }}/{{ row.provider.certification.required }} cert packs</div>
+              <div class="small text-muted">{{ row.provider_cert_missing }} missing field{{ row.provider_cert_missing|pluralize }}</div>
+            </td>
+            <td class="text-end">
+              <div>{{ row.vouchers_30 }} voucher{{ row.vouchers_30|pluralize }} / 30d</div>
+              <div class="small text-muted">{{ row.audit_events_30 }} audit, {{ row.responded_requests }} response{{ row.responded_requests|pluralize }}</div>
+              <div class="small text-muted">{{ row.gst_evidence_90 }} GST evidence, {{ row.statutory_exports_90 }} export{{ row.statutory_exports_90|pluralize }}</div>
+            </td>
+            <td class="text-end pe-3">
+              <a href="{% url 'core:client_360' row.company.pk %}" class="btn btn-sm btn-outline-secondary">360</a>
+              <a href="{% url 'core:pilot_feedback_register' %}?company={{ row.company.pk }}" class="btn btn-sm btn-outline-secondary">Feedback</a>
+              <a href="{% url 'core:market_external_evidence' %}?company={{ row.company.pk }}&status=all" class="btn btn-sm btn-outline-secondary">Evidence</a>
+              <a href="{% url 'core:market_case_studies' %}?company={{ row.company.pk }}" class="btn btn-sm btn-outline-secondary">Story</a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="7" class="text-center text-muted py-5">
+              No client proof records match the current filter.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

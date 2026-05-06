@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Profit &amp; Loss – {{ current_company.name }}</title>
+<style>
+@page {
+  size: A4;
+  margin: 14mm 16mm 16mm 16mm;
+  @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 8pt; color: #888; }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 9.5pt; color: #212529; line-height: 1.45; }
+.rpt-header { border-bottom: 3px solid #0d6efd; padding-bottom: 8px; margin-bottom: 12px; text-align: center; }
+.rpt-header h1 { font-size: 15pt; font-weight: 700; }
+.rpt-header h2 { font-size: 11pt; color: #444; font-weight: 400; margin-top: 3px; }
+.rpt-header p  { font-size: 8.5pt; color: #666; margin-top: 2px; }
+.two-col { display: table; width: 100%; border-spacing: 10px; }
+.col     { display: table-cell; width: 50%; vertical-align: top; }
+.section-title { font-size: 10pt; font-weight: 700; padding: 4px 6px; margin-bottom: 0; }
+.income-title  { background: #d1fae5; color: #065f46; }
+.expense-title { background: #fee2e2; color: #991b1b; }
+table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+th { background: #f8f9fa; border: 1px solid #dee2e6; padding: 4px 7px; text-align: left; font-weight: 600; }
+td { border: 1px solid #dee2e6; padding: 4px 7px; }
+.text-end { text-align: right; }
+tfoot td { background: #f1f3f5; font-weight: 700; }
+.net-row { margin-top: 10px; border: 2px solid #0d6efd; border-radius: 4px; padding: 6px 10px; font-size: 10pt; font-weight: 700; }
+.net-row.profit { background: #d1fae5; color: #065f46; }
+.net-row.loss   { background: #fee2e2; color: #991b1b; }
+.flex-between   { display: flex; justify-content: space-between; }
+</style>
+</head>
+<body>
+
+<div class="rpt-header">
+  <h1>{{ current_company.name }}</h1>
+  <h2>Profit &amp; Loss Statement</h2>
+  <p>Period: {{ start_date|date:"d M Y" }} &ndash; {{ end_date|date:"d M Y" }}</p>
+</div>
+
+<div class="two-col">
+
+  <!-- Income -->
+  <div class="col">
+    <div class="section-title income-title">&#9660; INCOME</div>
+    <table>
+      <thead>
+        <tr><th>Ledger Account</th><th class="text-end">Amount (₹)</th></tr>
+      </thead>
+      <tbody>
+        {% for item in income_items %}
+        <tr>
+          <td>{{ item.name }}</td>
+          <td class="text-end">{{ item.amount|floatformat:2 }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="2" style="color:#888;text-align:center;">No income entries</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr><td>Total Income</td><td class="text-end">{{ total_income|floatformat:2 }}</td></tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- Expenses -->
+  <div class="col">
+    <div class="section-title expense-title">&#9650; EXPENSES</div>
+    <table>
+      <thead>
+        <tr><th>Ledger Account</th><th class="text-end">Amount (₹)</th></tr>
+      </thead>
+      <tbody>
+        {% for item in expense_items %}
+        <tr>
+          <td>{{ item.name }}</td>
+          <td class="text-end">{{ item.amount|floatformat:2 }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="2" style="color:#888;text-align:center;">No expense entries</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr><td>Total Expenses</td><td class="text-end">{{ total_expense|floatformat:2 }}</td></tr>
+      </tfoot>
+    </table>
+  </div>
+
+</div>
+
+<!-- Net P&L -->
+<div class="net-row {% if net_profit >= 0 %}profit{% else %}loss{% endif %}" style="margin-top:14px;">
+  <div class="flex-between">
+    <span>{% if net_profit >= 0 %}Net Profit{% else %}Net Loss{% endif %}</span>
+    <span>₹ {{ net_profit|floatformat:2 }}</span>
+  </div>
+</div>
+
+</body>
+</html>

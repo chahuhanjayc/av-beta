@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Budget Heads – Akshaya Vistara{% endblock %}
+{% block page_title %}Budget Heads{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <form class="d-flex gap-2 align-items-center" method="get">
+    <label class="form-label mb-0 text-muted small">FY:</label>
+    <select name="fy" class="form-select form-select-sm" style="width:110px;" onchange="this.form.submit()">
+      <option value="">— All —</option>
+      {% for f in all_fys %}
+      <option value="{{ f }}" {% if fy == f %}selected{% endif %}>{{ f }}</option>
+      {% endfor %}
+    </select>
+  </form>
+  <a href="{% url 'costcenter:budget_create' %}" class="btn btn-sm btn-primary">
+    <i class="bi bi-plus-lg me-1"></i> Add Budget Head
+  </a>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    {% if budgets %}
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Ledger</th>
+          <th>Cost Center</th>
+          <th>FY</th>
+          <th>Period</th>
+          <th class="text-end">Budgeted (₹)</th>
+          <th>Notes</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for bh in budgets %}
+        <tr>
+          <td class="fw-semibold">{{ bh.ledger.name }}</td>
+          <td class="text-muted small">{{ bh.cost_center.name|default:"All Centers" }}</td>
+          <td><span class="badge bg-secondary-subtle text-secondary">{{ bh.financial_year }}</span></td>
+          <td>{{ bh.get_period_display }}</td>
+          <td class="text-end fw-semibold">₹{{ bh.budgeted_amount|floatformat:2 }}</td>
+          <td class="text-muted small">{{ bh.notes|default:"—" }}</td>
+          <td class="text-end">
+            <a href="{% url 'costcenter:budget_edit' bh.pk %}" class="btn btn-sm btn-outline-primary me-1"><i class="bi bi-pencil"></i></a>
+            <a href="{% url 'costcenter:budget_delete' bh.pk %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-bar-chart-steps fs-1 d-block mb-2"></i>
+      No budget heads found. <a href="{% url 'costcenter:budget_create' %}">Add one</a>.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

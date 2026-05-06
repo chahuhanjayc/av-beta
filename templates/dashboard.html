@@ -1,0 +1,939 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Akshaya Vistara{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block extra_head %}
+<style>
+  .dashboard-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .dashboard-hero {
+    background:
+      linear-gradient(135deg, rgba(37, 99, 235, 0.10), rgba(16, 185, 129, 0.08)),
+      var(--surface-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+  }
+
+  .dashboard-eyebrow {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+  .dashboard-title {
+    color: var(--text-main);
+    font-size: 1.35rem;
+    font-weight: 800;
+    margin: 0;
+  }
+
+  .dashboard-subtitle {
+    color: var(--text-muted);
+    margin: 0.25rem 0 0;
+  }
+
+  .metric-card,
+  .dashboard-panel {
+    background: var(--surface-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+  }
+
+  .metric-card {
+    display: flex;
+    min-height: 112px;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 0.9rem;
+  }
+
+  .metric-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .metric-icon {
+    align-items: center;
+    border-radius: 8px;
+    display: inline-flex;
+    flex: 0 0 34px;
+    height: 34px;
+    justify-content: center;
+    width: 34px;
+  }
+
+  .metric-label {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+  .metric-value {
+    color: var(--text-main);
+    font-size: 1.45rem;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-top: 0.35rem;
+  }
+
+  .metric-note {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    margin-top: 0.55rem;
+  }
+
+  .dashboard-panel {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+  }
+
+  .panel-title {
+    color: var(--text-main);
+    font-size: 0.86rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    margin: 0;
+    text-transform: uppercase;
+  }
+
+  .panel-body {
+    padding: 1rem;
+  }
+
+  .readiness-ring {
+    align-items: center;
+    display: grid;
+    height: 112px;
+    justify-content: center;
+    position: relative;
+    width: 112px;
+  }
+
+  .readiness-ring svg {
+    height: 112px;
+    transform: rotate(-90deg);
+    width: 112px;
+  }
+
+  .readiness-ring-value {
+    color: var(--text-main);
+    font-size: 1.35rem;
+    font-weight: 800;
+    left: 50%;
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .setup-grid {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .setup-row,
+  .timeline-row,
+  .request-row,
+  .alert-row {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.7rem;
+  }
+
+  .setup-row {
+    align-items: center;
+    display: grid;
+    gap: 0.65rem;
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+
+  .status-dot {
+    align-items: center;
+    border-radius: 50%;
+    display: inline-flex;
+    height: 28px;
+    justify-content: center;
+    width: 28px;
+  }
+
+  .alert-row {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+  }
+
+  .alert-icon {
+    align-items: center;
+    border-radius: 8px;
+    display: inline-flex;
+    height: 36px;
+    justify-content: center;
+    width: 36px;
+  }
+
+  .dashboard-alert-danger {
+    border-color: rgba(220, 53, 69, 0.35);
+  }
+
+  .dashboard-alert-warning {
+    border-color: rgba(245, 158, 11, 0.35);
+  }
+
+  .dashboard-alert-success {
+    border-color: rgba(25, 135, 84, 0.35);
+  }
+
+  .timeline-row {
+    display: grid;
+    gap: 0.5rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .timeline-meta {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+  }
+
+  .workload-row {
+    display: grid;
+    gap: 0.6rem;
+    grid-template-columns: minmax(90px, 130px) minmax(0, 1fr) 42px;
+    align-items: center;
+  }
+
+  .workload-track,
+  .balance-progress {
+    background: var(--surface-subtle);
+    border-radius: 999px;
+    height: 7px;
+    overflow: hidden;
+  }
+
+  .workload-bar,
+  .balance-bar {
+    border-radius: 999px;
+    height: 100%;
+  }
+
+  .chart-container {
+    height: 190px;
+    position: relative;
+    width: 100%;
+  }
+
+  .empty-state {
+    align-items: center;
+    color: var(--text-muted);
+    display: flex;
+    font-size: 0.86rem;
+    height: 100%;
+    justify-content: center;
+    min-height: 140px;
+  }
+
+  .smart-empty {
+    align-items: center;
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    justify-content: center;
+    min-height: 150px;
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .smart-empty-icon {
+    align-items: center;
+    border-radius: 8px;
+    display: inline-flex;
+    height: 38px;
+    justify-content: center;
+    width: 38px;
+  }
+
+  .balance-row {
+    align-items: center;
+    display: grid;
+    gap: 0.55rem;
+    grid-template-columns: 76px minmax(0, 1fr) 86px;
+  }
+
+  .balance-label,
+  .balance-amt {
+    font-size: 0.78rem;
+  }
+
+  .balance-label {
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+
+  .balance-amt {
+    font-family: var(--bs-font-monospace);
+    font-weight: 700;
+    text-align: right;
+  }
+
+  .quick-action-grid {
+    display: grid;
+    gap: 0.65rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .quick-action {
+    align-items: center;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-main);
+    display: flex;
+    gap: 0.55rem;
+    min-height: 46px;
+    padding: 0.65rem 0.75rem;
+    text-decoration: none;
+  }
+
+  .quick-action:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .table-dashboard th {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+  .table-dashboard td,
+  .table-dashboard th {
+    vertical-align: middle;
+  }
+
+  @media (max-width: 767.98px) {
+    .alert-row,
+    .timeline-row {
+      grid-template-columns: 1fr;
+    }
+
+    .quick-action-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .workload-row,
+    .balance-row {
+      grid-template-columns: minmax(80px, 110px) minmax(0, 1fr);
+    }
+
+    .workload-row > span:last-child,
+    .balance-amt {
+      grid-column: 1 / -1;
+      text-align: left;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-shell">
+  <section class="dashboard-hero">
+    <div class="d-flex flex-column flex-xl-row justify-content-between gap-3">
+      <div>
+        <div class="dashboard-eyebrow">Company operating dashboard</div>
+        <h1 class="dashboard-title">{{ company.name }}</h1>
+        <p class="dashboard-subtitle">
+          Live view of finance, compliance, CA practice workload, client requests, and setup readiness for {{ today|date:"d M Y" }}.
+        </p>
+      </div>
+      <div class="d-flex flex-wrap gap-2 align-items-start">
+        <a href="{% url 'core:ca_command_center' %}" class="btn btn-primary btn-sm">
+          <i class="bi bi-command me-1"></i> CA Command Center
+        </a>
+        <a href="{% url 'core:filing_review_center' %}" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-clipboard-check me-1"></i> Filing Review
+        </a>
+        <a href="{% url 'core:setup_wizard' %}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-ui-checks-grid me-1"></i> Setup Wizard
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <div class="row g-3">
+    <div class="col-6 col-xl-3">
+      <a href="{% url 'core:setup_wizard' %}" class="text-decoration-none">
+        <div class="metric-card">
+          <div class="metric-top">
+            <div>
+              <div class="metric-label">Setup Readiness</div>
+              <div class="metric-value">{{ setup_readiness.score }}%</div>
+            </div>
+            <span class="metric-icon bg-primary-subtle text-primary"><i class="bi bi-ui-checks-grid"></i></span>
+          </div>
+          <div class="metric-note">{{ setup_readiness.ready }}/{{ setup_readiness.total }} items ready</div>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-xl-3">
+      <a href="{% url 'core:practice_tasks' %}" class="text-decoration-none">
+        <div class="metric-card">
+          <div class="metric-top">
+            <div>
+              <div class="metric-label">Practice Work</div>
+              <div class="metric-value">{{ practice.tasks.open }}</div>
+            </div>
+            <span class="metric-icon bg-warning-subtle text-warning"><i class="bi bi-kanban"></i></span>
+          </div>
+          <div class="metric-note">{{ practice.tasks.overdue }} overdue, {{ practice.tasks.blocked }} blocked</div>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-xl-3">
+      <a href="{% url 'core:compliance_filings' %}" class="text-decoration-none">
+        <div class="metric-card">
+          <div class="metric-top">
+            <div>
+              <div class="metric-label">Statutory Pipeline</div>
+              <div class="metric-value">{{ statutory.filings.open }}</div>
+            </div>
+            <span class="metric-icon bg-danger-subtle text-danger"><i class="bi bi-calendar2-week"></i></span>
+          </div>
+          <div class="metric-note">{{ statutory.filings.due_soon }} due soon, {{ statutory.filings.overdue }} overdue</div>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-xl-3">
+      <a href="{% url 'portal:client_requests' %}" class="text-decoration-none">
+        <div class="metric-card">
+          <div class="metric-top">
+            <div>
+              <div class="metric-label">Client Requests</div>
+              <div class="metric-value">{{ client_requests.open }}</div>
+            </div>
+            <span class="metric-icon bg-success-subtle text-success"><i class="bi bi-inbox"></i></span>
+          </div>
+          <div class="metric-note">{{ client_requests.uploaded }} uploaded, {{ client_requests.overdue }} overdue</div>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-6 col-lg-3">
+      <div class="metric-card">
+        <div class="metric-label">Cash Balance</div>
+        <div class="metric-value text-primary">Rs. {{ kpis.cash|floatformat:0 }}</div>
+        <div class="metric-note">{{ total_ledgers }} ledgers tracked</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="metric-card">
+        <div class="metric-label">Receivables</div>
+        <div class="metric-value text-success">Rs. {{ kpis.receivables|floatformat:0 }}</div>
+        <div class="metric-note">Client collection focus</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="metric-card">
+        <div class="metric-label">Payables</div>
+        <div class="metric-value text-danger">Rs. {{ kpis.payables|floatformat:0 }}</div>
+        <div class="metric-note">Vendor and statutory watch</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="metric-card">
+        <div class="metric-label">Net Profit</div>
+        <div class="metric-value {% if kpis.profit >= 0 %}text-success{% else %}text-danger{% endif %}">Rs. {{ kpis.profit|floatformat:0 }}</div>
+        <div class="metric-note">{{ total_vouchers }} vouchers posted</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-xl-7">
+      <section class="dashboard-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Priority Command Queue</h2>
+          <a href="{% url 'core:practice_tasks' %}" class="btn btn-sm btn-outline-secondary">Open Queue</a>
+        </div>
+        <div class="panel-body">
+          <div class="d-flex flex-column gap-2">
+            {% for alert in dashboard_alerts %}
+              <a href="{{ alert.url }}" class="alert-row dashboard-alert-{{ alert.level }} text-decoration-none">
+                <span class="alert-icon {% if alert.level == 'danger' %}bg-danger-subtle text-danger{% elif alert.level == 'warning' %}bg-warning-subtle text-warning{% else %}bg-success-subtle text-success{% endif %}">
+                  <i class="bi {{ alert.icon }}"></i>
+                </span>
+                <span class="min-w-0">
+                  <span class="d-block fw-bold text-body">{{ alert.title }}</span>
+                  <span class="d-block small text-muted">{{ alert.detail }}</span>
+                </span>
+                {% if alert.count != None %}
+                  <span class="badge {% if alert.level == 'danger' %}bg-danger{% elif alert.level == 'warning' %}bg-warning text-dark{% else %}bg-success{% endif %} align-self-center">{{ alert.count }}</span>
+                {% endif %}
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="col-xl-5">
+      <section class="dashboard-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Setup And Client Self-Service</h2>
+          <a href="{% url 'core:setup_wizard' %}" class="btn btn-sm btn-outline-secondary">Setup Wizard</a>
+        </div>
+        <div class="panel-body">
+          <div class="d-flex gap-3 align-items-center mb-3">
+            <div class="readiness-ring">
+              <svg viewBox="0 0 120 120" aria-hidden="true">
+                <circle cx="60" cy="60" r="50" fill="none" stroke="var(--surface-subtle)" stroke-width="10"></circle>
+                <circle cx="60" cy="60" r="50" fill="none" stroke="#2563eb" stroke-width="10" stroke-linecap="round" stroke-dasharray="314" stroke-dashoffset="{{ setup_readiness.ring_offset }}"></circle>
+              </svg>
+              <div class="readiness-ring-value">{{ setup_readiness.score }}%</div>
+            </div>
+            <div class="small text-muted">
+              Clients can work independently only when company setup, WhatsApp intake, invoice email, portal token, and statutory profile are ready.
+            </div>
+          </div>
+          <div class="setup-grid">
+            {% for item in setup_readiness.items %}
+              <div class="setup-row">
+                <span class="status-dot {% if item.ready %}bg-success-subtle text-success{% else %}bg-warning-subtle text-warning{% endif %}">
+                  <i class="bi {% if item.ready %}bi-check2{% else %}bi-exclamation{% endif %}"></i>
+                </span>
+                <span class="min-w-0">
+                  <span class="d-flex justify-content-between gap-2">
+                    <span class="fw-semibold text-truncate">{{ item.label }}</span>
+                    <span class="badge {% if item.ready %}bg-success-subtle text-success{% else %}bg-warning-subtle text-warning{% endif %}">
+                      {% if item.ready %}Ready{% else %}Gap{% endif %}
+                    </span>
+                  </span>
+                  <span class="d-block small text-muted text-truncate">{{ item.detail }}</span>
+                </span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-xl-4">
+      <section class="dashboard-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Statutory Control</h2>
+          <a href="{% url 'core:statutory_exposure' %}" class="btn btn-sm btn-outline-secondary">Exposure</a>
+        </div>
+        <div class="panel-body">
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <div class="border rounded-3 p-2">
+                <div class="small text-muted">GST filings</div>
+                <div class="fw-bold fs-5">{{ statutory.filings.gst }}</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="border rounded-3 p-2">
+                <div class="small text-muted">TDS filings</div>
+                <div class="fw-bold fs-5">{{ statutory.filings.tds }}</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="border rounded-3 p-2">
+                <div class="small text-muted">Open notices</div>
+                <div class="fw-bold fs-5">{{ statutory.notices.open }}</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="border rounded-3 p-2">
+                <div class="small text-muted">ITC at risk</div>
+                <div class="fw-bold fs-5">Rs. {{ statutory.gst.itc_at_risk|floatformat:0 }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="d-flex flex-wrap gap-2">
+            <span class="badge bg-danger-subtle text-danger">{{ statutory.filings.overdue }} overdue filings</span>
+            <span class="badge bg-warning-subtle text-warning">{{ statutory.filings.client_pending }} client pending</span>
+            <span class="badge bg-info-subtle text-info">{{ statutory.gst.packs_ready }} GST packs ready</span>
+            <span class="badge bg-secondary-subtle text-secondary">{{ statutory.gst.post_filing_open }} post-filing open</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="col-xl-4">
+      <section class="dashboard-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Upcoming Filings</h2>
+          <a href="{% url 'core:compliance_calendar' %}" class="btn btn-sm btn-outline-secondary">Calendar</a>
+        </div>
+        <div class="panel-body">
+          <div class="d-flex flex-column gap-2">
+            {% for filing in statutory.upcoming_filings %}
+              <a href="{% url 'core:compliance_filing_update' filing.pk %}" class="timeline-row text-decoration-none">
+                <span class="min-w-0">
+                  <span class="d-block fw-semibold text-truncate text-body">{{ filing.title }}</span>
+                  <span class="timeline-meta">{{ filing.get_filing_type_display }} - {{ filing.get_status_display }}</span>
+                </span>
+                <span class="text-end">
+                  {% if filing.due_date %}
+                    <span class="badge {% if filing.due_date < today %}bg-danger{% elif filing.due_date <= due_soon %}bg-warning text-dark{% else %}bg-secondary-subtle text-secondary{% endif %}">
+                      {{ filing.due_date|date:"d M" }}
+                    </span>
+                  {% else %}
+                    <span class="badge bg-secondary-subtle text-secondary">No due date</span>
+                  {% endif %}
+                </span>
+              </a>
+            {% empty %}
+              <div class="smart-empty">
+                <span class="smart-empty-icon bg-primary-subtle text-primary"><i class="bi bi-calendar2-plus"></i></span>
+                <div>
+                  <div class="fw-bold text-body">No statutory work is scheduled</div>
+                  <div class="small text-muted">Create filings or generate the calendar before the first compliance cycle.</div>
+                </div>
+                <div class="d-flex flex-wrap gap-2 justify-content-center">
+                  <a href="{% url 'core:compliance_filing_create' %}" class="btn btn-sm btn-primary">New Filing</a>
+                  <a href="{% url 'core:compliance_calendar' %}" class="btn btn-sm btn-outline-secondary">Open Calendar</a>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="col-xl-4">
+      <section class="dashboard-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Client Requests</h2>
+          <a href="{% url 'portal:client_requests' %}" class="btn btn-sm btn-outline-secondary">Request Room</a>
+        </div>
+        <div class="panel-body">
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            <span class="badge bg-warning-subtle text-warning">{{ client_requests.due_soon }} due soon</span>
+            <span class="badge bg-danger-subtle text-danger">{{ client_requests.overdue }} overdue</span>
+            <span class="badge bg-success-subtle text-success">{{ client_requests.uploaded }} uploaded</span>
+          </div>
+          <div class="d-flex flex-column gap-2">
+            {% for doc in recent_client_requests %}
+              <a href="{% url 'portal:client_requests' %}?q={{ doc.title|urlencode }}" class="request-row text-decoration-none">
+                <span class="d-flex justify-content-between gap-2">
+                  <span class="fw-semibold text-body text-truncate">{{ doc.title }}</span>
+                  <span class="badge bg-secondary-subtle text-secondary">{{ doc.get_status_display }}</span>
+                </span>
+                <span class="d-block small text-muted text-truncate">
+                  {{ doc.portal_user.name|default:doc.recipient_email|default:"Client" }}
+                  {% if doc.due_date %} - due {{ doc.due_date|date:"d M" }}{% endif %}
+                </span>
+              </a>
+            {% empty %}
+              <div class="smart-empty">
+                <span class="smart-empty-icon bg-success-subtle text-success"><i class="bi bi-inbox"></i></span>
+                <div>
+                  <div class="fw-bold text-body">No client requests yet</div>
+                  <div class="small text-muted">Start with a request room link for GST bills, bank statements, TDS documents, or ledger confirmation.</div>
+                </div>
+                <div class="d-flex flex-wrap gap-2 justify-content-center">
+                  <a href="{% url 'portal:client_request_create' %}" class="btn btn-sm btn-primary">New Request</a>
+                  <a href="{% url 'portal:client_request_campaign' %}" class="btn btn-sm btn-outline-secondary">Campaign</a>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-xl-4">
+      <section class="dashboard-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Practice Workload</h2>
+          <a href="{% url 'core:practice_task_create' %}" class="btn btn-sm btn-outline-secondary">New Task</a>
+        </div>
+        <div class="panel-body">
+          <div class="d-flex flex-column gap-3">
+            {% for row in practice.task_type_rows %}
+              <div class="workload-row">
+                <span class="small fw-semibold text-truncate">{{ row.label }}</span>
+                <span class="workload-track">
+                  <span class="workload-bar bg-primary" style="width: {{ row.percent }}%;"></span>
+                </span>
+                <span class="small fw-bold text-end">{{ row.count }}</span>
+              </div>
+            {% empty %}
+              <div class="smart-empty">
+                <span class="smart-empty-icon bg-warning-subtle text-warning"><i class="bi bi-list-check"></i></span>
+                <div>
+                  <div class="fw-bold text-body">No open practice tasks</div>
+                  <div class="small text-muted">Create a task manually or let command-center workflows generate tasks from risks and gaps.</div>
+                </div>
+                <div class="d-flex flex-wrap gap-2 justify-content-center">
+                  <a href="{% url 'core:practice_task_create' %}" class="btn btn-sm btn-primary">New Task</a>
+                  <a href="{% url 'core:ca_command_center' %}" class="btn btn-sm btn-outline-secondary">Command Center</a>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="col-xl-4">
+      <section class="dashboard-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Cash Flow</h2>
+          <span class="small text-muted">Last 12 months</span>
+        </div>
+        <div class="panel-body">
+          {% if has_cf_data %}
+            <div class="chart-container">
+              <canvas id="cashFlowChart"></canvas>
+            </div>
+          {% else %}
+            <div class="smart-empty">
+              <span class="smart-empty-icon bg-info-subtle text-info"><i class="bi bi-graph-up"></i></span>
+              <div>
+                <div class="fw-bold text-body">No cash flow yet</div>
+                <div class="small text-muted">Post vouchers or import bank statements to activate the 12-month trend.</div>
+              </div>
+              <div class="d-flex flex-wrap gap-2 justify-content-center">
+                <a href="{% url 'vouchers:create' %}" class="btn btn-sm btn-primary">New Voucher</a>
+                <a href="{% url 'core:bank_statement_upload' %}" class="btn btn-sm btn-outline-secondary">Upload Bank</a>
+              </div>
+            </div>
+          {% endif %}
+        </div>
+      </section>
+    </div>
+
+    <div class="col-xl-4">
+      <section class="dashboard-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Ledger Mix</h2>
+          <a href="{% url 'ledger:list' %}" class="btn btn-sm btn-outline-secondary">Ledgers</a>
+        </div>
+        <div class="panel-body">
+          <div id="group-balance-rows" class="d-flex flex-column gap-3"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-xl-8">
+      <section class="dashboard-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Recent Vouchers</h2>
+          <a href="{% url 'vouchers:list' %}" class="btn btn-sm btn-outline-secondary">View All</a>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover table-dashboard mb-0">
+            <thead>
+              <tr>
+                <th>Number</th>
+                <th>Type</th>
+                <th>Date</th>
+                <th class="text-end">Amount</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for v in recent_vouchers %}
+                <tr>
+                  <td><span class="font-monospace">{{ v.number }}</span></td>
+                  <td><span class="badge bg-secondary-subtle text-secondary fw-normal">{{ v.voucher_type }}</span></td>
+                  <td class="text-muted">{{ v.date|date:"d M y" }}</td>
+                  <td class="text-end fw-semibold">Rs. {{ v.total_debit|floatformat:0 }}</td>
+                  <td>
+                    {% if v.is_balanced %}
+                      <span class="text-success" title="Balanced"><i class="bi bi-check-circle-fill"></i></span>
+                    {% else %}
+                      <span class="text-danger" title="Unbalanced"><i class="bi bi-exclamation-triangle-fill"></i></span>
+                    {% endif %}
+                  </td>
+                  <td class="text-end">
+                    <a href="{% url 'vouchers:detail' v.pk %}" class="btn btn-sm btn-light border py-0 px-2" aria-label="Open voucher">
+                      <i class="bi bi-chevron-right"></i>
+                    </a>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="6" class="p-3">
+                    <div class="smart-empty">
+                      <span class="smart-empty-icon bg-primary-subtle text-primary"><i class="bi bi-receipt"></i></span>
+                      <div>
+                        <div class="fw-bold text-body">No vouchers posted yet</div>
+                        <div class="small text-muted">Create the first voucher or upload a bill through OCR to start the accounting trail.</div>
+                      </div>
+                      <div class="d-flex flex-wrap gap-2 justify-content-center">
+                        <a href="{% url 'vouchers:create' %}" class="btn btn-sm btn-primary">New Voucher</a>
+                        <a href="{% url 'ocr:upload' %}" class="btn btn-sm btn-outline-secondary">OCR Upload</a>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <div class="col-xl-4">
+      <section class="dashboard-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Launchpad</h2>
+          <span class="small text-muted">Daily actions</span>
+        </div>
+        <div class="panel-body">
+          <div class="quick-action-grid">
+            <a href="{% url 'vouchers:create' %}" class="quick-action"><i class="bi bi-plus-circle"></i><span>New Voucher</span></a>
+            <a href="{% url 'ocr:upload' %}" class="quick-action"><i class="bi bi-camera"></i><span>OCR Upload{% if ocr_pending %} ({{ ocr_pending }}){% endif %}</span></a>
+            <a href="{% url 'core:bank_reco_autopilot' %}" class="quick-action"><i class="bi bi-bank"></i><span>Bank Autopilot</span></a>
+            <a href="{% url 'core:gst_workbench' %}" class="quick-action"><i class="bi bi-receipt"></i><span>GST Workbench</span></a>
+            <a href="{% url 'core:statutory_export_center' %}" class="quick-action"><i class="bi bi-file-earmark-arrow-down"></i><span>Statutory Exports</span></a>
+            <a href="{% url 'integrations:statutory_control' %}" class="quick-action"><i class="bi bi-plug"></i><span>Integrations</span></a>
+            <a href="{% url 'core:client_360' company.pk %}" class="quick-action"><i class="bi bi-person-vcard"></i><span>Client 360</span></a>
+            <a href="{% url 'reports:dashboard_financials' %}" class="quick-action"><i class="bi bi-graph-up-arrow"></i><span>Financials</span></a>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let cfChart;
+
+  function getDashboardTheme() {
+    const styles = getComputedStyle(document.body);
+    return {
+      muted: styles.getPropertyValue('--text-muted').trim(),
+      border: styles.getPropertyValue('--border-color').trim()
+    };
+  }
+
+  function renderGroupBalances() {
+    const data = [
+      { label: 'Assets', val: Math.abs({{ ledger_summary.Asset|default:0 }}), color: '#2563eb' },
+      { label: 'Liability', val: Math.abs({{ ledger_summary.Liability|default:0 }}), color: '#f59e0b' },
+      { label: 'Income', val: Math.abs({{ ledger_summary.Income|default:0 }}), color: '#10b981' },
+      { label: 'Expense', val: Math.abs({{ ledger_summary.Expense|default:0 }}), color: '#ef4444' },
+      { label: 'Tax', val: Math.abs({{ ledger_summary.Tax|default:0 }}), color: '#8b5cf6' }
+    ];
+
+    data.sort((a, b) => b.val - a.val);
+    const total = data.reduce((acc, item) => acc + item.val, 0) || 1;
+    const container = document.getElementById('group-balance-rows');
+    if (!container) return;
+
+    container.innerHTML = data.map((item) => {
+      const pct = Math.max(2, (item.val / total) * 100).toFixed(1);
+      return `
+        <div class="balance-row">
+          <div class="balance-label text-truncate">${item.label}</div>
+          <div class="balance-progress">
+            <div class="balance-bar" style="width: ${pct}%; background: ${item.color};"></div>
+          </div>
+          <div class="balance-amt">Rs. ${item.val.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function initDashboardCharts() {
+    renderGroupBalances();
+
+    const cfCanvas = document.getElementById('cashFlowChart');
+    if (!cfCanvas || typeof Chart === 'undefined') return;
+
+    const theme = getDashboardTheme();
+    Chart.defaults.color = theme.muted;
+    Chart.defaults.borderColor = theme.border;
+
+    if (cfChart) cfChart.destroy();
+
+    cfChart = new Chart(cfCanvas, {
+      type: 'line',
+      data: {
+        labels: {{ cf_labels|safe }},
+        datasets: [
+          {
+            label: 'Inflow',
+            data: {{ cf_inflow|safe }},
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.08)',
+            borderWidth: 2,
+            fill: true,
+            pointRadius: 0,
+            tension: 0.35
+          },
+          {
+            label: 'Outflow',
+            data: {{ cf_outflow|safe }},
+            borderColor: '#ef4444',
+            backgroundColor: 'rgba(239, 68, 68, 0.05)',
+            borderWidth: 2,
+            fill: true,
+            pointRadius: 0,
+            tension: 0.35
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return `${context.dataset.label}: Rs. ${Number(context.raw || 0).toLocaleString('en-IN')}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { maxRotation: 0, font: { size: 10 } } },
+          y: { beginAtZero: true, ticks: { callback: (value) => `Rs. ${Number(value).toLocaleString('en-IN')}` } }
+        }
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', initDashboardCharts);
+  window.addEventListener('themeChanged', initDashboardCharts);
+</script>
+{% endblock %}

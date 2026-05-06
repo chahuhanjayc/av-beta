@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+
+{% block title %}Filing Readiness - Akshaya Vistara{% endblock %}
+{% block page_title %}Filing Readiness{% endblock %}
+
+{% block extra_head %}
+<style>
+  .readiness-score {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .readiness-filter {
+    background: var(--surface-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 0.85rem 1rem;
+  }
+  .readiness-filter label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+  }
+  .readiness-note {
+    max-width: 34rem;
+  }
+  .check-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 0.72rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h5 class="mb-0">Filing Readiness</h5>
+    <small class="text-muted">{{ selected_company.name }} | {{ period_start|date:"M Y" }}</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="?{{ export_query }}" class="btn btn-outline-success btn-sm">
+      <i class="bi bi-download"></i> CSV
+    </a>
+    <a href="{% url 'core:filing_review_center' %}?period={{ period_value }}&company={{ selected_company.pk }}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-patch-check"></i> Review Center
+    </a>
+    <a href="{% url 'core:gst_filing_pack' %}?period={{ period_value }}&company={{ selected_company.pk }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-file-earmark-spreadsheet"></i> Filing Pack
+    </a>
+    <a href="{% url 'core:gst_workbench_detail' selected_company.pk period_value %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-shield-check"></i> GST Workbench
+    </a>
+    {% if report.issues and can_manage %}
+    <form method="post" class="m-0">
+      {% csrf_token %}
+      <input type="hidden" name="period" value="{{ period_value }}">
+      <input type="hidden" name="company_id" value="{{ selected_company.pk }}">
+      <button type="submit" name="action" value="create_tasks" class="btn btn-primary btn-sm">
+        <i class="bi bi-list-check"></i> Create Blocker Tasks
+      </button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<form method="get" class="readiness-filter mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-5 col-lg-4">
+      <label for="company">Company</label>
+      <select id="company" name="company" class="form-select form-select-sm">
+        {% for company in companies %}
+        <option value="{{ company.pk }}" {% if company.pk == selected_company.pk %}selected{% endif %}>{{ company.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3 col-lg-2">
+      <label for="period">Period</label>
+      <input type="month" id="period" name="period" value="{{ period_value }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-primary btn-sm w-100">
+        <i class="bi bi-funnel"></i> Apply
+      </button>
+    </div>
+  </div>
+</form>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Readiness Score</div>
+        <div class="readiness-score {% if report.score >= 90 %}text-success{% elif report.score >= 70 %}text-warning{% else %}text-danger{% endif %}">
+          {{ report.score }}%
+        </div>
+        <div class="small text-muted">{{ report.status }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Critical Blocks</div>
+        <div class="readiness-score text-danger">{{ report.critical_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Review Items</div>
+        <div class="readiness-score text-warning">{{ report.warning_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">CA Sign-off</div>
+        <div class="h5 mb-1">
+          {% if report.signed_off %}
+            <span class="badge bg-success">Signed Off</span>
+          {% elif report.review %}
+            <span class="badge bg-warning text-dark">{{ report.review.get_status_display }}</span>
+          {% else %}
+            <span class="badge bg-secondary">Not Started</span>
+          {% endif %}
+        </div>
+        {% if report.review.reviewed_by %}
+        <div class="small text-muted">{{ report.review.reviewed_by.email }}</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-8">
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-clipboard2-check me-2"></i>Readiness Checks</h6>
+        <span class="badge bg-secondary">{{ report.checks|length }} checks</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Area</th>
+              <th>Status</th>
+              <th class="text-end">Count</th>
+              <th class="text-end">Amount</th>
+              <th class="text-end pe-3">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for check in report.checks %}
+            <tr>
+              <td class="ps-3">
+                <div class="fw-semibold">{{ check.title }}</div>
+                <div class="small text-muted readiness-note">{{ check.description }}</div>
+                <div class="text-muted check-code">{{ check.code }}</div>
+              </td>
+              <td>
+                <span class="badge {% if check.severity == 'critical' %}bg-danger{% elif check.severity == 'warning' %}bg-warning text-dark{% else %}bg-success-subtle text-success{% endif %}">
+                  {% if check.severity == "critical" %}Critical{% elif check.severity == "warning" %}Review{% else %}Clear{% endif %}
+                </span>
+              </td>
+              <td class="text-end">{{ check.count }}</td>
+              <td class="text-end">{% if check.amount %}Rs.{{ check.amount|floatformat:2 }}{% else %}-{% endif %}</td>
+              <td class="text-end pe-3">
+                <a href="{{ check.action_url }}" class="btn btn-sm btn-outline-secondary">{{ check.action_label }}</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-file-earmark-check me-2"></i>Evidence Summary</h6>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <tbody>
+            <tr>
+              <th class="ps-3">GST net tax payable</th>
+              <td class="text-end pe-3">Rs.{{ report.gst.net_tax_payable|floatformat:2 }}</td>
+            </tr>
+            <tr>
+              <th class="ps-3">Voucher quality score</th>
+              <td class="text-end pe-3">{{ report.voucher_quality.score }}%</td>
+            </tr>
+            <tr>
+              <th class="ps-3">Close score</th>
+              <td class="text-end pe-3">{{ report.close.score }}%</td>
+            </tr>
+            <tr>
+              <th class="ps-3">Bank unreconciled amount</th>
+              <td class="text-end pe-3">Rs.{{ report.bank.unreconciled_amount|floatformat:2 }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-4">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-pen me-2"></i>Review Sign-off</h6>
+      </div>
+      <div class="card-body">
+        {% if can_manage %}
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="period" value="{{ period_value }}">
+          <input type="hidden" name="company_id" value="{{ selected_company.pk }}">
+          <input type="hidden" name="action" value="review_status">
+          <div class="mb-2">
+            <label for="status" class="form-label small fw-semibold">Status</label>
+            <select id="status" name="status" class="form-select form-select-sm">
+              {% for value, label in review_status_choices %}
+              <option value="{{ value }}" {% if report.review.status == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="notes" class="form-label small fw-semibold">Notes</label>
+            <textarea id="notes" name="notes" rows="4" class="form-control form-control-sm">{{ report.review.notes }}</textarea>
+          </div>
+          {% if report.critical_count %}
+          <div class="alert alert-danger py-2 small">
+            Critical blockers must be cleared before final sign-off.
+          </div>
+          {% endif %}
+          <button type="submit" class="btn btn-primary btn-sm w-100">
+            <i class="bi bi-check2-circle"></i> Save Review
+          </button>
+        </form>
+        {% else %}
+        <p class="text-muted mb-0">You can view readiness, but your role cannot update sign-off.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Operational Metrics</h6>
+      </div>
+      <div class="list-group list-group-flush">
+        <div class="list-group-item d-flex justify-content-between">
+          <span>2B missing in books</span><strong>{{ report.gst.missing_in_books }}</strong>
+        </div>
+        <div class="list-group-item d-flex justify-content-between">
+          <span>2B pending actions</span><strong>{{ report.gst.pending_2b }}</strong>
+        </div>
+        <div class="list-group-item d-flex justify-content-between">
+          <span>Open client docs</span><strong>{{ report.documents.open }}</strong>
+        </div>
+        <div class="list-group-item d-flex justify-content-between">
+          <span>Open period tasks</span><strong>{{ report.tasks.open }}</strong>
+        </div>
+        <div class="list-group-item d-flex justify-content-between">
+          <span>Bank duplicate flags</span><strong>{{ report.bank.duplicate_count }}</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

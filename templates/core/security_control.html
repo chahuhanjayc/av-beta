@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Security Control - Akshaya Vistara{% endblock %}
+{% block page_title %}Security Control{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+  <div>
+    <h5 class="mb-0">Security Control</h5>
+    <small class="text-muted">Access governance, MFA readiness, stale roles, and company user review.</small>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <form method="post" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" name="action" value="sync_security_tasks" class="btn btn-primary btn-sm" {% if not assessment.has_taskable_issues %}disabled{% endif %}>
+        <i class="bi bi-list-check me-1"></i>Sync Security Tasks
+      </button>
+    </form>
+    <a href="{% url 'core:audit_log' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-clock-history me-1"></i>Audit Trail
+    </a>
+    <a href="{% url 'core:production_trust_center' %}" class="btn btn-outline-dark btn-sm">
+      <i class="bi bi-shield-lock me-1"></i>Production Trust
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Security Score</div>
+        <div class="h3 mb-0"><span class="badge {{ assessment.badge_class }}">{{ assessment.score }}% {{ assessment.status }}</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Active Access</div>
+        <div class="h3 mb-0">{{ assessment.summary.active_access }}</div>
+        <div class="small text-muted">{{ assessment.summary.total_access }} total role(s)</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">Admins</div>
+        <div class="h3 mb-0 {% if assessment.summary.admins %}text-success{% else %}text-danger{% endif %}">{{ assessment.summary.admins }}</div>
+        <div class="small text-muted">{{ assessment.summary.staff_access }} staff/superuser role(s)</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small text-uppercase fw-semibold">MFA Policy</div>
+        <div class="h3 mb-0 {% if assessment.summary.mfa_required %}text-success{% else %}text-danger{% endif %}">
+          {% if assessment.summary.mfa_required %}On{% else %}Off{% endif %}
+        </div>
+        <div class="small text-muted">Public registration {% if assessment.summary.public_registration %}on{% else %}off{% endif %}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-5">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-shield-exclamation me-2"></i>Security Issues</h6>
+        <span class="badge {{ assessment.badge_class }}">{{ assessment.status }}</span>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for issue in assessment.issues %}
+          <div class="list-group-item">
+            <div class="d-flex justify-content-between gap-3">
+              <div>
+                <div class="fw-semibold">{{ issue.title }}</div>
+                <div class="small text-muted">{{ issue.detail }}</div>
+                <div class="small text-muted mt-1">{{ issue.recommendation }}</div>
+              </div>
+              <span class="badge align-self-start {{ issue.badge_class }}">{{ issue.severity|upper }}</span>
+            </div>
+          </div>
+        {% empty %}
+          <div class="list-group-item text-center text-muted py-4">
+            Access governance controls are clean.
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-7">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-people me-2"></i>Company Access Register</h6>
+        <span class="text-muted small">{{ company.name }}</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">User</th>
+              <th>Role</th>
+              <th>Flags</th>
+              <th>Last Login</th>
+              <th class="text-end pe-3">Granted</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for access in assessment.accesses %}
+              <tr>
+                <td class="ps-3">
+                  <div class="fw-semibold">{{ access.email }}</div>
+                  <div class="small text-muted">{{ access.name }}</div>
+                </td>
+                <td><span class="badge bg-secondary">{{ access.role }}</span></td>
+                <td>
+                  {% if not access.is_active %}<span class="badge bg-danger">Inactive</span>{% endif %}
+                  {% if access.is_staff %}<span class="badge bg-primary">Staff</span>{% endif %}
+                  {% if access.is_superuser %}<span class="badge bg-dark">Superuser</span>{% endif %}
+                  {% if access.dormant %}<span class="badge bg-warning text-dark">Dormant</span>{% endif %}
+                  {% if access.is_active and not access.is_staff and not access.is_superuser and not access.dormant %}
+                    <span class="badge bg-success">OK</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if access.last_login %}
+                    <span class="small">{{ access.last_login|date:"d M Y H:i" }}</span>
+                  {% else %}
+                    <span class="small text-muted">Never</span>
+                  {% endif %}
+                </td>
+                <td class="text-end pe-3 small text-muted">{{ access.created_at|date:"d M Y" }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="5" class="text-center text-muted py-4">No company access records exist.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

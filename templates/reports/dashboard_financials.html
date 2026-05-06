@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Financial Dashboard | Akshaya Vistara{% endblock %}
+{% block page_title %}Financial Dashboard{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <!-- Revenue Card -->
+    <div class="col-md-3">
+        <div class="card h-100 border-0 shadow-sm" style="border-left: 5px solid #0d6efd !important;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted small text-uppercase fw-bold mb-1">Total Revenue</p>
+                        <h4 class="mb-0 fw-bold">₹{{ revenue|floatformat:2 }}</h4>
+                    </div>
+                    <div class="p-2 bg-primary bg-opacity-10 rounded">
+                        <i class="bi bi-graph-up text-primary fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Expense Card -->
+    <div class="col-md-3">
+        <div class="card h-100 border-0 shadow-sm" style="border-left: 5px solid #dc3545 !important;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted small text-uppercase fw-bold mb-1">Total Expense</p>
+                        <h4 class="mb-0 fw-bold">₹{{ expense|floatformat:2 }}</h4>
+                    </div>
+                    <div class="p-2 bg-danger bg-opacity-10 rounded">
+                        <i class="bi bi-cart-dash text-danger fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Profit Card -->
+    <div class="col-md-3">
+        <div class="card h-100 border-0 shadow-sm" style="border-left: 5px solid #198754 !important;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted small text-uppercase fw-bold mb-1">Net Profit</p>
+                        <h4 class="mb-0 fw-bold {% if profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            ₹{{ profit|floatformat:2 }}
+                        </h4>
+                    </div>
+                    <div class="p-2 bg-success bg-opacity-10 rounded">
+                        <i class="bi bi-piggy-bank text-success fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Liquidity Card -->
+    <div class="col-md-3">
+        <div class="card h-100 border-0 shadow-sm" style="border-left: 5px solid #ffc107 !important;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted small text-uppercase fw-bold mb-1">Total Assets</p>
+                        <h4 class="mb-0 fw-bold">₹{{ liquidity|floatformat:2 }}</h4>
+                    </div>
+                    <div class="p-2 bg-warning bg-opacity-10 rounded">
+                        <i class="bi bi-safe text-warning fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold text-uppercase small text-muted">Key Performance Insights</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-3 pb-3 border-bottom">
+                    <div>
+                        <h6 class="text-muted small mb-1">Net Profit Margin</h6>
+                        <p class="mb-0 small text-muted">Percentage of revenue remaining as profit</p>
+                    </div>
+                    <div class="text-end">
+                        <h4 class="mb-0 fw-bold {% if net_margin >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            {{ net_margin|floatformat:1 }}%
+                        </h4>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-muted small mb-1">Operating Expense Ratio</h6>
+                        <p class="mb-0 small text-muted">Expenses as a portion of total revenue</p>
+                    </div>
+                    <div class="text-end">
+                        <h4 class="mb-0 fw-bold text-primary">
+                            {{ expense_ratio|floatformat:1 }}%
+                        </h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100 shadow-sm d-flex align-items-center justify-content-center text-center p-4">
+            <div class="py-4">
+                <i class="bi bi-lightning-charge fs-1 text-muted opacity-25 mb-3"></i>
+                <h6 class="text-muted">Real-time Insights</h6>
+                <p class="small text-muted mb-0">Charts and deeper analytics will appear here in Phase 6.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

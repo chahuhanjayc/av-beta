@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Audit History for Voucher #{{ object_id }}</h2>
+    <hr>
+
+    {% for entry in diff_history %}
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between">
+            <strong>{{ entry.log.action }}</strong>
+            <span class="text-muted">{{ entry.log.timestamp|date:"d-M-Y H:i" }} by {{ entry.log.user|default:"System" }}</span>
+        </div>
+        <div class="card-body">
+            <ul>
+                {% for change in entry.changes %}
+                <li>{{ change }}</li>
+                {% empty %}
+                <li class="text-muted">No field-level changes detected.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% empty %}
+    <p>No audit logs found for this voucher.</p>
+    {% endfor %}
+
+    <a href="javascript:history.back()" class="btn btn-secondary mt-3">Back</a>
+</div>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}{% if mode == "edit" %}Edit Expense{% else %}Add Expense{% endif %} - SpendSight{% endblock %}
+{% block page_title %}{% if mode == "edit" %}Edit Expense{% else %}Add Expense{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4">
+        <form method="post" class="row g-3">
+          {% csrf_token %}
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Amount</label>
+            <div class="input-group">
+              <span class="input-group-text">{{ currency_symbol }}</span>
+              <input type="number" step="0.01" name="amount" class="form-control" value="{{ expense.amount|default:'' }}" required>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Date</label>
+            <input type="date" name="date" class="form-control" value="{{ today|date:'Y-m-d' }}" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Category</label>
+            <select name="category" class="form-select" required>
+              {% for cat in categories %}
+              <option value="{{ cat.id }}" {% if expense.category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Item Name</label>
+            <input type="text" name="item_name" class="form-control" value="{{ expense.item_name|default:'' }}" placeholder="Milk, Petrol, Rent">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Payment Method</label>
+            <select name="payment_method" class="form-select">
+              {% for method in payment_methods %}
+              <option value="{{ method }}" {% if expense.payment_method == method %}selected{% endif %}>{{ method }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Quantity</label>
+            <input type="number" step="0.001" name="quantity" class="form-control" value="{{ expense.quantity|default:'' }}">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Unit</label>
+            <select name="unit" class="form-select">
+              <option value="">No unit</option>
+              {% for unit in unit_options %}
+              <option value="{{ unit }}" {% if expense.unit == unit %}selected{% endif %}>{{ unit }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Notes</label>
+            <textarea name="description" class="form-control" rows="3" placeholder="Optional notes">{{ expense.description|default:'' }}</textarea>
+          </div>
+          <div class="col-12 d-flex gap-2 justify-content-end">
+            <a href="{% url 'personal_finance:expense_list' %}" class="btn btn-light">Cancel</a>
+            <button type="submit" class="btn btn-primary">{% if mode == "edit" %}Update Expense{% else %}Save Expense{% endif %}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

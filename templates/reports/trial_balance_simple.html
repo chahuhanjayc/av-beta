@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Trial Balance Simple | Akshaya Vistara{% endblock %}
+{% block page_title %}Trial Balance (Simple View){% endblock %}
+
+{% block content %}
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold text-uppercase small text-muted">Ledger Balances Summary</h6>
+        {% if totals.difference > 0 %}
+        <span class="badge bg-danger">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            Mismatch: ₹{{ totals.difference|floatformat:2 }}
+        </span>
+        {% else %}
+        <span class="badge bg-success">
+            <i class="bi bi-check-circle me-1"></i>
+            Balanced
+        </span>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Ledger Name</th>
+                        <th>Group</th>
+                        <th class="text-end">Opening (₹)</th>
+                        <th class="text-end">Debit (₹)</th>
+                        <th class="text-end">Credit (₹)</th>
+                        <th class="text-end">Closing (₹)</th>
+                        <th class="text-center">Type</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in report_data %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'reports:ledger_detail' item.ledger_id %}" class="text-decoration-none fw-bold">
+                                {{ item.ledger_name }}
+                            </a>
+                        </td>
+                        <td><a href="{% url 'reports:group_detail' item.group %}" class="badge bg-light text-dark fw-normal border text-decoration-none">{{ item.group }}</a></td>
+                        <td class="text-end font-monospace">{{ item.opening_balance|floatformat:2 }}</td>
+                        <td class="text-end font-monospace">{{ item.total_debit|floatformat:2 }}</td>
+                        <td class="text-end font-monospace">{{ item.total_credit|floatformat:2 }}</td>
+                        <td class="text-end font-monospace fw-bold">{{ item.closing_balance|floatformat:2 }}</td>
+                        <td class="text-center">
+                            <span class="badge {% if item.balance_type == 'Dr' %}bg-primary-subtle text-primary{% else %}bg-success-subtle text-success{% endif %}">
+                                {{ item.balance_type }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" class="text-center py-5 text-muted small">No ledger data available.</td></tr>
+                    {% endfor %}
+                </tbody>
+                {% if report_data %}
+                <tfoot class="table-light fw-bold border-top-2">
+                    <tr>
+                        <td colspan="2">GRAND TOTALS</td>
+                        <td class="text-end font-monospace">{{ totals.opening|floatformat:2 }}</td>
+                        <td class="text-end font-monospace text-primary">{{ totals.debit|floatformat:2 }}</td>
+                        <td class="text-end font-monospace text-success">{{ totals.credit|floatformat:2 }}</td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if totals.difference > 0 %}
+<div class="alert alert-danger border-0 shadow-sm d-flex align-items-center" role="alert">
+    <i class="bi bi-exclamation-octagon fs-4 me-3"></i>
+    <div>
+        <h6 class="alert-heading fw-bold mb-1">Double-Entry Violation Detected</h6>
+        <p class="mb-0 small text-danger-emphasis">
+            Total Debits do not match Total Credits. The difference is <strong>₹{{ totals.difference|floatformat:2 }}</strong>.
+            Please review your recent journal vouchers for imbalances.
+        </p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+{% block title %}New Voucher | Akshaya Vistara{% endblock %}
+{% block page_title %}New Voucher{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Speed Mode Visual Cues */
+    input:focus, select:focus, textarea:focus {
+        border-color: #4f46e5 !important;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2) !important;
+        background-color: #fefeff !important;
+    }
+    .formset-row:focus-within { background-color: rgba(79, 70, 229, 0.03); }
+    
+    /* Searchable Dropdown */
+    .ledger-search-container { position: relative; }
+    .ledger-results {
+        position: absolute; top: 100%; left: 0; right: 0;
+        background: white; border: 1px solid var(--border-color);
+        z-index: 1000; max-height: 250px; overflow-y: auto;
+        display: none; border-radius: 0 0 8px 8px;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+    .ledger-results div { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid var(--border-color); }
+    .ledger-results div:last-child { border-bottom: none; }
+    .ledger-results div:hover, .ledger-results div.active { background: var(--sidebar-active-bg); color: var(--sidebar-active-text); }
+    .ledger-results .group-label { font-size: 0.7rem; text-transform: uppercase; color: #999; margin-left: 8px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm app-card">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold">Voucher Entry <span class="badge bg-primary ms-2 small">Speed Mode Active</span></h5>
+        <div class="text-muted small">
+            <kbd>Enter</kbd> Next · <kbd>Shift+Enter</kbd> Prev · <kbd>Ctrl+S</kbd> Save
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="post" id="voucher-form" autocomplete="off">
+            {% csrf_token %}
+            
+            {% if form.errors or formset.errors %}
+            <div id="form-errors" class="alert alert-danger py-2 small shadow-sm mb-4">
+                <h6 class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-2"></i>Please fix the following:</h6>
+                <ul class="mb-0">
+                    {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+                    {% for error in formset.non_form_errors %}<li>{{ error }}</li>{% endfor %}
+                    {% for field in form %}
+                        {% if field.errors %}<li>{{ field.label }}: {{ field.errors|join:", " }}</li>{% endif %}
+                    {% endfor %}
+                    {% for f in formset %}
+                        {% if f.errors %}
+                            <li>Row {{ forloop.counter }}: {{ f.errors.as_text }}</li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small text-uppercase">Voucher Type</label>
+                    {{ form.voucher_type }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small text-uppercase">Date</label>
+                    {{ form.date }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small text-uppercase">Due Date</label>
+                    {{ form.due_date }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small text-uppercase">Place of Supply</label>
+                    {{ form.place_of_supply }}
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-bold small text-uppercase">Narration</label>
+                {{ form.narration }}
+            </div>
+
+            <div class="table-responsive">
+                <h6 class="fw-bold small text-uppercase mb-3">Line Items</h6>
+                {{ formset.management_form }}
+                <table class="table table-bordered align-middle" id="item-table">
+                    <thead class="table-light small text-uppercase fw-bold">
+                        <tr>
+                            <th style="width: 20%;">Ledger</th>
+                            <th style="width: 13%;">Stock Item</th>
+                            <th style="width: 12%;">Godown</th>
+                            <th style="width: 12%;">Batch</th>
+                            <th style="width: 7%; text-align: right;">Qty</th>
+                            <th style="width: 8%; text-align: right;">Rate</th>
+                            <th style="width: 8%; text-align: center;">Type</th>
+                            <th style="width: 10%; text-align: right;">Amount</th>
+                            <th style="width: 12%;">Line Narration</th>
+                        </tr>
+                    </thead>
+                    <tbody id="formset-tbody">
+                        {% for f in formset %}
+                        <tr class="formset-row">
+                            {{ f.id }}
+                            <td>
+                                <div class="ledger-search-container">
+                                    <input type="text" class="form-control ledger-autocomplete" 
+                                           placeholder="Search ledger..." 
+                                           value="{{ f.ledger.field.choices.0.1|default:'' }}"
+                                           data-selected-id="{{ f.ledger.value|default:'' }}">
+                                    <div style="display:none">{{ f.ledger }}</div>
+                                    <div class="ledger-results"></div>
+                                </div>
+                                {% if f.ledger.errors %}<div class="text-danger x-small mt-1">{{ f.ledger.errors }}</div>{% endif %}
+                            </td>
+                            <td>
+                                {{ f.stock_item }}
+                                {% if f.stock_item.errors %}<div class="text-danger x-small">{{ f.stock_item.errors|join:", " }}</div>{% endif %}
+                            </td>
+                            <td>{{ f.godown }}</td>
+                            <td>{{ f.batch }}</td>
+                            <td>
+                                {{ f.quantity }}
+                                {% if f.quantity.errors %}<div class="text-danger x-small">{{ f.quantity.errors|join:", " }}</div>{% endif %}
+                            </td>
+                            <td>
+                                {{ f.rate }}
+                                {% if f.rate.errors %}<div class="text-danger x-small">{{ f.rate.errors|join:", " }}</div>{% endif %}
+                            </td>
+                            <td>{{ f.entry_type }}</td>
+                            <td>
+                                {{ f.amount }}
+                                {% if f.amount.errors %}<div class="text-danger x-small">{{ f.amount.errors|join:", " }}</div>{% endif %}
+                            </td>
+                            <td>{{ f.narration }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <div class="form-check">
+                    {{ form.reverse_charge }}
+                    <label class="form-check-label small" for="{{ form.reverse_charge.id_for_label }}">
+                        Reverse Charge (RCM)
+                    </label>
+                </div>
+                <div>
+                    <a href="{% url 'vouchers:list' %}" class="btn btn-light border me-2">Cancel</a>
+                    <button type="submit" id="submit-btn" class="btn btn-primary px-4 fw-bold shadow-sm">
+                        <i class="bi bi-check-circle me-1"></i> Save Voucher
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# Hidden template for new rows #}
+<div id="empty-row-container" style="display:none">
+    <table>
+        <tr class="formset-row">
+            {{ formset.empty_form.id }}
+            <td>
+                <div class="ledger-search-container">
+                    <input type="text" class="form-control ledger-autocomplete" placeholder="Search ledger...">
+                    <div style="display:none">{{ formset.empty_form.ledger }}</div>
+                    <div class="ledger-results"></div>
+                </div>
+            </td>
+            <td>{{ formset.empty_form.stock_item }}</td>
+            <td>{{ formset.empty_form.godown }}</td>
+            <td>{{ formset.empty_form.batch }}</td>
+            <td>{{ formset.empty_form.quantity }}</td>
+            <td>{{ formset.empty_form.rate }}</td>
+            <td>{{ formset.empty_form.entry_type }}</td>
+            <td>{{ formset.empty_form.amount }}</td>
+            <td>{{ formset.empty_form.narration }}</td>
+        </tr>
+    </table>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('voucher-form');
+    const tbody = document.getElementById('formset-tbody');
+    
+    // Robustly find TOTAL_FORMS
+    const totalForms = document.querySelector('input[id$="-TOTAL_FORMS"]');
+    const prefix = totalForms.name.replace('-TOTAL_FORMS', '');
+    
+    // 1. Extract ledgers from the first select
+    const firstSelect = tbody.querySelector('select');
+    const ledgers = Array.from(firstSelect.options)
+        .filter(opt => opt.value)
+        .map(opt => ({ id: opt.value, name: opt.text }));
+
+    // 2. Setup Speed Navigation
+    form.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+            const focusable = Array.from(form.querySelectorAll('input:not([type=hidden]), select:not([style*="display:none"]), textarea, button[type=submit]'))
+                .filter(el => !el.closest('.ledger-results') && el.offsetParent !== null);
+            const index = focusable.indexOf(e.target);
+            
+            if (e.shiftKey) {
+                if (index > 0) focusable[index - 1].focus();
+            } else {
+                if (index < focusable.length - 1) {
+                    focusable[index + 1].focus();
+                } else if (e.target.tagName !== 'BUTTON') {
+                    // Check if we should add a row before submitting
+                    if (handleAutoRow(e.target)) {
+                        // row was added, handleAutoRow already focused the new ledger input
+                    } else {
+                        document.getElementById('submit-btn').focus();
+                    }
+                }
+            }
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            form.submit();
+        }
+    });
+
+    // 3. Search Logic
+    const initAutocomplete = (row) => {
+        const textInput = row.querySelector('.ledger-autocomplete');
+        const hiddenSelect = row.querySelector('select');
+        const resultsDiv = row.querySelector('.ledger-results');
+
+        const showResults = () => {
+            const val = textInput.value.toLowerCase();
+            const filtered = ledgers.filter(l => l.name.toLowerCase().includes(val)).slice(0, 10);
+            
+            if (filtered.length > 0) {
+                resultsDiv.innerHTML = filtered.map(l => `<div data-id="${l.id}">${l.name}</div>`).join('');
+                resultsDiv.style.display = 'block';
+            } else {
+                resultsDiv.style.display = 'none';
+            }
+        };
+
+        // Sync initial value if any
+        if (hiddenSelect.value) {
+            const opt = Array.from(hiddenSelect.options).find(o => o.value === hiddenSelect.value);
+            if (opt) textInput.value = opt.text;
+        }
+
+        textInput.addEventListener('input', showResults);
+        textInput.addEventListener('focus', showResults);
+
+        resultsDiv.addEventListener('click', (e) => {
+            if (e.target.dataset.id) {
+                hiddenSelect.value = e.target.dataset.id;
+                textInput.value = e.target.textContent;
+                resultsDiv.style.display = 'none';
+                // Move to next field
+                const focusable = Array.from(form.querySelectorAll('input:not([type=hidden]), select:not([style*="display:none"]), textarea, button[type=submit]'))
+                    .filter(el => !el.closest('.ledger-results') && el.offsetParent !== null);
+                const index = focusable.indexOf(textInput);
+                if (index > -1 && index < focusable.length - 1) focusable[index + 1].focus();
+            }
+        });
+
+        // Close results on blur
+        textInput.addEventListener('blur', () => {
+            setTimeout(() => { resultsDiv.style.display = 'none'; }, 200);
+        });
+    };
+
+    // Initialize existing rows
+    tbody.querySelectorAll('.formset-row').forEach(initAutocomplete);
+
+    // ── Dropdown Auto-Open for standard selects ──
+    document.addEventListener('focusin', (e) => {
+        if (e.target.tagName === 'SELECT' && !e.target.disabled) {
+            if (typeof e.target.showPicker === 'function') {
+                try { e.target.showPicker(); } catch (err) {}
+            }
+        }
+    });
+
+    // 4. Auto Row Creation
+    function handleAutoRow(target) {
+        const row = target.closest('.formset-row');
+        if (!row) return false;
+
+        const isLastRow = row === tbody.lastElementChild;
+        const amountVal = parseFloat(row.querySelector('input[name$="-amount"]')?.value || 0);
+        const hasValue = amountVal > 0;
+
+        if (isLastRow && hasValue) {
+            const count = parseInt(totalForms.value);
+            const emptyRowHtml = document.getElementById('empty-row-container').querySelector('tr').innerHTML;
+            const newRowHtml = emptyRowHtml.replace(/__prefix__/g, count).replace(/items/g, prefix);
+            
+            const newRow = document.createElement('tr');
+            newRow.className = 'formset-row';
+            newRow.innerHTML = newRowHtml;
+            tbody.appendChild(newRow);
+            
+            totalForms.value = count + 1;
+            initAutocomplete(newRow);
+            newRow.querySelector('.ledger-autocomplete').focus();
+            return true;
+        }
+        return false;
+    }
+
+    // Initial focus
+    const firstInput = form.querySelector('input:not([type=hidden]), select, textarea');
+    if (firstInput) firstInput.focus();
+});
+</script>
+{% endblock %}

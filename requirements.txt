@@ -1,0 +1,27 @@
+Django==4.2.13
+django-environ==0.11.2
+Pillow==10.3.0
+psycopg2-binary==2.9.9
+django-crispy-forms==2.1
+crispy-bootstrap5==2024.2
+whitenoise==6.6.0
+gunicorn==22.0.0
+pandas==2.2.2
+openpyxl==3.1.2
+cryptography==47.0.0
+
+# ── Phase 2: PDF Bill Automation (Fast Path) ──────────────────────────────
+PyMuPDF==1.24.2
+pdfplumber==0.11.0
+rapidfuzz>=3.0.0
+pytesseract==0.3.10
+Pillow==10.3.0
+
+# ── Phase 6: UPI QR Code Generation ─────────────────────────────────────────
+qrcode==7.4.2
+
+# ── Phase 7: Server-Side PDF, Async OCR ─────────────────────────────────────
+weasyprint==61.2
+pydyf==0.10.0
+celery[redis]==5.3.6
+redis==5.0.4

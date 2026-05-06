@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Godowns – Akshaya Vistara{% endblock %}
+{% block page_title %}Godowns{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <span class="text-muted small">{{ godowns|length }} godown{{ godowns|length|pluralize }}</span>
+  <a href="{% url 'inventory:godown_create' %}" class="btn btn-sm btn-primary">
+    <i class="bi bi-plus-lg me-1"></i> Add Godown
+  </a>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    {% if godowns %}
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Name</th>
+          <th>Location</th>
+          <th>Status</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for g in godowns %}
+        <tr>
+          <td class="fw-semibold">{{ g.name }}</td>
+          <td class="text-muted small">{{ g.location|default:"—" }}</td>
+          <td>
+            {% if g.is_active %}
+              <span class="badge bg-success-subtle text-success">Active</span>
+            {% else %}
+              <span class="badge bg-secondary-subtle text-secondary">Inactive</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <a href="{% url 'inventory:godown_edit' g.pk %}" class="btn btn-sm btn-outline-primary me-1">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <a href="{% url 'inventory:godown_delete' g.pk %}" class="btn btn-sm btn-outline-danger">
+              <i class="bi bi-trash"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-building fs-1 d-block mb-2"></i>
+      No godowns added yet. <a href="{% url 'inventory:godown_create' %}">Add your first godown</a>.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

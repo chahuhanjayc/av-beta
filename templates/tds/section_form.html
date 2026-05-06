@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}{{ title }} – Akshaya Vistara{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-7">
+  <form method="post">
+    {% csrf_token %}
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold py-3">{{ title }}</div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-4">{{ form.nature|as_crispy_field }}</div>
+          <div class="col-md-4">{{ form.section_code|as_crispy_field }}</div>
+          <div class="col-md-12">{{ form.description|as_crispy_field }}</div>
+          <div class="col-md-4">{{ form.threshold|as_crispy_field }}</div>
+          <div class="col-md-4">{{ form.rate_individual|as_crispy_field }}</div>
+          <div class="col-md-4">{{ form.rate_company|as_crispy_field }}</div>
+          <div class="col-md-4">{{ form.surcharge_rate|as_crispy_field }}</div>
+          <div class="col-auto"><div class="form-check mt-2">{{ form.is_active }}<label class="form-check-label" for="{{ form.is_active.id_for_label }}">Active</label></div></div>
+        </div>
+      </div>
+      <div class="card-footer bg-white d-flex gap-2 justify-content-end">
+        <a href="{% url 'tds:section_list' %}" class="btn btn-outline-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i>Save</button>
+      </div>
+    </div>
+  </form>
+</div></div>
+{% endblock %}

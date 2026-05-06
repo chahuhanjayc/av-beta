@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Forex Position – Akshaya Vistara{% endblock %}
+{% block page_title %}Forex Position — {{ today }}{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  {% for p in positions %}
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm {% if p.is_base %}border-primary{% endif %}">
+      <div class="card-body text-center py-3">
+        <div class="fw-bold fs-3">{{ p.currency.symbol }}</div>
+        <div class="fw-semibold">{{ p.currency.code }}</div>
+        <div class="text-muted small mb-2">{{ p.currency.name }}</div>
+        {% if p.is_base %}
+          <span class="badge bg-primary">Base Currency</span>
+        {% else %}
+          <div class="mt-2">
+            <div class="text-muted small">1 {{ p.currency.code }} =</div>
+            <div class="fw-bold fs-5 text-success">₹{{ p.rate }}</div>
+            {% if p.rate_date %}<div class="text-muted small">as of {{ p.rate_date }}</div>{% endif %}
+          </div>
+          <div class="mt-2">
+            <a href="{% url 'forex:exchange_rate_create' %}" class="btn btn-sm btn-outline-primary">Update Rate</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="d-flex gap-2">
+  <a href="{% url 'forex:currency_create' %}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-lg me-1"></i>Add Currency
+  </a>
+  <a href="{% url 'forex:exchange_rate_create' %}" class="btn btn-outline-primary btn-sm">
+    <i class="bi bi-graph-up me-1"></i>Update Exchange Rate
+  </a>
+</div>
+{% endblock %}

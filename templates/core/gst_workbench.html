@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block title %}GST Workbench - Akshaya Vistara{% endblock %}
+{% block page_title %}GST Workbench{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h5 class="mb-0">GST Workbench</h5>
+    <small class="text-muted">{{ period_start|date:"M Y" }} client review, 2B action, filings, notices, and CA sign-off</small>
+  </div>
+  <div class="d-flex gap-2 align-items-end">
+  <a href="{% url 'core:filing_review_center' %}?period={{ period_value }}{% if selected_company_id %}&company={{ selected_company_id }}{% endif %}" class="btn btn-sm btn-outline-primary">
+    <i class="bi bi-patch-check"></i> Review Center
+  </a>
+  <a href="{% url 'core:gst_filing_pack' %}?period={{ period_value }}{% if selected_company_id %}&company={{ selected_company_id }}{% endif %}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-file-earmark-spreadsheet"></i> Filing Pack
+  </a>
+  <a href="{% url 'core:gst_post_filing' %}?period={{ period_value }}{% if selected_company_id %}&company={{ selected_company_id }}{% endif %}" class="btn btn-sm btn-outline-success">
+    <i class="bi bi-archive"></i> Post-Filing
+  </a>
+  <form method="get" class="d-flex gap-2 align-items-end">
+    <div>
+      <label class="form-label small text-muted mb-1">Period</label>
+      <input type="month" name="period" value="{{ period_value }}" class="form-control form-control-sm">
+    </div>
+    <div>
+      <label class="form-label small text-muted mb-1">Client</label>
+      <select name="company" class="form-select form-select-sm">
+        <option value="">All Clients</option>
+        {% for company in company_filter_options %}
+          <option value="{{ company.pk }}" {% if selected_company_id == company.pk|stringformat:"s" %}selected{% endif %}>{{ company.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-sm btn-outline-primary">Apply</button>
+  </form>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small text-uppercase fw-semibold">Clients</div>
+      <div class="h4 mb-0">{{ totals.companies }}</div>
+      <div class="small text-danger">{{ totals.risk_clients }} high-risk</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small text-uppercase fw-semibold">2B Exceptions</div>
+      <div class="h4 mb-0 text-warning">{{ totals.missing_in_books|add:totals.missing_in_portal }}</div>
+      <div class="small text-muted">{{ totals.pending_2b }} pending actions</div>
+      <div class="small {% if totals.client_chase_overdue %}text-danger{% else %}text-info{% endif %}">
+        {{ totals.client_chase_open }} client asks, {{ totals.client_chase_uploaded }} uploaded
+      </div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small text-uppercase fw-semibold">Net Tax Payable</div>
+      <div class="h4 mb-0">Rs.{{ totals.net_tax_payable|floatformat:2 }}</div>
+      <div class="small text-muted">Output Rs.{{ totals.output_tax|floatformat:2 }} | ITC Rs.{{ totals.itc|floatformat:2 }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small text-uppercase fw-semibold">E-Invoice Watch</div>
+      <div class="h4 mb-0 {% if totals.e_invoice_expired %}text-danger{% elif totals.e_invoice_due_soon %}text-warning{% else %}text-success{% endif %}">
+        {{ totals.e_invoice_missing_irn }}
+      </div>
+      <div class="small text-muted">{{ totals.e_invoice_expired }} expired, {{ totals.e_invoice_due_soon }} due soon</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small text-uppercase fw-semibold">ITC 180-Day</div>
+      <div class="h4 mb-0 {% if totals.itc_180_overdue %}text-danger{% elif totals.itc_180_due_soon %}text-warning{% else %}text-success{% endif %}">
+        {{ totals.itc_180_reversal_due }}
+      </div>
+      <div class="small text-muted">Rs.{{ totals.itc_180_reversal_itc|floatformat:2 }} exposure</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small text-uppercase fw-semibold">RCM Watch</div>
+      <div class="h4 mb-0 {% if totals.rcm_missing_tax %}text-danger{% elif totals.rcm_purchase_count %}text-warning{% else %}text-success{% endif %}">
+        {{ totals.rcm_missing_tax }}
+      </div>
+      <div class="small text-muted">Rs.{{ totals.rcm_tax_amount|floatformat:2 }} RCM tax</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small text-uppercase fw-semibold">E-Way Bill</div>
+      <div class="h4 mb-0 {% if totals.eway_missing or totals.eway_expired %}text-danger{% elif totals.eway_due_soon %}text-warning{% else %}text-success{% endif %}">
+        {{ totals.eway_missing|add:totals.eway_expired }}
+      </div>
+      <div class="small text-muted">{{ totals.eway_due_soon }} expiring soon</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small text-uppercase fw-semibold">Signed Off</div>
+      <div class="h4 mb-0 text-success">{{ totals.signed_off }}</div>
+      <div class="small text-danger">{{ totals.overdue_filings }} overdue filings</div>
+    </div></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h6 class="mb-0"><i class="bi bi-shield-check me-2"></i>Period Review Queue</h6>
+    <span class="small text-muted">Sorted by risk</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th class="ps-3">Client</th>
+          <th class="text-end">Risk</th>
+          <th class="text-end">Sales / Tax</th>
+          <th class="text-end">ITC / Net</th>
+          <th class="text-end">2B</th>
+          <th>Filings</th>
+          <th class="text-end">Work</th>
+          <th>Review</th>
+          <th class="text-end pe-3">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          {% with ims=row.filings.GST_IMS gstr1=row.filings.GSTR1 gstr3b=row.filings.GSTR3B %}
+          <tr>
+            <td class="ps-3">
+              <a class="fw-semibold text-decoration-none" href="{% url 'core:gst_workbench_detail' row.company.pk period_value %}">
+                {{ row.company.name }}
+              </a>
+              <div class="small text-muted">{{ row.company.gstin|default:"No GSTIN" }}</div>
+            </td>
+            <td class="text-end">
+              <span class="badge {% if row.risk_score >= 60 %}bg-danger{% elif row.risk_score >= 30 %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                {{ row.risk_score }}
+              </span>
+              <div class="small text-muted">{{ row.health_score }} health</div>
+            </td>
+            <td class="text-end">
+              <div>{{ row.sales_invoices }} inv</div>
+              <div class="small text-muted">Rs.{{ row.output_tax|floatformat:2 }}</div>
+              {% if row.sales_missing_pos or row.sales_invalid_party_gstin or row.sales_tax_pos_mismatch or row.sales_missing_hsn %}
+                <div class="small text-danger">
+                  {{ row.sales_missing_pos|add:row.sales_invalid_party_gstin|add:row.sales_tax_pos_mismatch|add:row.sales_missing_hsn }} sales flags
+                </div>
+              {% endif %}
+              {% if row.e_invoice_enabled and row.e_invoice_missing_irn %}
+                <div class="small {% if row.e_invoice_expired %}text-danger{% else %}text-warning{% endif %}">
+                  {{ row.e_invoice_missing_irn }} missing IRN
+                </div>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <div>ITC Rs.{{ row.itc|floatformat:2 }}</div>
+              <div class="small {% if row.net_tax_payable < 0 %}text-success{% else %}text-muted{% endif %}">Net Rs.{{ row.net_tax_payable|floatformat:2 }}</div>
+              {% if row.itc_180_reversal_due %}
+                <div class="small {% if row.itc_180_overdue %}text-danger{% else %}text-warning{% endif %}">
+                  {{ row.itc_180_reversal_due }} ITC 180-day
+                </div>
+              {% endif %}
+              {% if row.rcm_missing_tax %}
+                <div class="small text-danger">{{ row.rcm_missing_tax }} RCM tax missing</div>
+              {% elif row.rcm_purchase_count %}
+                <div class="small text-muted">RCM Rs.{{ row.rcm_tax_amount|floatformat:2 }}</div>
+              {% endif %}
+              {% if row.eway_missing or row.eway_expired %}
+                <div class="small text-danger">{{ row.eway_missing|add:row.eway_expired }} e-way bill</div>
+              {% elif row.eway_due_soon %}
+                <div class="small text-warning">{{ row.eway_due_soon }} e-way expiring</div>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <div>{{ row.matched_2b }} matched</div>
+              {% if row.missing_in_books or row.missing_in_portal %}
+                <div class="small text-danger">{{ row.missing_in_books }} book gaps, {{ row.missing_in_portal }} portal gaps</div>
+              {% else %}
+                <div class="small text-success">No gaps</div>
+              {% endif %}
+              {% if row.pending_2b or row.rejected_2b %}
+                <div class="small text-warning">{{ row.pending_2b }} pending, {{ row.rejected_2b }} rejected</div>
+              {% endif %}
+            </td>
+            <td>
+              <div class="d-flex flex-column gap-1">
+                <span class="badge text-start {% if ims and not ims.is_open %}bg-success{% elif ims %}bg-primary-subtle text-primary{% else %}bg-secondary-subtle text-secondary{% endif %}">
+                  IMS: {% if ims %}{{ ims.get_status_display }}{% else %}Missing{% endif %}
+                </span>
+                <span class="badge text-start {% if gstr1 and not gstr1.is_open %}bg-success{% elif gstr1 %}bg-primary-subtle text-primary{% else %}bg-secondary-subtle text-secondary{% endif %}">
+                  GSTR-1: {% if gstr1 %}{{ gstr1.get_status_display }}{% else %}Missing{% endif %}
+                </span>
+                <span class="badge text-start {% if gstr3b and not gstr3b.is_open %}bg-success{% elif gstr3b %}bg-primary-subtle text-primary{% else %}bg-secondary-subtle text-secondary{% endif %}">
+                  3B: {% if gstr3b %}{{ gstr3b.get_status_display }}{% else %}Missing{% endif %}
+                </span>
+              </div>
+            </td>
+            <td class="text-end">
+              <div>{{ row.open_gst_tasks }} tasks</div>
+              {% if row.overdue_gst_tasks %}<div class="small text-danger">{{ row.overdue_gst_tasks }} overdue</div>{% endif %}
+              <div class="small {% if row.open_notices %}text-danger{% else %}text-muted{% endif %}">{{ row.open_notices }} notices</div>
+              {% if row.draft_gst_vouchers %}<div class="small text-warning">{{ row.draft_gst_vouchers }} draft vouchers</div>{% endif %}
+              {% if row.sales_missing_pos %}
+                <div class="small text-danger">{{ row.sales_missing_pos }} sales POS missing</div>
+              {% endif %}
+              {% if row.sales_invalid_party_gstin %}
+                <div class="small text-danger">{{ row.sales_invalid_party_gstin }} invalid GSTIN</div>
+              {% endif %}
+              {% if row.sales_tax_pos_mismatch %}
+                <div class="small text-warning">{{ row.sales_tax_pos_mismatch }} tax/POS mismatch</div>
+              {% endif %}
+              {% if row.sales_missing_hsn %}
+                <div class="small text-danger">{{ row.sales_missing_hsn }} HSN/SAC missing</div>
+              {% endif %}
+              {% if row.client_chase_open or row.client_chase_uploaded %}
+                <div class="small {% if row.client_chase_overdue %}text-danger{% else %}text-info{% endif %}">
+                  {{ row.client_chase_open }} asks, {{ row.client_chase_uploaded }} uploaded
+                </div>
+              {% endif %}
+              {% if row.e_invoice_enabled %}
+                {% if row.e_invoice_expired %}
+                  <div class="small text-danger">{{ row.e_invoice_expired }} IRP expired</div>
+                {% elif row.e_invoice_due_soon %}
+                  <div class="small text-warning">{{ row.e_invoice_due_soon }} IRN due soon</div>
+                {% elif row.e_invoice_missing_irn %}
+                  <div class="small text-muted">{{ row.e_invoice_missing_irn }} IRN pending</div>
+                {% endif %}
+              {% endif %}
+            </td>
+            <td>
+              {% if row.review %}
+                <span class="badge {% if row.review.status == 'signed_off' %}bg-success{% elif row.review.status == 'in_review' %}bg-info text-dark{% else %}bg-secondary{% endif %}">
+                  {{ row.review.get_status_display }}
+                </span>
+                {% if row.review.reviewed_by %}
+                  <div class="small text-muted">{{ row.review.reviewed_by.email }}</div>
+                {% endif %}
+              {% else %}
+                <span class="badge bg-secondary-subtle text-secondary">Not started</span>
+              {% endif %}
+              {% if row.signoff_blockers %}
+                <div class="small text-danger mt-1">{{ row.signoff_blockers|length }} sign-off blocker{{ row.signoff_blockers|length|pluralize }}</div>
+              {% else %}
+                <div class="small text-success mt-1">Sign-off clear</div>
+              {% endif %}
+            </td>
+            <td class="text-end pe-3">
+              <a class="btn btn-xs btn-outline-primary" href="{% url 'core:gst_workbench_detail' row.company.pk period_value %}">Open</a>
+              <a class="btn btn-xs btn-outline-secondary" href="{% url 'core:switch_company' row.company.id %}?next={% url 'gstr2b:results' %}">2B</a>
+              <form method="post" action="{% url 'core:gst_workbench_create_filings' %}" class="d-inline">
+                {% csrf_token %}
+                <input type="hidden" name="period" value="{{ period_value }}">
+                <input type="hidden" name="company_id" value="{{ row.company.pk }}">
+                <button type="submit" class="btn btn-xs btn-outline-primary">Filings</button>
+              </form>
+              <form method="post" action="{% url 'core:gst_workbench_chase_pack' %}" class="d-inline">
+                {% csrf_token %}
+                <input type="hidden" name="period" value="{{ period_value }}">
+                <input type="hidden" name="company_id" value="{{ row.company.pk }}">
+                <button type="submit" class="btn btn-xs btn-outline-info">Chase</button>
+              </form>
+              <form method="post" action="{% url 'core:gst_workbench_signoff' %}" class="mt-1">
+                {% csrf_token %}
+                <input type="hidden" name="period" value="{{ period_value }}">
+                <input type="hidden" name="company_id" value="{{ row.company.pk }}">
+                <input type="text" name="notes" class="form-control form-control-sm mb-1" placeholder="Review note" value="{% if row.review %}{{ row.review.notes }}{% endif %}">
+                <button type="submit" name="status" value="in_review" class="btn btn-xs btn-outline-secondary">Review</button>
+                <button type="submit" name="status" value="signed_off" class="btn btn-xs btn-outline-success" {% if not row.can_sign_off %}disabled title="Clear sign-off blockers first"{% endif %}>Sign Off</button>
+                {% if row.review and row.review.is_signed_off %}
+                  <button type="submit" name="status" value="reopened" class="btn btn-xs btn-outline-warning">Reopen</button>
+                {% endif %}
+              </form>
+            </td>
+          </tr>
+          {% endwith %}
+        {% empty %}
+          <tr>
+            <td colspan="9" class="text-center text-muted py-4">No client workspaces are assigned to this user.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

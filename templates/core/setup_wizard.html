@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Setup Wizard - Akshaya Vistara{% endblock %}
+{% block page_title %}Setup Wizard{% endblock %}
+
+{% block extra_head %}
+<style>
+  .setup-hero,
+  .setup-card {
+    background: var(--surface-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+  }
+
+  .setup-hero {
+    padding: 1rem;
+  }
+
+  .setup-score {
+    align-items: center;
+    background: var(--surface-subtle);
+    border-radius: 8px;
+    display: flex;
+    gap: 0.8rem;
+    padding: 0.75rem 0.9rem;
+  }
+
+  .setup-score-number {
+    color: var(--accent);
+    font-size: 1.65rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .setup-card {
+    height: 100%;
+    padding: 1rem;
+  }
+
+  .setup-icon {
+    align-items: center;
+    border-radius: 8px;
+    display: inline-flex;
+    height: 38px;
+    justify-content: center;
+    width: 38px;
+  }
+
+  .setup-title {
+    color: var(--text-main);
+    font-weight: 800;
+    margin: 0;
+  }
+
+  .setup-detail {
+    color: var(--text-muted);
+    font-size: 0.84rem;
+    margin: 0.65rem 0;
+  }
+
+  .setup-status {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column gap-3">
+  <section class="setup-hero">
+    <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+      <div>
+        <div class="text-muted small fw-bold text-uppercase">First-run setup</div>
+        <h5 class="mb-1">{{ company.name }}</h5>
+        <p class="text-muted mb-0">
+          Complete the essentials required for client self-service, GST/TDS workflows, invoice email, WhatsApp intake, and production trust.
+        </p>
+      </div>
+      <div class="setup-score">
+        <div class="setup-score-number">{{ score }}%</div>
+        <div>
+          <div class="fw-bold">{{ ready_count }}/{{ total_steps }} ready</div>
+          <div class="small text-muted">Setup readiness</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="row g-3">
+    {% for step in setup_steps %}
+      <div class="col-md-6 col-xl-4">
+        <div class="setup-card">
+          <div class="d-flex justify-content-between gap-2 align-items-start">
+            <div class="d-flex gap-2 align-items-center min-w-0">
+              <span class="setup-icon {% if step.ready %}bg-success-subtle text-success{% else %}bg-warning-subtle text-warning{% endif %}">
+                <i class="bi {{ step.icon }}"></i>
+              </span>
+              <div class="min-w-0">
+                <p class="setup-title text-truncate">{{ step.title }}</p>
+                <div class="setup-status text-truncate">{{ step.status }}</div>
+              </div>
+            </div>
+            <span class="badge {% if step.ready %}bg-success-subtle text-success{% else %}bg-warning-subtle text-warning{% endif %}">
+              {% if step.ready %}Ready{% else %}Needed{% endif %}
+            </span>
+          </div>
+
+          <p class="setup-detail">{{ step.detail }}</p>
+
+          {% if step.action_url %}
+            <a href="{{ step.action_url }}" class="btn btn-sm {% if step.ready %}btn-outline-secondary{% else %}btn-primary{% endif %}">
+              {{ step.action_label }}
+            </a>
+          {% elif step.post_action %}
+            <form method="post" class="d-inline">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="{{ step.post_action }}">
+              <button type="submit" class="btn btn-sm {% if step.ready %}btn-outline-secondary{% else %}btn-primary{% endif %}" {% if not can_write %}disabled{% endif %}>
+                {{ step.action_label }}
+              </button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <section class="setup-card">
+    <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-center">
+      <div>
+        <h6 class="mb-1">Next operating actions</h6>
+        <div class="text-muted small">After setup, generate statutory work, request client documents, and review launch readiness.</div>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'core:demo_workspace' %}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-play-circle me-1"></i> Demo Mode
+        </a>
+        <a href="{% url 'core:compliance_calendar' %}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-calendar2-week me-1"></i> Calendar
+        </a>
+        <a href="{% url 'portal:client_request_create' %}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-inbox me-1"></i> New Client Request
+        </a>
+        <a href="{% url 'core:client_operating_readiness' %}" class="btn btn-primary btn-sm">
+          <i class="bi bi-clipboard2-check me-1"></i> Operating Readiness
+        </a>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}
